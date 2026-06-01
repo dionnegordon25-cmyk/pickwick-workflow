@@ -1,5 +1,6 @@
 [build]
   functions = "netlify/functions"
+  publish = "."
 
 [[scheduled_functions]]
   name = "daily-drafts"
@@ -7,7 +8,6 @@
 
 [build.environment]
   SECRETS_SCAN_OMIT_KEYS = "AZURE_CLIENT_ID,AZURE_CLIENT_SECRET,AZURE_TENANT_ID,FIREBASE_URL,OUTLOOK_EMAIL,OUTLOOK_PASSWORD,OUTLOOK_REFRESH_TOKEN"
-  SECRETS_SCAN_OMIT_PATHS = "index.html,pickwick_crm.html,auth.html"
 
 [[redirects]]
   from = "/"
