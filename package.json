@@ -1,0 +1,8 @@
+{
+  "name": "dg-lettings-crm",
+  "version": "1.0.0",
+  "description": "DG Lettings Workflow CRM",
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}
