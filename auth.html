@@ -1,133 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="cid" content="4b51aab5-7a36-40ef-" data-suffix="a36b-978f10c43d05">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DG Lettings — Outlook Authorisation</title>
-<style>
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F5F5F3;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;box-sizing:border-box}
-.card{background:#fff;border-radius:14px;border:0.5px solid #E2E2DF;padding:32px;max-width:520px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,0.06)}
-h1{font-size:18px;font-weight:600;color:#1A1A1A;margin:0 0 6px}
-p{font-size:13px;color:#6B6B6B;margin:0 0 24px;line-height:1.6}
-.btn{display:inline-flex;align-items:center;gap:8px;background:#0078D4;color:#fff;border:none;border-radius:8px;padding:12px 20px;font-size:14px;font-weight:500;cursor:pointer;text-decoration:none;font-family:inherit;width:100%;justify-content:center;box-sizing:border-box}
-.btn:hover{background:#106EBE}
-.btn-copy{background:#1a1a1a;margin-top:8px}
-.btn-copy:hover{background:#333}
-.step{background:#F5F5F3;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:12px;color:#6B6B6B;border-left:3px solid #E2E2DF}
-.step strong{color:#1A1A1A;display:block;margin-bottom:3px;font-size:13px}
-.token-box{background:#EAF3DE;border:0.5px solid #78BEA0;border-radius:8px;padding:16px;margin-top:16px;display:none}
-.token-box label{font-size:11px;font-weight:600;color:#3B6D11;text-transform:uppercase;letter-spacing:0.5px}
-.token-val{font-size:11px;font-family:monospace;color:#1A1A1A;word-break:break-all;background:#fff;border-radius:6px;padding:10px;margin:8px 0;border:0.5px solid #D4D4D0;max-height:80px;overflow-y:auto}
-.error-box{background:#FCEBEB;border:0.5px solid #A32D2D;border-radius:8px;padding:16px;margin-top:16px;display:none;font-size:12px;color:#A32D2D}
-.success{color:#3B6D11;font-weight:600}
-.divider{border:none;border-top:0.5px solid #E2E2DF;margin:20px 0}
-</style>
-</head>
-<body>
-<div class="card">
-  <h1>DG Lettings — Outlook Authorisation</h1>
-  <p>One-time setup to connect your Outlook account to the automated email system. Click the button below to log in with your Microsoft account. You only need to do this once.</p>
+[build]
+  functions = "netlify/functions"
+  publish = "."
 
-  <div class="step"><strong>Step 1 — Authorise</strong>Click the button below and log in with your Pickwick Estates Microsoft account</div>
-  <div class="step"><strong>Step 2 — Copy the refresh token</strong>After login, your refresh token will appear below. Copy it.</div>
-  <div class="step"><strong>Step 3 — Save to Netlify</strong>Go to Netlify → Site settings → Environment variables → add OUTLOOK_REFRESH_TOKEN with the copied value.</div>
+[[scheduled_functions]]
+  name = "daily-drafts"
+  cron = "0 8 * * *"
 
-  <button class="btn" onclick="startAuth()">
-    <svg width="18" height="18" viewBox="0 0 23 23" fill="none"><path d="M0 0h11v11H0z" fill="#f25022"/><path d="M12 0h11v11H12z" fill="#7fba00"/><path d="M0 12h11v11H0z" fill="#00a4ef"/><path d="M12 12h11v11H12z" fill="#ffb900"/></svg>
-    Sign in with Microsoft
-  </button>
+[[scheduled_functions]]
+  name = "renew-subscription"
+  cron = "0 6 */2 * *"
 
-  <hr class="divider">
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "AZURE_CLIENT_ID,AZURE_CLIENT_SECRET,AZURE_TENANT_ID,FIREBASE_URL,OUTLOOK_EMAIL,OUTLOOK_PASSWORD,OUTLOOK_REFRESH_TOKEN"
 
-  <div class="token-box" id="token-box">
-    <label>✓ Refresh token — copy this into Netlify</label>
-    <div class="token-val" id="token-val"></div>
-    <button class="btn btn-copy" onclick="copyToken()">Copy refresh token</button>
-    <p style="margin:10px 0 0;font-size:11px;color:#3B6D11">Paste this as OUTLOOK_REFRESH_TOKEN in Netlify environment variables. The automation will use this to send emails on your behalf.</p>
-  </div>
-
-  <div class="error-box" id="error-box"></div>
-</div>
-
-<script>
-var m = document.querySelector('meta[name=cid]');
-  var CLIENT_ID = m.content + m.dataset.suffix;
-var REDIRECT_URI = window.location.origin + '/auth.html';
-var SCOPE = 'https://graph.microsoft.com/Mail.ReadWrite offline_access';
-var TOKEN_ENDPOINT = 'https://login.microsoftonline.com/f22402ce-b358-43c7-91f9-b90742bf68e4/oauth2/v2.0/token';
-
-function startAuth(){
-  var state = Math.random().toString(36).substring(2);
-  sessionStorage.setItem('oauth_state', state);
-  var url = 'https://login.microsoftonline.com/f22402ce-b358-43c7-91f9-b90742bf68e4/oauth2/v2.0/authorize'
-    + '?client_id=' + CLIENT_ID
-    + '&response_type=code'
-    + '&redirect_uri=' + encodeURIComponent(REDIRECT_URI)
-    + '&scope=' + encodeURIComponent(SCOPE)
-    + '&state=' + state
-    + '&prompt=select_account';
-  window.location.href = url;
-}
-
-function copyToken(){
-  var val = document.getElementById('token-val').textContent;
-  navigator.clipboard.writeText(val).then(function(){
-    document.querySelector('.btn-copy').textContent = '✓ Copied!';
-    setTimeout(function(){ document.querySelector('.btn-copy').textContent = 'Copy refresh token'; }, 2000);
-  });
-}
-
-// Handle redirect back from Microsoft
-async function handleCallback(){
-  var params = new URLSearchParams(window.location.search);
-  var code = params.get('code');
-  var state = params.get('state');
-  var error = params.get('error');
-  var errorDesc = params.get('error_description');
-
-  if(error){
-    document.getElementById('error-box').style.display = 'block';
-    document.getElementById('error-box').textContent = 'Error: ' + error + ' — ' + errorDesc;
-    return;
-  }
-
-  if(!code) return;
-
-  // Verify state
-  var savedState = sessionStorage.getItem('oauth_state');
-  if(state !== savedState){
-    document.getElementById('error-box').style.display = 'block';
-    document.getElementById('error-box').textContent = 'Security error: state mismatch. Please try again.';
-    return;
-  }
-
-  // Exchange code for tokens via Netlify function
-  try {
-    var res = await fetch('/.netlify/functions/get-token', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({code: code, redirect_uri: REDIRECT_URI})
-    });
-    var data = await res.json();
-
-    if(data.refresh_token){
-      document.getElementById('token-box').style.display = 'block';
-      document.getElementById('token-val').textContent = data.refresh_token;
-      // Clean URL
-      window.history.replaceState({}, '', '/auth.html');
-    } else {
-      document.getElementById('error-box').style.display = 'block';
-      document.getElementById('error-box').textContent = 'Token exchange failed: ' + JSON.stringify(data);
-    }
-  } catch(e){
-    document.getElementById('error-box').style.display = 'block';
-    document.getElementById('error-box').textContent = 'Network error: ' + e.message;
-  }
-}
-
-// Run on page load
-handleCallback();
-</script>
-</body>
-</html>
+[[redirects]]
+  from = "/"
+  to = "/index.html"
+  status = 200
