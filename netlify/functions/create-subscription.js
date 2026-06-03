@@ -31,7 +31,7 @@ exports.handler = async function(event) {
     const subscription = {
       changeType: 'created',
       notificationUrl: siteUrl + '/.netlify/functions/email-handler',
-      resource: 'me/mailFolders/inbox/messages',
+      resource: 'me/messages',
       expirationDateTime: expiry,
       clientState: 'dg-lettings-secret-2026',
     };
