@@ -17,7 +17,7 @@ async function getAccessToken() {
     client_id:     CLIENT_ID,
     client_secret: CLIENT_SECRET,
     refresh_token: REFRESH_TOKEN,
-    scope:         'https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Read offline_access',
+    scope:         'https://graph.microsoft.com/Mail.ReadWrite offline_access',
   });
   const res = await fetch('https://login.microsoftonline.com/f22402ce-b358-43c7-91f9-b90742bf68e4/oauth2/v2.0/token', { method: 'POST', body });
   const data = await res.json();
