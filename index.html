@@ -74,6 +74,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .job-btn i{font-size:12px}
 .job-btn.wa{background:#25D366;color:#fff;border-color:#25D366}
 .job-btn.call{background:#185FA5;color:#fff;border-color:#185FA5}
+.jd-tab{font-size:12px;padding:7px 16px;border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;color:var(--text2);font-family:var(--font)}
+.jd-tab.active{color:var(--text);border-bottom-color:#1A5C3A;font-weight:500}
 .add-job-form{border:0.5px solid var(--border);border-radius:var(--radius-md);padding:10px 12px;margin-bottom:10px;background:var(--bg);display:none}
 .add-job-form.open{display:block}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
@@ -159,11 +161,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   </div>
   <div class="nav">
     <button class="nav-btn active" onclick="showPage('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
+    <button class="nav-btn" onclick="showPage('maintenance',this)"><i class="ti ti-tools"></i> Maintenance</button>
     <button class="nav-btn" onclick="showPage('properties',this)"><i class="ti ti-building"></i> All properties</button>
     <button class="nav-btn" onclick="showPage('compliance',this)"><i class="ti ti-shield-check"></i> Compliance</button>
     <button class="nav-btn" onclick="showPage('deposits',this)"><i class="ti ti-cash"></i> Deposits</button>
     <button class="nav-btn" onclick="showPage('contractors',this)"><i class="ti ti-tool"></i> Contractors</button>
     <button class="nav-btn" onclick="showPage('reports',this)"><i class="ti ti-chart-bar"></i> Reports</button>
+    <button class="nav-btn" onclick="showPage('settings',this)"><i class="ti ti-settings"></i> Settings</button>
     <button class="nav-btn" onclick="showPage('moveins',this)"><i class="ti ti-door-enter"></i> Move-ins</button>
     <button class="nav-btn" onclick="showPage('pasttenants',this)"><i class="ti ti-users"></i> Past tenants</button>
     <button class="nav-btn" onclick="showPage('activity',this)"><i class="ti ti-history"></i> Activity log</button>
@@ -173,6 +177,20 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <div class="content">
 
 <div id="page-dashboard" class="page active">
+  <!-- Chases overdue strip -->
+  <div id="chase-strip" onclick="showPage('maintenance',document.querySelector('.nav-btn[onclick*=maintenance]'))" style="cursor:pointer;border-radius:var(--radius-md);padding:8px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#FFF5F5;border:0.5px solid #F0C0C0;display:none">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:14px">⚠️</span>
+      <span style="font-size:12px;font-weight:600;color:#A32D2D" id="chase-strip-label">0 jobs need chasing</span>
+      <span style="font-size:11px;color:#A32D2D">— no action for 3+ days</span>
+    </div>
+    <span style="font-size:11px;color:#A32D2D;font-weight:500">View jobs →</span>
+  </div>
+  <!-- All clear strip (shown when no chases) -->
+  <div id="chase-strip-clear" style="border-radius:var(--radius-md);padding:7px 14px;margin-bottom:8px;display:flex;align-items:center;gap:8px;background:#F0F7EC;border:0.5px solid #C3DDB0">
+    <span style="font-size:12px">✅</span>
+    <span style="font-size:11px;font-weight:500;color:#3B6D11">All jobs actioned — no outstanding chases</span>
+  </div>
   <div class="ops-bar">
     <div class="ops-stat" style="cursor:pointer" onclick="navToMaintenance('overdue')" title="View overdue jobs"><div class="ops-stat-label">Urgent maintenance</div><div class="ops-stat-val red" id="ops-urgent">0</div><div class="ops-stat-sub" id="ops-urgent-sub">—</div></div>
     <div class="ops-stat" style="cursor:pointer" onclick="navToMaintenance('awaiting contractor')" title="View awaiting contractor"><div class="ops-stat-label">Awaiting contractor</div><div class="ops-stat-val amber" id="ops-awaiting">0</div><div class="ops-stat-sub">no response &gt;24hr</div></div>
@@ -188,6 +206,31 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="port-stat" style="cursor:pointer" onclick="navToCompliance('gsc','urgent')"><div class="port-stat-label">GSC outstanding</div><div class="port-stat-val purple">—</div><div class="port-stat-sub">add dates to track</div></div>
     <div class="port-stat" style="cursor:pointer" onclick="navToCompliance('eicr','urgent')"><div class="port-stat-label">EICR outstanding</div><div class="port-stat-val purple">—</div><div class="port-stat-sub">add dates to track</div></div>
     <div class="port-stat" style="cursor:pointer" onclick="navToReport('properties_rent')"><div class="port-stat-label">Avg rent</div><div class="port-stat-val" id="s-avgrent">—</div><div class="port-stat-sub">across portfolio</div></div>
+  </div>
+  <!-- Automation status strip -->
+  <div id="automation-strip" style="background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius-md);padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="auto-status-dot" style="width:8px;height:8px;border-radius:50%;background:#D4A017;flex-shrink:0;display:inline-block"></span>
+      <span style="font-size:12px;font-weight:500;color:var(--text)" id="auto-status-label">Email automation — pending IT setup</span>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="text-align:center">
+        <div style="font-size:18px;font-weight:500;color:var(--text)" id="auto-drafts-count">—</div>
+        <div style="font-size:10px;color:var(--text2)">Drafts today</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:18px;font-weight:500;color:var(--text)" id="auto-emails-count">—</div>
+        <div style="font-size:10px;color:var(--text2)">Emails processed</div>
+      </div>
+      <div style="text-align:center;min-width:120px">
+        <div style="font-size:11px;font-weight:500;color:var(--text2)" id="auto-last-activity">Awaiting IT permissions</div>
+        <div style="font-size:10px;color:var(--text2)">Last activity</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:11px;font-weight:500" id="auto-webhook-status" style="color:#854F0B">Not connected</div>
+        <div style="font-size:10px;color:var(--text2)">Webhook</div>
+      </div>
+    </div>
   </div>
   <div class="three-col">
     <div class="col">
@@ -214,10 +257,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="col">
       <div class="card">
         <div class="section-title">
-          Maintenance log — contractor coordination
+          Maintenance jobs
           <div style="display:flex;gap:5px">
             <button class="btn btn-sm" onclick="toggleAddJob()"><i class="ti ti-plus"></i> Add job</button>
-            <button class="btn btn-sm">View all</button>
+            <button class="btn btn-sm btn-primary" onclick="showPage('maintenance', document.querySelector('.nav-btn[onclick*=maintenance]'))">View all</button>
           </div>
         </div>
         <div class="add-job-form" id="add-job-form">
@@ -225,6 +268,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
           <div class="form-row"><input class="form-input full" placeholder="Issue description" id="nj-issue"></div>
           <div class="form-row">
             <select class="form-input" id="nj-contractor" onchange="contractorSelected()"><option value="">Select contractor...</option></select>
+            <select class="form-input" id="nj-category"><option>General</option><option>Gas / Heating</option><option>Electrical</option><option>Glazing</option><option>Plumbing</option><option>Damp / Structural</option><option>Cleaning</option><option>White Goods</option></select>
             <select class="form-input" id="nj-status"><option>Awaiting contractor</option><option>Quote requested</option><option>Quote received</option><option>Awaiting approval</option><option>Works in progress</option><option>Complete</option></select>
           </div>
           <div class="form-row" id="contractor-info-row" style="display:none"><div class="mf full" id="contractor-info-display" style="font-size:10px;color:var(--text2)"></div></div>
@@ -243,7 +287,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
             <button class="btn btn-sm btn-primary" onclick="addJob()">Add job</button>
           </div>
         </div>
-        <div id="job-list"></div>
+        <div id="job-list-dash"></div>
       </div>
     </div>
     <div class="col">
@@ -273,6 +317,109 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
   </div>
 </div>
+
+<div id="page-maintenance" class="page">
+  <div class="card">
+    <div class="section-title">
+      All maintenance jobs
+      <button class="btn btn-sm btn-primary" onclick="toggleAddJob()"><i class="ti ti-plus"></i> Add job</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
+      <input class="search-bar" type="text" id="job-search" placeholder="🔍 Search property, tenant, contractor..." oninput="renderJobs()" style="flex:2;min-width:200px;margin-bottom:0">
+      <select class="form-input" id="job-filter-status" onchange="renderJobs()" style="flex:1;min-width:150px;font-size:11px">
+        <option value="">All statuses</option>
+        <option value="open">Open only</option>
+        <option value="overdue">Overdue</option>
+        <option value="awaiting contractor">Awaiting contractor</option>
+        <option value="awaiting approval">Awaiting approval</option>
+        <option value="works in progress">Works in progress</option>
+        <option value="complete">Complete</option>
+      </select>
+      <select class="form-input" id="job-filter-contractor" onchange="renderJobs()" style="flex:1;min-width:150px;font-size:11px">
+        <option value="">All contractors</option>
+      </select>
+    </div>
+    <!-- Bulk action bar -->
+    <div id="bulk-action-bar" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;background:var(--bg);border-radius:var(--radius-md);margin-bottom:8px">
+      <input type="checkbox" id="job-select-all" style="cursor:pointer">
+      <span id="bulk-count" style="font-size:11px;color:var(--text2)">0 selected</span>
+      <button class="job-btn wa" id="bulk-wa-btn">&#128172; WhatsApp selected</button>
+      <button class="job-btn" id="bulk-email-btn" style="background:var(--bg2)">&#9993; Email selected</button>
+      <button class="job-btn" id="bulk-copy-btn" style="background:var(--bg2)">&#128203; Copy list</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="prop-table" id="job-table">
+        <thead>
+          <tr>
+            <th style="width:28px"><input type="checkbox" id="job-select-all-th" style="cursor:pointer" onchange="toggleSelectAll(this.checked)"></th>
+            <th style="width:40px">WO</th>
+            <th>Property</th>
+            <th>Contractor</th>
+            <th>Category</th>
+            <th>Status</th>
+            <th>Value</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="job-list"></tbody>
+      </table>
+    </div>
+    <div id="job-table-empty" style="display:none;font-size:11px;color:var(--text2);padding:16px 0;text-align:center">No jobs match the current filter.</div>
+    <div id="job-table-count" style="font-size:10px;color:var(--text2);margin-top:8px"></div>
+  </div>
+</div>
+
+<!-- Job detail modal -->
+<div class="modal-overlay" id="job-detail-modal">
+  <div class="modal" style="max-width:620px;width:100%">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <span style="font-size:13px;font-weight:600;color:var(--text)" id="jd-wo"></span>
+      <span class="pill" id="jd-status-pill"></span>
+      <span class="pill pill-blue" id="jd-category-pill" style="margin-left:2px"></span>
+      <button onclick="document.getElementById('job-detail-modal').classList.remove('open')" style="margin-left:auto;background:none;border:none;font-size:18px;cursor:pointer;color:var(--text2)">&times;</button>
+    </div>
+    <!-- Tabs -->
+    <div style="display:flex;gap:0;border-bottom:0.5px solid var(--border);margin-bottom:14px">
+      <button class="jd-tab active" onclick="switchJobTab('details',this)">Details</button>
+      <button class="jd-tab" onclick="switchJobTab('log',this)">Job log</button>
+      <button class="jd-tab" onclick="switchJobTab('contact',this)">Contractor</button>
+    </div>
+    <!-- Details tab -->
+    <div id="jd-tab-details">
+      <div style="background:var(--bg);border-radius:var(--radius-md);padding:12px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:600;color:var(--text)" id="jd-prop"></div>
+        <div style="font-size:11px;color:var(--text2);margin-top:4px">Tenant: <strong id="jd-tenant"></strong></div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px" id="jd-tenant-phone"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;font-size:11px">
+        <div><div style="color:var(--text2);margin-bottom:3px">Contractor</div><strong id="jd-contractor"></strong></div>
+        <div><div style="color:var(--text2);margin-bottom:3px">Category</div><span id="jd-category"></span></div>
+        <div><div style="color:var(--text2);margin-bottom:3px">Value / quote</div><strong id="jd-value" style="color:#3B6D11"></strong></div>
+        <div><div style="color:var(--text2);margin-bottom:3px">Access</div><span id="jd-access"></span></div>
+      </div>
+      <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2);margin-bottom:6px">Description</div>
+      <div style="background:var(--bg);border-radius:var(--radius-md);padding:10px;font-size:12px;color:var(--text);margin-bottom:12px" id="jd-notes"></div>
+      <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2);margin-bottom:6px">Copy job details</div>
+      <div style="background:var(--bg);border-radius:var(--radius-md);padding:10px;font-size:11px;color:var(--text2);white-space:pre-wrap;max-height:160px;overflow-y:auto" id="jd-msg"></div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <button class="job-btn wa" id="jd-wa-btn">&#128172; WhatsApp</button>
+        <button class="job-btn" id="jd-email-btn" style="background:var(--bg2)">&#9993; Email</button>
+        <button class="job-btn" id="jd-copy-btn" style="background:var(--bg2)">&#128203; Copy</button>
+        <button class="job-btn" id="jd-edit-btn" style="background:var(--bg2);margin-left:auto">&#9998; Edit job</button>
+      </div>
+    </div>
+    <!-- Job log tab -->
+    <div id="jd-tab-log" style="display:none">
+      <div id="jd-log-content" style="font-size:11px;color:var(--text2)">No log entries yet for this job.</div>
+    </div>
+    <!-- Contractor tab -->
+    <div id="jd-tab-contact" style="display:none">
+      <div id="jd-contractor-detail" style="font-size:12px"></div>
+    </div>
+  </div>
+</div>
+
 
 <div id="page-properties" class="page">
   <div style="display:grid;grid-template-columns:1fr 380px;gap:10px;align-items:start">
@@ -399,9 +546,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Click a report to preview, filter and export as CSV or Excel.</p>
         <div id="report-cards"></div>
       </div>
+      <div class="card" style="margin-top:10px">
+        <div class="section-title">Import / Export data</div>
+        <p style="font-size:11px;color:var(--text2);margin-bottom:12px">Export any section as CSV, or import a previously exported CSV to restore or update data.</p>
+        <div id="import-export-sections"></div>
+      </div>
     </div>
-    <div>
-      <div class="right-col-card" id="report-preview-card" style="display:none">
+    <div> style="display:none">
         <div class="section-title">
           <span id="report-preview-title">Preview</span>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -440,6 +591,61 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
           Select a report on the left to preview and export
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS PAGE -->
+<div id="page-settings" class="page">
+  <div style="max-width:720px">
+    <div class="card" style="margin-bottom:10px">
+      <div class="section-title">Message templates</div>
+      <p style="font-size:11px;color:var(--text2);margin-bottom:16px">Edit the templates used when sending or copying job messages. Use the tokens shown to insert live data. Changes save automatically.</p>
+
+      <!-- Template 1: Single job -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">Single job — WhatsApp / Email / Copy</div>
+        <div style="font-size:10px;color:var(--text2);margin-bottom:6px">Tokens: <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{agency}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{property}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{issue}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{tenant}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{access}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{notes}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{tenantPhone}</code></div>
+        <textarea id="tpl-single" class="form-input" style="width:100%;min-height:160px;resize:vertical;font-family:monospace;font-size:11px" oninput="saveTemplates()"></textarea>
+      </div>
+
+      <!-- Template 2: Bulk jobs -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">Bulk jobs — WhatsApp / Email / Copy selected</div>
+        <div style="font-size:10px;color:var(--text2);margin-bottom:6px">Header tokens: <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{agency}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{contractor}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{contractorPhone}</code> — Per-job tokens: <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{n}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{property}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{issue}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{status}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{tenant}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{tenantPhone}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{access}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{notes}</code></div>
+        <textarea id="tpl-bulk-header" class="form-input" style="width:100%;min-height:80px;resize:vertical;font-family:monospace;font-size:11px;margin-bottom:6px" placeholder="Header (shown once per contractor)" oninput="saveTemplates()"></textarea>
+        <div style="font-size:10px;color:var(--text2);margin-bottom:4px">Per-job row (repeated for each job):</div>
+        <textarea id="tpl-bulk-row" class="form-input" style="width:100%;min-height:80px;resize:vertical;font-family:monospace;font-size:11px;margin-bottom:6px" placeholder="Per-job row" oninput="saveTemplates()"></textarea>
+        <div style="font-size:10px;color:var(--text2);margin-bottom:4px">Footer (shown once per contractor):</div>
+        <textarea id="tpl-bulk-footer" class="form-input" style="width:100%;min-height:50px;resize:vertical;font-family:monospace;font-size:11px" placeholder="Footer" oninput="saveTemplates()"></textarea>
+      </div>
+
+      <!-- Template 3: Contractor job log -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">Contractor job log — Copy log</div>
+        <div style="font-size:10px;color:var(--text2);margin-bottom:6px">Header tokens: <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{agency}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{contractor}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{date}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{totalJobs}</code> — Per-job: <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{n}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{property}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{issue}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{status}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{category}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{amount}</code> — Footer: <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{totalInvoiced}</code> <code style="background:var(--bg2);padding:1px 4px;border-radius:3px">{outstanding}</code></div>
+        <textarea id="tpl-log-header" class="form-input" style="width:100%;min-height:60px;resize:vertical;font-family:monospace;font-size:11px;margin-bottom:6px" placeholder="Header" oninput="saveTemplates()"></textarea>
+        <div style="font-size:10px;color:var(--text2);margin-bottom:4px">Per-job row:</div>
+        <textarea id="tpl-log-row" class="form-input" style="width:100%;min-height:70px;resize:vertical;font-family:monospace;font-size:11px;margin-bottom:6px" placeholder="Per-job row" oninput="saveTemplates()"></textarea>
+        <div style="font-size:10px;color:var(--text2);margin-bottom:4px">Footer:</div>
+        <textarea id="tpl-log-footer" class="form-input" style="width:100%;min-height:50px;resize:vertical;font-family:monospace;font-size:11px" placeholder="Footer" oninput="saveTemplates()"></textarea>
+      </div>
+
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" onclick="saveTemplates();showToast('Templates saved')">Save templates</button>
+        <button class="btn" onclick="resetTemplates()">Reset to defaults</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Agency settings</div>
+      <div class="form-row" style="margin-bottom:10px">
+        <div style="flex:1">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:4px">Agency name (used in templates)</div>
+          <input class="form-input" id="setting-agency-name" value="Pickwick Estates" oninput="saveTemplates()" style="width:100%">
+        </div>
+      </div>
+      <p style="font-size:10px;color:var(--text2)">Changes apply immediately to all messages.</p>
     </div>
   </div>
 </div>
@@ -579,6 +785,38 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   </div>
 </div>
 
+<div class="modal-overlay" id="edit-job-modal">
+  <div class="modal">
+    <div class="modal-title">Edit job</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+      <input class="form-input" id="ej-prop" placeholder="Property address" style="width:100%">
+      <input class="form-input" id="ej-issue" placeholder="Issue description" style="width:100%">
+      <div style="display:flex;gap:6px">
+        <select class="form-input" id="ej-contractor" style="flex:1"></select>
+        <select class="form-input" id="ej-category" style="flex:1"><option>General</option><option>Gas / Heating</option><option>Electrical</option><option>Glazing</option><option>Plumbing</option><option>Damp / Structural</option><option>Cleaning</option><option>White Goods</option></select>
+        <select class="form-input" id="ej-status" style="flex:1">
+          <option>Awaiting contractor</option><option>Quote requested</option><option>Quote received</option><option>Awaiting approval</option><option>Works in progress</option><option>Complete</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:6px">
+        <input class="form-input" id="ej-tenant" placeholder="Tenant name" style="flex:1">
+        <input class="form-input" id="ej-tenantphone" placeholder="Tenant phone" style="flex:1">
+      </div>
+      <input class="form-input" id="ej-access" placeholder="Access details" style="width:100%">
+      <textarea class="form-input" id="ej-notes" style="width:100%;min-height:70px;resize:vertical;font-family:var(--font)" placeholder="Notes"></textarea>
+      <div style="display:flex;gap:6px">
+        <input class="form-input" id="ej-quote" type="number" min="0" placeholder="Quote £" style="flex:1">
+        <input class="form-input" id="ej-invoice" type="number" min="0" placeholder="Invoice £" style="flex:1">
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="btn" onclick="closeEditJobModal()">Cancel</button>
+      <button class="btn" style="background:#FCEBEB;color:#A32D2D;border-color:#F0C0C0" onclick="deleteJobFromModal()">&#128465; Delete</button>
+      <button class="btn btn-primary" onclick="saveEditJob()">Save changes</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast">Copied</div>
 
 <script>
@@ -667,85 +905,411 @@ function propSelected(){
 }
 
 function contractorSelected(){const id=document.getElementById('nj-contractor').value;const c=CONTRACTORS.find(x=>x.id===id);const row=document.getElementById('contractor-info-row');const disp=document.getElementById('contractor-info-display');if(c&&id){row.style.display='grid';disp.innerHTML='<strong>'+c.name+'</strong> &middot; '+c.trade+'<br>'+(c.phone?'&#128222; '+c.phone:'')+(c.phone2?' / '+c.phone2:'')+(c.email?' &middot; &#9993; '+c.email:'');}else{row.style.display='none';}}
-let jobs=[{prop:'24D Marmora Road, SE22 0RX',issue:'Boiler pressure dropping — heating failure risk',contractorId:'acare',status:'Overdue — no response',pill:'pill-red',tenant:'Rory Wilson',tenantPhone:'07700900001',access:'Key held at office — call tenant 24hrs before',notes:'Banging noise when heating fires. No hot water since Monday.',quote:0,invoice:0},{prop:'F1, 129 Honor Oak Road, SE23 3SL',issue:'Kitchen leak — potential water damage',contractorId:'acare',status:'Works in progress',pill:'pill-blue',tenant:'George Anagnos',tenantPhone:'07700900002',access:'Tenant working from home.',notes:'Leak under sink. Towels placed. Check ceiling below.',quote:0,invoice:0},{prop:'67 Woolstone Road, SE23 2TQ',issue:'Front door lock faulty',contractorId:'vincent',status:'Awaiting approval',pill:'pill-amber',tenant:'Conor Mason',tenantPhone:'07700900003',access:'Tenant available afternoons only.',notes:'Lock intermittently failing. Security risk.',quote:0,invoice:0},{prop:'10 THE FIELDINGS, SE23 3QA',issue:'Bathroom extractor fan not working',contractorId:'sarfmon',status:'Quote received £180',pill:'pill-yellow',tenant:'Maxine Nixon',tenantPhone:'07700900004',access:'Key held at office.',notes:'Fan dead. Quote £180+VAT. Awaiting landlord sign-off.',quote:0,invoice:0},{prop:'340D Brownhill Road, SE6 1AY',issue:'Broken window — ground floor',contractorId:'glass',status:'Awaiting contractor',pill:'pill-amber',tenant:'Adwok Tipo',tenantPhone:'07700900005',access:'Tenant at home all day.',notes:'Ground floor rear window cracked.',quote:0,invoice:0},{prop:'88 LYNDHURST GROVE, SE15 5AH',issue:'Garden gate repair',contractorId:'holacasa',status:'Complete',pill:'pill-green',tenant:'Dominic Lowndes',tenantPhone:'07700900006',access:'N/A',notes:'Works completed. Invoice awaited.',quote:0,invoice:0}];
-function updateOpsStats(){const urgent=jobs.filter(j=>j.pill==='pill-red'||j.status.toLowerCase().includes('overdue'));const awaiting=jobs.filter(j=>j.status.toLowerCase().includes('awaiting contractor'));const approvals=jobs.filter(j=>j.status.toLowerCase().includes('awaiting approval'));document.getElementById('ops-urgent').textContent=urgent.length;document.getElementById('ops-urgent-sub').textContent=urgent.length>0?urgent.length+' overdue':'all on track';document.getElementById('ops-awaiting').textContent=awaiting.length;document.getElementById('ops-approvals').textContent=approvals.length;}
+let jobs=[{prop:'24D Marmora Road, SE22 0RX',issue:'Boiler pressure dropping — heating failure risk',contractorId:'acare',status:'Overdue — no response',pill:'pill-red',tenant:'Rory Wilson',tenantPhone:'07700900001',access:'Key held at office — call tenant 24hrs before',notes:'Banging noise when heating fires. No hot water since Monday.',quote:0,invoice:0,category:'Gas / Heating',dateLogged:'04/06/2026',lastActionDate:'04/06/2026'},{prop:'F1, 129 Honor Oak Road, SE23 3SL',issue:'Kitchen leak — potential water damage',contractorId:'acare',status:'Works in progress',pill:'pill-blue',tenant:'George Anagnos',tenantPhone:'07700900002',access:'Tenant working from home.',notes:'Leak under sink. Towels placed. Check ceiling below.',quote:0,invoice:0,category:'Gas / Heating',dateLogged:'02/06/2026',lastActionDate:'02/06/2026'},{prop:'67 Woolstone Road, SE23 2TQ',issue:'Front door lock faulty',contractorId:'vincent',status:'Awaiting approval',pill:'pill-amber',tenant:'Conor Mason',tenantPhone:'07700900003',access:'Tenant available afternoons only.',notes:'Lock intermittently failing. Security risk.',quote:0,invoice:0,category:'General',dateLogged:'28/05/2026',lastActionDate:'28/05/2026'},{prop:'10 THE FIELDINGS, SE23 3QA',issue:'Bathroom extractor fan not working',contractorId:'sarfmon',status:'Quote received £180',pill:'pill-yellow',tenant:'Maxine Nixon',tenantPhone:'07700900004',access:'Key held at office.',notes:'Fan dead. Quote £180+VAT. Awaiting landlord sign-off.',quote:0,invoice:0,category:'Electrical',dateLogged:'30/05/2026',lastActionDate:'30/05/2026'},{prop:'340D Brownhill Road, SE6 1AY',issue:'Broken window — ground floor',contractorId:'glass',status:'Awaiting contractor',pill:'pill-amber',tenant:'Adwok Tipo',tenantPhone:'07700900005',access:'Tenant at home all day.',notes:'Ground floor rear window cracked.',quote:0,invoice:0,category:'Glazing',dateLogged:'25/05/2026',lastActionDate:'25/05/2026'},{prop:'88 LYNDHURST GROVE, SE15 5AH',issue:'Garden gate repair',contractorId:'holacasa',status:'Complete',pill:'pill-green',tenant:'Dominic Lowndes',tenantPhone:'07700900006',access:'N/A',notes:'Works completed. Invoice awaited.',quote:0,invoice:0,category:'General',dateLogged:'20/05/2026',lastActionDate:'20/05/2026'}];
+function updateOpsStats(){const urgent=jobs.filter(j=>j.pill==='pill-red'||j.status.toLowerCase().includes('overdue'));const awaiting=jobs.filter(j=>j.status.toLowerCase().includes('awaiting contractor'));const approvals=jobs.filter(j=>j.status.toLowerCase().includes('awaiting approval'));const chases=getChaseJobs();document.getElementById('ops-urgent').textContent=urgent.length;document.getElementById('ops-urgent-sub').textContent=urgent.length>0?urgent.length+' overdue':'all on track';document.getElementById('ops-awaiting').textContent=awaiting.length;document.getElementById('ops-approvals').textContent=approvals.length;var strip=document.getElementById('chase-strip');var clear=document.getElementById('chase-strip-clear');var label=document.getElementById('chase-strip-label');if(chases.length>0){if(strip){strip.style.display='flex';}if(clear){clear.style.display='none';}if(label){label.textContent=chases.length+' job'+(chases.length>1?'s':'')+' need chasing';}}else{if(strip){strip.style.display='none';}if(clear){clear.style.display='flex';}}}
 updateOpsStats();
+
+// ── AUTOMATION STATUS STRIP ────────────────────────────────────────────
+function updateAutomationStrip(data){
+  var dot=document.getElementById('auto-status-dot');
+  var label=document.getElementById('auto-status-label');
+  var drafts=document.getElementById('auto-drafts-count');
+  var emails=document.getElementById('auto-emails-count');
+  var last=document.getElementById('auto-last-activity');
+  var webhook=document.getElementById('auto-webhook-status');
+  if(!dot) return;
+  if(data && data.active){
+    dot.style.background='#3B6D11';
+    label.textContent='Email automation — live';
+    label.style.color='#3B6D11';
+    drafts.textContent=data.draftsToday||0;
+    emails.textContent=data.emailsProcessed||0;
+    last.textContent=data.lastActivity||'—';
+    webhook.textContent='Connected';
+    webhook.style.color='#3B6D11';
+  } else if(data && data.error){
+    dot.style.background='#A32D2D';
+    label.textContent='Automation error — check log';
+    label.style.color='#A32D2D';
+    last.textContent=data.error;
+    webhook.textContent='Error';
+    webhook.style.color='#A32D2D';
+  } else {
+    dot.style.background='#D4A017';
+    label.textContent='Email automation — pending IT setup';
+    drafts.textContent='—';
+    emails.textContent='—';
+    last.textContent='Awaiting IT permissions';
+    webhook.textContent='Not connected';
+    webhook.style.color='#854F0B';
+  }
+}
+(function(){
+  fetch('/.netlify/functions/automation-status')
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(data){if(data) updateAutomationStrip(data);})
+    .catch(function(){});
+})();
+// ── END AUTOMATION STRIP ───────────────────────────────────────────────
+
 function getContractor(id){return CONTRACTORS.find(c=>c.id===id)||{name:'TBC',phone:'',email:'',phone2:''};}
-function buildJobMsg(job){const c=getContractor(job.contractorId);return`PICKWICK ESTATES — MAINTENANCE JOB\n---\nProperty: ${job.prop}\nIssue: ${job.issue}\nTenant: ${job.tenant}\nAccess: ${job.access}\n\nNotes: ${job.notes}\n---\nPlease confirm receipt and advise on availability.\nTenant contact: ${job.tenantPhone}\nPickwick Estates`;}
+function parseUKDate(str){
+  if(!str) return null;
+  var p=str.split('/');
+  if(p.length!==3) return null;
+  return new Date(parseInt(p[2]),parseInt(p[1])-1,parseInt(p[0]));
+}
+function daysSince(dateStr){
+  var d=parseUKDate(dateStr);
+  if(!d) return 0;
+  var now=new Date();
+  now.setHours(0,0,0,0);
+  return Math.floor((now-d)/86400000);
+}
+function jobNeedsChase(job){
+  if(!job) return false;
+  var s=job.status.toLowerCase();
+  if(s==='complete') return false;
+  var days=daysSince(job.lastActionDate||job.dateLogged);
+  return days>=3;
+}
+function getChaseJobs(){
+  return jobs.filter(function(j){return jobNeedsChase(j);});
+}
+
+// ── TEMPLATES ──────────────────────────────────────────────────────────
+var DEFAULT_TEMPLATES = {
+  agencyName: 'Pickwick Estates',
+  single: '{agency} — MAINTENANCE JOB\n---\nProperty: {property}\nIssue: {issue}\nTenant: {tenant}\nAccess: {access}\n\nNotes: {notes}\n---\nPlease confirm receipt and advise on availability.\nTenant contact: {tenantPhone}\n{agency}',
+  bulkHeader: '{agency} — MAINTENANCE JOBS\nContractor: {contractor}{contractorPhone}\n---',
+  bulkRow: '{n}. {property}\n   Issue: {issue}\n   Status: {status}\n   Tenant: {tenant}{tenantPhone}\n   Access: {access}\n   Notes: {notes}',
+  bulkFooter: '---\nPlease confirm receipt and advise availability for each.\n{agency}',
+  logHeader: '{agency} — CONTRACTOR JOB LOG\nContractor: {contractor}\nDate: {date}\nTotal jobs: {totalJobs}\n---',
+  logRow: '{n}. {property}\n   Issue: {issue}\n   Status: {status}\n   Category: {category}\n   {amount}',
+  logFooter: '---\nTotal invoiced: {totalInvoiced}{outstanding}'
+};
+
+var TEMPLATES = JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+
+function loadTemplates(){
+  try{ var saved=localStorage.getItem('dg_templates'); if(saved) TEMPLATES=Object.assign({},DEFAULT_TEMPLATES,JSON.parse(saved)); }catch(e){}
+  var fields={'tpl-single':'single','tpl-bulk-header':'bulkHeader','tpl-bulk-row':'bulkRow','tpl-bulk-footer':'bulkFooter','tpl-log-header':'logHeader','tpl-log-row':'logRow','tpl-log-footer':'logFooter','setting-agency-name':'agencyName'};
+  Object.keys(fields).forEach(function(id){var el=document.getElementById(id);if(el)el.value=TEMPLATES[fields[id]]||'';});
+}
+
+function saveTemplates(){
+  var fields={'tpl-single':'single','tpl-bulk-header':'bulkHeader','tpl-bulk-row':'bulkRow','tpl-bulk-footer':'bulkFooter','tpl-log-header':'logHeader','tpl-log-row':'logRow','tpl-log-footer':'logFooter','setting-agency-name':'agencyName'};
+  Object.keys(fields).forEach(function(id){var el=document.getElementById(id);if(el)TEMPLATES[fields[id]]=el.value;});
+  try{localStorage.setItem('dg_templates',JSON.stringify(TEMPLATES));}catch(e){}
+  // Save to Firebase if connected
+  if(typeof db!=='undefined'&&db){
+    db.ref('templates').set(TEMPLATES).catch(function(e){console.error('FB save templates error',e);});
+  }
+}
+
+function resetTemplates(){
+  if(!confirm('Reset all templates to defaults?')) return;
+  TEMPLATES=JSON.parse(JSON.stringify(DEFAULT_TEMPLATES));
+  try{localStorage.removeItem('dg_templates');}catch(e){}
+  if(typeof db!=='undefined'&&db){
+    db.ref('templates').set(DEFAULT_TEMPLATES).catch(function(e){console.error('FB reset templates error',e);});
+  }
+  loadTemplates();
+  showToast('Templates reset to defaults');
+}
+
+function applyTokens(str,tokens){
+  return str.replace(/\{(\w+)\}/g,function(_,key){return tokens[key]!==undefined?tokens[key]:'';});
+}
+
+function buildJobMsg(job){
+  var c=getContractor(job.contractorId);
+  var agency=TEMPLATES.agencyName||'Pickwick Estates';
+  return applyTokens(TEMPLATES.single,{agency:agency,property:job.prop,issue:job.issue,tenant:job.tenant||'—',access:job.access||'—',notes:job.notes||'',tenantPhone:job.tenantPhone||''});
+}
+
+function buildBulkMsg(selected){
+  var agency=TEMPLATES.agencyName||'Pickwick Estates';
+  var byC={};
+  selected.forEach(function(s){var cid=s.job.contractorId||'none';if(!byC[cid])byC[cid]=[];byC[cid].push(s.job);});
+  var parts=[];
+  Object.keys(byC).forEach(function(cid){
+    var c=getContractor(cid);
+    var cJobs=byC[cid];
+    var header=applyTokens(TEMPLATES.bulkHeader,{agency:agency,contractor:c.name,contractorPhone:c.phone?' · '+c.phone:''});
+    var rows=cJobs.map(function(job,i){return applyTokens(TEMPLATES.bulkRow,{n:i+1,property:job.prop,issue:job.issue,status:job.status,tenant:job.tenant||'—',tenantPhone:job.tenantPhone?' · '+job.tenantPhone:'',access:job.access||'—',notes:job.notes||''});}).join('\n\n');
+    var footer=applyTokens(TEMPLATES.bulkFooter,{agency:agency,contractor:c.name});
+    parts.push(header+'\n\n'+rows+'\n\n'+footer);
+  });
+  return parts.join('\n\n');
+}
+
+function copyContractorJobLog(){
+  var cJobs=jobs.filter(function(j){return j.contractorId===activeContractorLog.id;});
+  if(!cJobs.length){showToast('No jobs to copy');return;}
+  var totalInvoice=cJobs.reduce(function(a,j){return a+(j.invoice||0);},0);
+  var totalQuote=cJobs.reduce(function(a,j){return a+(j.quote||0);},0);
+  var agency=TEMPLATES.agencyName||'Pickwick Estates';
+  var header=applyTokens(TEMPLATES.logHeader,{agency:agency,contractor:activeContractorLog.name,date:new Date().toLocaleDateString('en-GB'),totalJobs:cJobs.length});
+  var rows=cJobs.map(function(job,i){var amt=job.invoice?'Invoiced: £'+job.invoice.toFixed(2):(job.quote?'Quoted: £'+job.quote.toFixed(2):'No amount logged');return applyTokens(TEMPLATES.logRow,{n:i+1,property:job.prop,issue:job.issue,status:job.status,category:job.category||'General',amount:amt});}).join('\n\n');
+  var footer=applyTokens(TEMPLATES.logFooter,{totalInvoiced:'£'+totalInvoice.toFixed(2),outstanding:totalQuote>totalInvoice?'\nOutstanding: £'+(totalQuote-totalInvoice).toFixed(2):''});
+  navigator.clipboard.writeText(header+'\n\n'+rows+'\n\n'+footer).then(function(){showToast('Job log copied to clipboard');});
+}
+// ── END TEMPLATES ──────────────────────────────────────────────────────
 let activeJobMsg='',activeJobPhone='';
 function openJobModal(idx){const job=jobs[idx];const c=getContractor(job.contractorId);activeJobMsg=buildJobMsg(job);activeJobPhone=c.phone||'';document.getElementById('jm-title').textContent=job.prop;document.getElementById('jm-sub').textContent=job.issue+' · '+c.name;document.getElementById('jm-msg').textContent=activeJobMsg;const waBtn=document.getElementById('jm-wa');if(activeJobPhone){waBtn.style.display='inline-flex';waBtn.onclick=()=>window.open('https://wa.me/44'+activeJobPhone.replace(/^0/,'').replace(/\s/g,'')+'?text='+encodeURIComponent(activeJobMsg),'_blank');}else waBtn.style.display='none';document.getElementById('job-modal').classList.add('open');}
 function closeJobModal(){document.getElementById('job-modal').classList.remove('open');}
 function copyJobMsg(){navigator.clipboard.writeText(activeJobMsg).then(()=>showToast('Copied to clipboard'));}
 function renderJobs(){
   var jl=document.getElementById('job-list');
+  var empty=document.getElementById('job-table-empty');
+  var countEl=document.getElementById('job-table-count');
+  if(!jl) return;
   jl.innerHTML='';
-  jobs.forEach(function(job,idx){
+
+  var filterC=document.getElementById('job-filter-contractor')?document.getElementById('job-filter-contractor').value:'';
+  var filterS=document.getElementById('job-filter-status')?document.getElementById('job-filter-status').value:'';
+  var search=(document.getElementById('job-search')?document.getElementById('job-search').value:'').toLowerCase().trim();
+
+  var visible=jobs.filter(function(job){
+    if(filterC && job.contractorId!==filterC) return false;
+    if(filterS==='open' && job.status.toLowerCase()==='complete') return false;
+    if(filterS==='complete' && job.status.toLowerCase()!=='complete') return false;
+    if(filterS==='overdue' && !job.status.toLowerCase().includes('overdue')) return false;
+    if(filterS==='awaiting approval' && !job.status.toLowerCase().includes('awaiting approval')) return false;
+    if(filterS==='works in progress' && !job.status.toLowerCase().includes('works in progress')) return false;
+    if(filterS==='awaiting contractor' && !job.status.toLowerCase().includes('awaiting contractor')) return false;
+    if(search){
+      var c=getContractor(job.contractorId);
+      var hay=(job.prop+' '+job.tenant+' '+job.issue+' '+(c?c.name:'')+' '+(job.category||'')).toLowerCase();
+      if(!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  if(empty) empty.style.display=visible.length===0?'block':'none';
+  if(countEl) countEl.textContent=visible.length+' of '+jobs.length+' jobs';
+
+  visible.forEach(function(job){
+    var idx=jobs.indexOf(job);
     var c=getContractor(job.contractorId);
-    var div=document.createElement('div');
-    div.className='job-card';
-
-    var amountHtml='';
-    if(job.invoice) amountHtml='<span style="font-size:10px;font-weight:500;color:#3B6D11">&#10003; &pound;'+job.invoice.toLocaleString()+'</span>';
-    else if(job.quote) amountHtml='<span style="font-size:10px;color:var(--text2)">Quote: &pound;'+job.quote.toLocaleString()+'</span>';
-
-    div.innerHTML='<div class="job-header">'
-      +'<div style="min-width:0">'
-      +'<div class="job-prop">'+job.prop+'</div>'
-      +'<div class="job-issue">'+job.issue+'</div>'
-      +'<div class="job-meta">'+c.name+(c.phone?' &middot; '+c.phone:'')+'</div>'
-      +'</div>'
-      +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">'
-      +'<span class="pill '+job.pill+'">'+job.status+'</span>'
-      +amountHtml
-      +'</div>'
-      +'</div>'
-      +'<div class="job-actions" id="ja-'+idx+'"></div>';
-    jl.appendChild(div);
-
-    var ja=document.getElementById('ja-'+idx);
-
-    var copyBtn=document.createElement('button');
-    copyBtn.className='job-btn';
-    copyBtn.innerHTML='&#128203; Copy details';
-    copyBtn.onclick=(function(i){return function(){openJobModal(i);};})(idx);
-    ja.appendChild(copyBtn);
-
-    if(c.phone){
-      var waNum='44'+c.phone.replace(/^0/,'').replace(/\s/g,'');
-      var waBtn=document.createElement('button');
-      waBtn.className='job-btn wa';
-      waBtn.innerHTML='&#128172; WhatsApp';
-      waBtn.onclick=(function(num,msg){return function(){window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg),'_blank');};})(waNum,buildJobMsg(job));
-      ja.appendChild(waBtn);
-    }
-
-    if(c.email){
-      var emailBtn=document.createElement('button');
-      emailBtn.className='job-btn';
-      emailBtn.innerHTML='&#9993; Email';
-      emailBtn.onclick=(function(em,prop,msg){return function(){window.location.href='mailto:'+em+'?subject=Maintenance — '+encodeURIComponent(prop)+'&body='+encodeURIComponent(msg);};})(c.email,job.prop,buildJobMsg(job));
-      ja.appendChild(emailBtn);
-    }
-
-    if(c.phone){
-      var callBtn=document.createElement('button');
-      callBtn.className='job-btn call';
-      callBtn.innerHTML='&#128222; Call';
-      callBtn.onclick=(function(ph){return function(){window.location.href='tel:'+ph;};})(c.phone);
-      ja.appendChild(callBtn);
-    }
-
-    var amtBtn=document.createElement('button');
-    amtBtn.className='job-btn';
-    amtBtn.style.background='var(--bg2)';
-    amtBtn.innerHTML='&pound; Update amount';
-    amtBtn.onclick=(function(i){return function(){editJobAmounts(i);};})(idx);
-    ja.appendChild(amtBtn);
+    var dateStr=job.dateLogged||'—';
+    var valStr=job.invoice?'£'+job.invoice.toFixed(2):(job.quote?'£'+job.quote.toFixed(2):'—');
+    var valColour=job.invoice?'color:#3B6D11':'color:var(--text2)';
+    var chase=jobNeedsChase(job);
+    var days=daysSince(job.lastActionDate||job.dateLogged);
+    var chaseHtml=chase?'<span title="No action for '+days+' days" style="color:#A32D2D;font-size:10px;font-weight:600;margin-left:4px">&#9888; '+days+'d</span>':'';
+    var tr=document.createElement('tr');
+    if(chase) tr.style.cssText='background:#FFF5F5;border-left:3px solid #A32D2D';
+    tr.innerHTML='<td><input type="checkbox" class="job-checkbox" data-idx="'+idx+'" style="cursor:pointer"></td>'
+      +'<td style="font-size:11px;color:var(--text2);font-weight:500">'+(idx+1)+'</td>'
+      +'<td><div style="font-size:12px;font-weight:500;color:var(--text)">'+job.prop+chaseHtml+'</div>'
+      +'<div style="font-size:10px;color:var(--text2)">'+job.tenant+'</div></td>'
+      +'<td style="font-size:11px">'+c.name+'</td>'
+      +'<td style="font-size:11px;color:var(--text2)">'+(job.category||'General')+'</td>'
+      +'<td><span class="pill '+job.pill+'">'+job.status+'</span></td>'
+      +'<td style="font-size:12px;font-weight:500;'+valColour+'">'+valStr+'</td>'
+      +'<td style="font-size:10px;color:var(--text2)">'+dateStr+'</td>'
+      +'<td><div style="display:flex;gap:4px">'
+      +'<button class="job-btn" onclick="openJobDetail('+idx+')" style="font-size:10px">View</button>'
+      +'<button class="job-btn" onclick="openEditJobModal('+idx+')" style="font-size:10px;background:var(--bg2)">Edit</button>'
+      +'</div></td>';
+    jl.appendChild(tr);
   });
 }
-renderJobs();
+
+function switchJobTab(tab, btn){
+  ['details','log','contact'].forEach(function(t){
+    var el=document.getElementById('jd-tab-'+t);
+    if(el) el.style.display=(t===tab)?'':'none';
+  });
+  document.querySelectorAll('.jd-tab').forEach(function(b){b.classList.remove('active');});
+  if(btn) btn.classList.add('active');
+}
+
+function toggleSelectAll(checked){
+  document.querySelectorAll('.job-checkbox').forEach(function(cb){cb.checked=checked;});
+  var thCb=document.getElementById('job-select-all-th');
+  if(thCb) thCb.checked=checked;
+  updateBulkBar();
+}
+
+function openJobDetail(idx){
+  var job=jobs[idx];
+  var c=getContractor(job.contractorId);
+  var msg=buildJobMsg(job);
+
+  document.getElementById('jd-wo').textContent='WO '+(idx+1);
+  var spill=document.getElementById('jd-status-pill');
+  spill.textContent=job.status;
+  spill.className='pill '+job.pill;
+  document.getElementById('jd-category-pill').textContent=job.category||'General';
+  document.getElementById('jd-prop').textContent=job.prop;
+  document.getElementById('jd-tenant').textContent=job.tenant||'—';
+  document.getElementById('jd-tenant-phone').innerHTML=job.tenantPhone?'&#128222; <a href="tel:'+job.tenantPhone+'">'+job.tenantPhone+'</a>':'';
+  document.getElementById('jd-contractor').textContent=c.name||'TBC';
+  document.getElementById('jd-category').textContent=job.category||'General';
+  var val=job.invoice?'£'+job.invoice.toFixed(2):(job.quote?'Quote: £'+job.quote.toFixed(2):'Not set');
+  document.getElementById('jd-value').textContent=val;
+  document.getElementById('jd-access').textContent=job.access||'—';
+  document.getElementById('jd-notes').textContent=job.notes||'No notes.';
+  document.getElementById('jd-msg').textContent=msg;
+
+  // Contractor detail tab
+  document.getElementById('jd-contractor-detail').innerHTML='<div style="font-size:13px;font-weight:600;margin-bottom:8px">'+c.name+'</div>'
+    +'<div style="font-size:11px;color:var(--text2)">'+c.trade+'</div>'
+    +(c.phone?'<div style="margin-top:8px;font-size:12px">&#128222; <a href="tel:'+c.phone+'">'+c.phone+'</a>'+(c.phone2?' / <a href="tel:'+c.phone2+'">'+c.phone2+'</a>':'')+'</div>':'')
+    +(c.email?'<div style="margin-top:4px;font-size:12px">&#9993; <a href="mailto:'+c.email+'">'+c.email+'</a></div>':'');
+
+  // Buttons
+  var waBtn=document.getElementById('jd-wa-btn');
+  if(c.phone){
+    var waNum='44'+c.phone.replace(/^0/,'').replace(/\s/g,'');
+    waBtn.style.display='inline-flex';
+    waBtn.onclick=function(){window.open('https://wa.me/'+waNum+'?text='+encodeURIComponent(msg),'_blank');};
+  } else { waBtn.style.display='none'; }
+
+  var emailBtn=document.getElementById('jd-email-btn');
+  if(c.email){
+    emailBtn.style.display='inline-flex';
+    emailBtn.onclick=function(){window.location.href='mailto:'+c.email+'?subject=Maintenance%20%E2%80%94%20'+encodeURIComponent(job.prop)+'&body='+encodeURIComponent(msg);};
+  } else { emailBtn.style.display='none'; }
+
+  document.getElementById('jd-copy-btn').onclick=function(){navigator.clipboard.writeText(msg).then(function(){showToast('Copied to clipboard');});};
+  document.getElementById('jd-edit-btn').onclick=function(){document.getElementById('job-detail-modal').classList.remove('open');openEditJobModal(idx);};
+
+  switchJobTab('details', document.querySelector('.jd-tab'));
+  document.getElementById('job-detail-modal').classList.add('open');
+}
+
+document.addEventListener('click',function(e){
+  if(e.target && e.target.id==='job-select-all-th') toggleSelectAll(e.target.checked);
+  if(e.target && e.target.classList.contains('job-checkbox')){ updateBulkBar(); }
+  if(e.target && e.target.id==='bulk-wa-btn'){
+    var sel=getSelectedJobs(); if(!sel.length){showToast('No jobs selected');return;}
+    var byC={}; sel.forEach(function(s){var cid=s.job.contractorId||'none';if(!byC[cid])byC[cid]=[];byC[cid].push(s);});
+    Object.keys(byC).forEach(function(cid){var c=getContractor(cid);if(!c.phone)return;var msg=buildBulkMsg(byC[cid]);var waNum='44'+c.phone.replace(/^0/,'').replace(/\s/g,'');window.open('https://wa.me/'+waNum+'?text='+encodeURIComponent(msg),'_blank');});
+  }
+  if(e.target && e.target.id==='bulk-email-btn'){
+    var sel=getSelectedJobs(); if(!sel.length){showToast('No jobs selected');return;}
+    var byC={}; sel.forEach(function(s){var cid=s.job.contractorId||'none';if(!byC[cid])byC[cid]=[];byC[cid].push(s);});
+    Object.keys(byC).forEach(function(cid){var c=getContractor(cid);if(!c.email)return;var msg=buildBulkMsg(byC[cid]);window.location.href='mailto:'+c.email+'?subject=Maintenance%20Jobs%20%E2%80%94%20Pickwick%20Estates&body='+encodeURIComponent(msg);});
+  }
+  if(e.target && e.target.id==='bulk-copy-btn'){
+    var sel=getSelectedJobs(); if(!sel.length){showToast('No jobs selected');return;}
+    var msg=buildBulkMsg(sel);
+    navigator.clipboard.writeText(msg).then(function(){showToast(sel.length+' jobs copied');});
+  }
+});
+document.getElementById('job-detail-modal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
+
+// ── END BULK SELECTION ─────────────────────────────────────────────────
+
+function renderDashJobs(){
+  var dl=document.getElementById('job-list-dash');
+  if(!dl) return;
+  dl.innerHTML='';
+  var open=jobs.filter(function(j){return j.status.toLowerCase()!=='complete';});
+  var display=open.slice(0,4);
+  if(display.length===0){dl.innerHTML='<div style="font-size:11px;color:var(--text2);padding:6px 0">No open jobs.</div>';return;}
+  display.forEach(function(job){
+    var c=getContractor(job.contractorId);
+    var row=document.createElement('div');
+    row.style.cssText='padding:7px 0;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px';
+    row.innerHTML='<div style="min-width:0"><div style="font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+job.prop+'</div>'
+      +'<div style="font-size:10px;color:var(--text2)">'+c.name+' · '+job.issue+'</div></div>'
+      +'<span class="pill '+job.pill+'" style="flex-shrink:0;font-size:9px">'+job.status+'</span>';
+    dl.appendChild(row);
+  });
+  if(open.length>4){
+    var more=document.createElement('div');
+    more.style.cssText='font-size:10px;color:var(--text2);padding:6px 0;cursor:pointer;text-align:right';
+    more.textContent='+'+(open.length-4)+' more — view all';
+    more.onclick=function(){showPage('maintenance',document.querySelector('.nav-btn[onclick*=maintenance]'));};
+    dl.appendChild(more);
+  }
+}
+renderDashJobs();
+loadTemplates();
+
+// Populate contractor filter dropdown and edit modal contractor select
+(function(){
+  var sel=document.getElementById('job-filter-contractor');
+  if(sel){CONTRACTORS.forEach(function(c){var o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o);});}
+  var esel=document.getElementById('ej-contractor');
+  if(esel){var blank=document.createElement('option');blank.value='';blank.textContent='Select contractor...';esel.appendChild(blank);CONTRACTORS.forEach(function(c){var o=document.createElement('option');o.value=c.id;o.textContent=c.name+' — '+c.trade.split('·')[0].trim();esel.appendChild(o);});}
+})();
+
+let editJobIdx=null;
+const pillMap={'Awaiting contractor':'pill-amber','Quote requested':'pill-yellow','Quote received':'pill-yellow','Awaiting approval':'pill-amber','Works in progress':'pill-blue','Complete':'pill-green','Overdue — no response':'pill-red'};
+function openEditJobModal(idx){
+  editJobIdx=idx;
+  var job=jobs[idx];
+  document.getElementById('ej-prop').value=job.prop||'';
+  document.getElementById('ej-issue').value=job.issue||'';
+  document.getElementById('ej-contractor').value=job.contractorId||'';
+  document.getElementById('ej-status').value=job.status||'';
+  var ejCat=document.getElementById('ej-category');if(ejCat)ejCat.value=job.category||'General';
+  document.getElementById('ej-tenant').value=job.tenant||'';
+  document.getElementById('ej-tenantphone').value=job.tenantPhone||'';
+  document.getElementById('ej-access').value=job.access||'';
+  document.getElementById('ej-notes').value=job.notes||'';
+  document.getElementById('ej-quote').value=job.quote||'';
+  document.getElementById('ej-invoice').value=job.invoice||'';
+  document.getElementById('edit-job-modal').classList.add('open');
+}
+function closeEditJobModal(){document.getElementById('edit-job-modal').classList.remove('open');editJobIdx=null;}
+function saveEditJob(){
+  if(editJobIdx===null) return;
+  var statusVal=document.getElementById('ej-status').value;
+  jobs[editJobIdx].prop=document.getElementById('ej-prop').value.trim()||jobs[editJobIdx].prop;
+  jobs[editJobIdx].issue=document.getElementById('ej-issue').value.trim()||jobs[editJobIdx].issue;
+  jobs[editJobIdx].contractorId=document.getElementById('ej-contractor').value;
+  var ejCat2=document.getElementById('ej-category');if(ejCat2)jobs[editJobIdx].category=ejCat2.value;
+  jobs[editJobIdx].status=statusVal;
+  jobs[editJobIdx].pill=pillMap[statusVal]||'pill-grey';
+  jobs[editJobIdx].tenant=document.getElementById('ej-tenant').value;
+  jobs[editJobIdx].tenantPhone=document.getElementById('ej-tenantphone').value;
+  jobs[editJobIdx].access=document.getElementById('ej-access').value;
+  jobs[editJobIdx].notes=document.getElementById('ej-notes').value;
+  jobs[editJobIdx].quote=parseFloat(document.getElementById('ej-quote').value)||0;
+  jobs[editJobIdx].invoice=parseFloat(document.getElementById('ej-invoice').value)||0;
+  var now2=new Date();jobs[editJobIdx].lastActionDate=String(now2.getDate()).padStart(2,'0')+'/'+String(now2.getMonth()+1).padStart(2,'0')+'/'+now2.getFullYear();
+  closeEditJobModal();
+  renderJobs();
+  renderDashJobs();
+  updateOpsStats();
+  showToast('Job updated');
+  if(typeof fbSaveAllJobs==='function') fbSaveAllJobs();
+}
+
+function deleteJobFromModal(){
+  if(editJobIdx===null) return;
+  var job=jobs[editJobIdx];
+  if(!confirm('Delete job: '+job.prop+'\n'+job.issue+'\n\nThis cannot be undone.')) return;
+  jobs.splice(editJobIdx,1);
+  closeEditJobModal();
+  renderJobs();
+  renderDashJobs();
+  updateOpsStats();
+  showToast('Job deleted');
+  if(typeof fbSaveAllJobs==='function') fbSaveAllJobs();
+}
+
+function deleteJob(idx){
+  var job=jobs[idx];
+  if(!job) return;
+  if(!confirm('Delete job: '+job.prop+'\n'+job.issue+'\n\nThis cannot be undone.')) return;
+  jobs.splice(idx,1);
+  renderJobs();
+  renderDashJobs();
+  updateOpsStats();
+  showToast('Job deleted');
+  if(typeof fbSaveAllJobs==='function') fbSaveAllJobs();
+}
+
 function toggleAddJob(){document.getElementById('add-job-form').classList.toggle('open');}
-function addJob(){const addr=document.getElementById('nj-address').value.trim();const issue=document.getElementById('nj-issue').value.trim();if(!addr||!issue){alert('Please enter at least a property address and issue.');return;}const statusVal=document.getElementById('nj-status').value;const pillMap={'Awaiting contractor':'pill-amber','Quote requested':'pill-yellow','Quote received':'pill-yellow','Awaiting approval':'pill-amber','Works in progress':'pill-blue','Complete':'pill-green'};jobs.unshift({prop:addr,issue,contractorId:document.getElementById('nj-contractor').value||'',status:statusVal,pill:pillMap[statusVal]||'pill-grey',tenant:document.getElementById('nj-tenant').value||'—',tenantPhone:document.getElementById('nj-tenantphone').value||'',access:document.getElementById('nj-access').value||'—',notes:document.getElementById('nj-notes').value||'',quote:parseFloat(document.getElementById('nj-quote').value)||0,invoice:parseFloat(document.getElementById('nj-invoice').value)||0});['nj-address','nj-issue','nj-tenant','nj-tenantphone','nj-access','nj-notes','nj-quote','nj-invoice'].forEach(id=>document.getElementById(id).value='');document.getElementById('nj-contractor').value='';document.getElementById('contractor-info-row').style.display='none';toggleAddJob();renderJobs();updateOpsStats();logActivity('Job added',jobs[0].issue,jobs[0].prop);
+function addJob(){const addr=document.getElementById('nj-address').value.trim();const issue=document.getElementById('nj-issue').value.trim();if(!addr||!issue){alert('Please enter at least a property address and issue.');return;}const statusVal=document.getElementById('nj-status').value;const pillMap2={'Awaiting contractor':'pill-amber','Quote requested':'pill-yellow','Quote received':'pill-yellow','Awaiting approval':'pill-amber','Works in progress':'pill-blue','Complete':'pill-green'};var today=new Date();var dd=String(today.getDate()).padStart(2,'0');var mm=String(today.getMonth()+1).padStart(2,'0');var yyyy=today.getFullYear();var todayStr=dd+'/'+mm+'/'+yyyy;jobs.unshift({prop:addr,issue,contractorId:document.getElementById('nj-contractor').value||'',status:statusVal,pill:pillMap2[statusVal]||'pill-grey',tenant:document.getElementById('nj-tenant').value||'—',tenantPhone:document.getElementById('nj-tenantphone').value||'',access:document.getElementById('nj-access').value||'—',notes:document.getElementById('nj-notes').value||'',quote:parseFloat(document.getElementById('nj-quote').value)||0,invoice:parseFloat(document.getElementById('nj-invoice').value)||0,category:document.getElementById('nj-category')?document.getElementById('nj-category').value:'General',dateLogged:todayStr,lastActionDate:todayStr});['nj-address','nj-issue','nj-tenant','nj-tenantphone','nj-access','nj-notes','nj-quote','nj-invoice'].forEach(id=>document.getElementById(id).value='');document.getElementById('nj-contractor').value='';document.getElementById('contractor-info-row').style.display='none';toggleAddJob();renderJobs();renderDashJobs();updateOpsStats();logActivity('Job added',jobs[0].issue,jobs[0].prop);
   fbSaveAllJobs();}
 
 
@@ -757,6 +1321,7 @@ function editJobAmounts(idx){
   if(inv===null) return;
   if(q!=='') job.quote=parseFloat(q)||0;
   if(inv!=='') job.invoice=parseFloat(inv)||0;
+  var now3=new Date();job.lastActionDate=String(now3.getDate()).padStart(2,'0')+'/'+String(now3.getMonth()+1).padStart(2,'0')+'/'+now3.getFullYear();
   renderJobs();
   renderContractors();
   showToast('Amounts updated');
@@ -866,9 +1431,87 @@ function renderContractors(){
     editBtn.innerHTML='&#9999; Edit';
     editBtn.onclick=(function(idx){return function(){editContractor(idx);};})(i);
     btnGroup.appendChild(editBtn);
+
+    var viewJobsBtn=document.createElement('button');
+    viewJobsBtn.className='job-btn';
+    viewJobsBtn.style.cssText='background:#1A5C3A;color:#fff;border-color:#1A5C3A';
+    viewJobsBtn.innerHTML='&#128203; View jobs';
+    viewJobsBtn.onclick=(function(cid,cname){return function(){openContractorJobLog(cid,cname);};})(c.id,c.name);
+    btnGroup.appendChild(viewJobsBtn);
+
+    var delCBtn=document.createElement('button');
+    delCBtn.className='job-btn';
+    delCBtn.style.cssText='background:#FCEBEB;color:#A32D2D;border-color:#F0C0C0';
+    delCBtn.innerHTML='&#128465; Delete';
+    delCBtn.onclick=(function(idx,name){return function(){deleteContractor(idx,name);};})(i,c.name);
+    btnGroup.appendChild(delCBtn);
   });
 }
 renderContractors();
+
+function deleteContractor(idx, name){
+  var openJobs=jobs.filter(function(j){return j.contractorId===contractorList[idx].id;}).length;
+  var msg='Delete contractor: '+name+'?';
+  if(openJobs>0) msg+='\n\nWarning: this contractor has '+openJobs+' job'+(openJobs>1?'s':'')+' logged. Jobs will remain but contractor will show as TBC.';
+  msg+='\n\nThis cannot be undone.';
+  if(!confirm(msg)) return;
+  contractorList.splice(idx,1);
+  renderContractors();
+  showToast(name+' deleted');
+}
+
+function openContractorJobLog(contractorId, contractorName){
+  activeContractorLog={id:contractorId,name:contractorName};
+  var cJobs=jobs.filter(function(j){return j.contractorId===contractorId;});
+  var totalQuote=cJobs.reduce(function(a,j){return a+(j.quote||0);},0);
+  var totalInvoice=cJobs.reduce(function(a,j){return a+(j.invoice||0);},0);
+  var openCount=cJobs.filter(function(j){return j.status.toLowerCase()!=='complete';}).length;
+
+  document.getElementById('cjl-title').textContent=contractorName+' — Job Log';
+
+  // Summary strip
+  var sumEl=document.getElementById('cjl-summary');
+  sumEl.innerHTML=''
+    +'<div style="background:var(--bg);border-radius:var(--radius-md);padding:10px;text-align:center"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Total jobs</div><div style="font-size:22px;font-weight:500">'+cJobs.length+'</div></div>'
+    +'<div style="background:#FAEEDA;border-radius:var(--radius-md);padding:10px;text-align:center"><div style="font-size:10px;color:#854F0B;margin-bottom:3px">Open</div><div style="font-size:22px;font-weight:500;color:#854F0B">'+openCount+'</div></div>'
+    +'<div style="background:#EAF3DE;border-radius:var(--radius-md);padding:10px;text-align:center"><div style="font-size:10px;color:#3B6D11;margin-bottom:3px">Invoiced</div><div style="font-size:16px;font-weight:500;color:#3B6D11">&#163;'+totalInvoice.toLocaleString()+'</div></div>';
+
+  // Job list
+  var jlEl=document.getElementById('cjl-jobs');
+  if(cJobs.length===0){
+    jlEl.innerHTML='<div style="font-size:11px;color:var(--text2);padding:10px 0">No jobs logged for this contractor yet.</div>';
+  } else {
+    jlEl.innerHTML='';
+    cJobs.forEach(function(job){
+      var row=document.createElement('div');
+      row.style.cssText='padding:10px 0;border-bottom:0.5px solid var(--border)';
+      var amtHtml='';
+      if(job.invoice) amtHtml='<span style="font-size:10px;font-weight:500;color:#3B6D11">&#10003; &#163;'+job.invoice.toLocaleString()+' invoiced</span>';
+      else if(job.quote) amtHtml='<span style="font-size:10px;color:#854F0B">Quote: &#163;'+job.quote.toLocaleString()+'</span>';
+      else amtHtml='<span style="font-size:10px;color:var(--text2)">No amount logged</span>';
+      row.innerHTML='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'
+        +'<div style="min-width:0">'
+        +'<div style="font-size:12px;font-weight:500;color:var(--text)">'+job.prop+'</div>'
+        +'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+job.issue+'</div>'
+        +'<div style="margin-top:4px">'+amtHtml+'</div>'
+        +'</div>'
+        +'<span class="pill '+job.pill+'" style="flex-shrink:0">'+job.status+'</span>'
+        +'</div>';
+      jlEl.appendChild(row);
+    });
+    // Total row
+    var totalRow=document.createElement('div');
+    totalRow.style.cssText='padding:10px 0;display:flex;justify-content:space-between;font-size:12px;font-weight:500';
+    totalRow.innerHTML='<span>Total value</span>'
+      +'<span style="color:#3B6D11">&#163;'+totalInvoice.toLocaleString()+' invoiced'
+      +(totalQuote>totalInvoice?' &middot; <span style="color:#854F0B">&#163;'+(totalQuote-totalInvoice).toLocaleString()+' outstanding</span>':'')
+      +'</span>';
+    jlEl.appendChild(totalRow);
+  }
+  document.getElementById('contractor-job-log-modal').classList.add('open');
+}
+var cjlModal=document.getElementById('contractor-job-log-modal');
+if(cjlModal) cjlModal.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
 
 function openAddContractor(){
   document.getElementById('c-modal-title').textContent='Add contractor';
@@ -1374,6 +2017,140 @@ function generateReport(r) {
   logActivity('Report generated', data.title, '');
 }
 
+
+// ── IMPORT / EXPORT PANEL ──────────────────────────────────────────────
+
+var IE_SECTIONS = [
+  {
+    key: 'maintenance',
+    label: 'Maintenance jobs',
+    icon: 'ti-tools',
+    headers: ['Property','Issue','Contractor','Status','Tenant','Tenant Phone','Access','Notes','Quote','Invoice'],
+    getData: function(){ return jobs.map(function(j){ var c=getContractor(j.contractorId); return [j.prop,j.issue,c.name,j.status,j.tenant,j.tenantPhone,j.access,j.notes,j.quote||'',j.invoice||'']; }); },
+    importFn: function(rows){
+      var imported=rows.map(function(r){
+        var cid=CONTRACTORS.find(function(c){return c.name===r[2];}); 
+        var statusVal=r[3]||'Awaiting contractor';
+        var pm={'Awaiting contractor':'pill-amber','Quote requested':'pill-yellow','Quote received':'pill-yellow','Awaiting approval':'pill-amber','Works in progress':'pill-blue','Complete':'pill-green','Overdue — no response':'pill-red'};
+        return {prop:r[0]||'',issue:r[1]||'',contractorId:cid?cid.id:'',status:statusVal,pill:pm[statusVal]||'pill-grey',tenant:r[4]||'',tenantPhone:r[5]||'',access:r[6]||'',notes:r[7]||'',quote:parseFloat(r[8])||0,invoice:parseFloat(r[9])||0};
+      });
+      if(confirm('Replace all '+jobs.length+' maintenance jobs with '+imported.length+' imported rows?')){jobs=imported;renderJobs();renderDashJobs();updateOpsStats();showToast(imported.length+' jobs imported');}
+    }
+  },
+  {
+    key: 'properties',
+    label: 'Properties',
+    icon: 'ti-building',
+    headers: ['Address','Tenant','Tenant Phone','Tenant Email','Landlord','Landlord Phone','Landlord Email','Rent','GSC Date','EICR Date','EPC Date','Deposit Status','Move-in Date'],
+    getData: function(){ return PROPERTIES.map(function(p){ return [p.address,p.tenant,p.tenantPhone||'',p.tenantEmail||'',p.landlord,p.landlordPhone||'',p.landlordEmail||'',p.rent,p.gscDate||'',p.eicrDate||'',p.epcDate||'',p.depositStatus||'',p.moveInDate||'']; }); },
+    importFn: function(rows){ showToast('Property import — update the data file directly for safety'); }
+  },
+  {
+    key: 'deposits',
+    label: 'Deposits',
+    icon: 'ti-cash',
+    headers: ['Address','Tenant','Landlord','Rent','Deposit Status','Move-in Date'],
+    getData: function(){ return PROPERTIES.map(function(p){ return [p.address,p.tenant,p.landlord,p.rent,p.depositStatus||'',p.moveInDate||'']; }); },
+    importFn: function(rows){ showToast('Deposit import — update the data file directly for safety'); }
+  },
+  {
+    key: 'contractors',
+    label: 'Contractors',
+    icon: 'ti-tool',
+    headers: ['Name','Trade','Phone','Phone 2','Email'],
+    getData: function(){ return contractorList.map(function(c){ return [c.name,c.trade,c.phone||'',c.phone2||'',c.email||'']; }); },
+    importFn: function(rows){
+      var imported=rows.map(function(r,i){ return {id:'imp_'+i,name:r[0]||'',trade:r[1]||'',phone:r[2]||'',phone2:r[3]||'',email:r[4]||''}; });
+      if(confirm('Replace all '+contractorList.length+' contractors with '+imported.length+' imported rows?')){contractorList=imported;renderContractors();showToast(imported.length+' contractors imported');}
+    }
+  },
+  {
+    key: 'pasttenants',
+    label: 'Past tenants',
+    icon: 'ti-users',
+    headers: ['Address','Tenant','Landlord','Move-in Date','Move-out Date','Deposit Status','Forwarding Address'],
+    getData: function(){
+      var el=document.getElementById('pt-list');
+      if(!el) return [];
+      var rows=[];
+      el.querySelectorAll('.pt-row,[data-pt]').forEach(function(r){
+        rows.push([r.dataset.address||'',r.dataset.tenant||'',r.dataset.landlord||'',r.dataset.movein||'',r.dataset.moveout||'',r.dataset.deposit||'',r.dataset.forwarding||'']);
+      });
+      return rows;
+    },
+    importFn: function(rows){ showToast('Past tenant import — update the data file directly for safety'); }
+  }
+];
+
+function buildImportExportPanel(){
+  var container=document.getElementById('import-export-sections');
+  if(!container) return;
+  container.innerHTML='';
+  IE_SECTIONS.forEach(function(sec){
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--border);flex-wrap:wrap';
+    var label=document.createElement('div');
+    label.style.cssText='display:flex;align-items:center;gap:7px;font-size:12px;font-weight:500';
+    label.innerHTML='<i class="ti '+sec.icon+'" style="font-size:14px;color:var(--text2)"></i>'+sec.label;
+    var btns=document.createElement('div');
+    btns.style.cssText='display:flex;gap:6px;align-items:center';
+
+    // Export button
+    var expBtn=document.createElement('button');
+    expBtn.className='btn btn-sm';
+    expBtn.innerHTML='<i class="ti ti-download" style="font-size:11px"></i> Export CSV';
+    expBtn.onclick=(function(s){ return function(){
+      var data=s.getData();
+      if(!data.length){showToast('No data to export');return;}
+      downloadCSV([s.headers].concat(data),'DG_'+s.label.replace(/\s+/g,'_')+'_'+new Date().toISOString().split('T')[0]);
+      showToast(s.label+' exported');
+      logActivity('Export','CSV: '+s.label,'');
+    };})(sec);
+    btns.appendChild(expBtn);
+
+    // Import button + hidden file input
+    var impLabel=document.createElement('label');
+    impLabel.style.cssText='display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border:0.5px solid var(--border);border-radius:var(--radius-md);background:var(--white);color:var(--text);cursor:pointer;white-space:nowrap';
+    impLabel.innerHTML='<i class="ti ti-upload" style="font-size:11px"></i> Import CSV';
+    var fileInput=document.createElement('input');
+    fileInput.type='file';
+    fileInput.accept='.csv';
+    fileInput.style.display='none';
+    fileInput.onchange=(function(s){ return function(e){
+      var file=e.target.files[0];
+      if(!file) return;
+      var reader=new FileReader();
+      reader.onload=function(ev){
+        var lines=ev.target.result.split('\n').filter(function(l){return l.trim();});
+        if(lines.length<2){showToast('CSV appears empty');return;}
+        var rows=lines.slice(1).map(function(line){
+          var result=[],cur='',inQ=false;
+          for(var i=0;i<line.length;i++){
+            var ch=line[i];
+            if(ch==='"'){inQ=!inQ;}
+            else if(ch===','&&!inQ){result.push(cur.trim());cur='';}
+            else{cur+=ch;}
+          }
+          result.push(cur.trim());
+          return result;
+        });
+        s.importFn(rows);
+        e.target.value='';
+      };
+      reader.readAsText(file);
+    };})(sec);
+    impLabel.appendChild(fileInput);
+    btns.appendChild(impLabel);
+
+    row.appendChild(label);
+    row.appendChild(btns);
+    container.appendChild(row);
+  });
+}
+buildImportExportPanel();
+
+// ── END IMPORT / EXPORT ────────────────────────────────────────────────
+
 function downloadCSV(rows, filename) {
   var csv = rows.map(function(row) {
     return row.map(function(cell) {
@@ -1445,6 +2222,7 @@ buildReportCards();
 renderActivity();
 
 document.getElementById('job-modal').addEventListener('click',function(e){if(e.target===this)closeJobModal();});
+document.getElementById('edit-job-modal').addEventListener('click',function(e){if(e.target===this)closeEditJobModal();});
 function buildDashboardWidgets(){
   var today = new Date();
 
@@ -1675,21 +2453,16 @@ function navTo(pageId, filterFn){
   if(filterFn) setTimeout(filterFn, 50);
 }
 
-// Maintenance: filter jobs by status on dashboard
+// Maintenance: navigate to dedicated maintenance page with optional filter
 function navToMaintenance(statusFilter){
-  navTo('dashboard', function(){
-    // Highlight/scroll to job list
-    var jl = document.getElementById('job-list');
-    if(jl) jl.scrollIntoView({behavior:'smooth'});
-    // Apply visual filter to jobs
-    var cards = jl ? jl.querySelectorAll('.job-card') : [];
-    cards.forEach(function(card){
-      var pill = card.querySelector('.pill');
-      if(!statusFilter){ card.style.display=''; return; }
-      var txt = pill ? pill.textContent.toLowerCase() : '';
-      card.style.display = txt.includes(statusFilter.toLowerCase()) ? '' : 'none';
-    });
-  });
+  var btn=document.querySelector('.nav-btn[onclick*="maintenance"]');
+  showPage('maintenance', btn);
+  if(statusFilter){
+    setTimeout(function(){
+      var sel=document.getElementById('job-filter-status');
+      if(sel){sel.value=statusFilter;renderJobs();}
+    },50);
+  }
 }
 
 // Deposits: filter by status
@@ -2035,111 +2808,220 @@ PROPERTIES.forEach(function(p){
 });
 
 function renderMoveIns(){
-  var container = document.getElementById('movein-cards');
+  var container=document.getElementById('movein-cards');
   if(!container) return;
-  container.innerHTML = '';
+  container.innerHTML='';
 
-  var sorted = moveIns.slice().sort(function(a,b){
-    if(a.status==='Complete' && b.status!=='Complete') return 1;
-    if(a.status!=='Complete' && b.status==='Complete') return -1;
-    return 0;
+  var search=(document.getElementById('movein-search')?document.getElementById('movein-search').value:'').toLowerCase();
+  var filterVal=window._moveInFilter||'all';
+
+  var filtered=moveIns.filter(function(mi){
+    if(filterVal!=='all'&&mi.status!==filterVal) return false;
+    if(search&&!(mi.address.toLowerCase().includes(search)||mi.tenant.toLowerCase().includes(search))) return false;
+    return true;
   });
 
   if(!moveIns.length){
-    container.innerHTML = '<div class="card" style="text-align:center;color:var(--text2);font-size:12px;padding:30px">No move-ins yet. Click + New move-in to add one.</div>';
+    container.innerHTML='<div class="card" style="text-align:center;color:var(--text2);font-size:12px;padding:30px">No move-ins yet. Click + New move-in to add one.</div>';
+    return;
+  }
+  if(!filtered.length){
+    container.innerHTML='<div class="card" style="text-align:center;color:var(--text2);font-size:12px;padding:20px">No move-ins match the current filter.</div>';
     return;
   }
 
-  sorted.forEach(function(mi){
-    var realIdx = moveIns.indexOf(mi);
-    var tDone = mi.tenantChecks.filter(Boolean).length;
-    var lDone = mi.landlordChecks.filter(Boolean).length;
-    var total = TENANT_CHECKLIST.length + LANDLORD_CHECKLIST.length;
-    var done = tDone + lDone;
-    var pct = Math.round((done/total)*100);
-    var barColor = pct===100?'#3B6D11':pct>50?'#854F0B':'#A32D2D';
-    var statusPill = pct===100
-      ? '<span class="pill pill-green">Complete</span>'
-      : pct===0
-        ? '<span class="pill pill-red">Not started</span>'
-        : '<span class="pill pill-amber">In progress '+pct+'%</span>';
+  // Special items that get date+link treatment
+  var SPECIAL = {
+    'ID / Right to Rent checked': {dateKey:'rtrDate', linkKey:'rtrLink', label:'Right to Rent'},
+    'Inventory booked': {dateKey:'inventoryDate', linkKey:'inventoryLink', label:'Inventory'},
+    'Move-in confirmed': {dateKey:'moveInConfirmedDate', linkKey:'moveInLink', label:'Move-in'}
+  };
 
-    var card = document.createElement('div');
-    card.className = 'card';
-    card.style.marginBottom = '10px';
+  filtered.forEach(function(mi){
+    var realIdx=moveIns.indexOf(mi);
+    var editMode=mi._editMode||false;
+    var tDone=mi.tenantChecks.filter(Boolean).length;
+    var lDone=mi.landlordChecks.filter(Boolean).length;
+    var total=TENANT_CHECKLIST.length+LANDLORD_CHECKLIST.length;
+    var done=tDone+lDone;
+    var pct=Math.round((done/total)*100);
+    var barColor=pct===100?'#3B6D11':pct>50?'#854F0B':'#A32D2D';
+    var statusPill=pct===100?'<span class="pill pill-green">Complete</span>':pct===0?'<span class="pill pill-red">Not started</span>':'<span class="pill pill-amber">In progress '+pct+'%</span>';
 
-    var headerHtml =
-      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px">'
-      +'<div><div style="font-size:13px;font-weight:500">'+mi.address+'</div>'
+    var card=document.createElement('div');
+    card.className='card';
+    card.style.marginBottom='10px';
+    if(editMode) card.style.outline='2px solid #1A5C3A';
+
+    // Header
+    var hdr=document.createElement('div');
+    hdr.style.cssText='display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px';
+    hdr.innerHTML='<div><div style="font-size:13px;font-weight:500">'+mi.address+'</div>'
       +'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+mi.tenant+(mi.landlord?' &middot; LL: '+mi.landlord:'')+(mi.moveInDate?' &middot; '+mi.moveInDate:'')+'</div></div>'
-      +statusPill+'</div>'
-      +'<div style="background:var(--bg2);border-radius:4px;height:6px;margin-bottom:14px">'
-      +'<div style="background:'+barColor+';height:6px;border-radius:4px;width:'+pct+'%"></div></div>';
+      +'<div style="display:flex;gap:5px;align-items:center;flex-shrink:0">'+statusPill+'</div>';
+    card.appendChild(hdr);
 
-    // Build checklists as separate divs using DOM to avoid quote issues
-    card.innerHTML = headerHtml
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'
-      +'<div id="tcol-'+realIdx+'"></div>'
-      +'<div id="lcol-'+realIdx+'"></div>'
-      +'</div>';
+    // Action bar
+    var actionBar=document.createElement('div');
+    actionBar.style.cssText='display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap';
+    if(!editMode){
+      var editBtn=document.createElement('button');
+      editBtn.className='btn btn-sm';
+      editBtn.innerHTML='&#9998; Edit checklist';
+      editBtn.onclick=(function(ri){return function(){moveIns[ri]._editMode=true;renderMoveIns();};})(realIdx);
+      actionBar.appendChild(editBtn);
+    } else {
+      var saveBtn=document.createElement('button');
+      saveBtn.className='btn btn-sm btn-primary';
+      saveBtn.innerHTML='&#10003; Save & lock';
+      saveBtn.onclick=(function(ri){return function(){
+        moveIns[ri]._editMode=false;
+        var mi2=moveIns[ri];
+        var total2=TENANT_CHECKLIST.length+LANDLORD_CHECKLIST.length;
+        var done2=mi2.tenantChecks.filter(Boolean).length+mi2.landlordChecks.filter(Boolean).length;
+        mi2.status=done2===total2?'Complete':done2===0?'Not started':'In progress';
+        renderMoveIns();
+        logActivity('Move-in updated',mi2.status+' — '+mi2.address,mi2.address);
+        fbSaveMoveIn(mi2);
+        showToast('Checklist saved');
+      };})(realIdx);
+      actionBar.appendChild(saveBtn);
+    }
+    var delBtn=document.createElement('button');
+    delBtn.className='btn btn-sm';
+    delBtn.style.cssText='background:#FCEBEB;color:#A32D2D;border-color:#F0C0C0';
+    delBtn.innerHTML='&#128465; Delete';
+    delBtn.onclick=(function(ri,addr){return function(){
+      if(!confirm('Delete move-in checklist for:\n'+addr+'\n\nThis cannot be undone.')) return;
+      moveIns.splice(ri,1);
+      renderMoveIns();
+      showToast('Checklist deleted');
+    };})(realIdx,mi.address);
+    actionBar.appendChild(delBtn);
+    card.appendChild(actionBar);
+
+    // Progress bar
+    var prog=document.createElement('div');
+    prog.style.cssText='background:var(--bg2);border-radius:4px;height:6px;margin-bottom:14px';
+    prog.innerHTML='<div style="background:'+barColor+';height:6px;border-radius:4px;width:'+pct+'%"></div>';
+    card.appendChild(prog);
+
+    // Two-column checklists
+    var grid=document.createElement('div');
+    grid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:16px';
+
+    // Build one column
+    function buildCol(checklist, checks, side){
+      var col=document.createElement('div');
+      var doneCount=checks.filter(Boolean).length;
+      var head=document.createElement('div');
+      head.style.cssText='font-size:11px;font-weight:500;color:var(--text);margin-bottom:8px;padding-bottom:4px;border-bottom:0.5px solid var(--border)';
+      head.textContent=(side==='tenant'?'Tenant side':'Landlord side')+' ('+doneCount+'/'+checklist.length+')';
+      col.appendChild(head);
+
+      checklist.forEach(function(item,i){
+        var checked=checks[i];
+        var special=SPECIAL[item];
+
+        var row=document.createElement('div');
+        row.style.cssText='padding:5px 0;'+(special?'border-bottom:0.5px solid var(--border);margin-bottom:4px':'');
+
+        // Tick row
+        var tickRow=document.createElement('div');
+        tickRow.style.cssText='display:flex;align-items:center;gap:7px;'+(editMode?'cursor:pointer':'cursor:default');
+
+        var box=document.createElement('div');
+        box.style.cssText='width:16px;height:16px;border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;'
+          +(checked?'background:#1a1a1a;border:0.5px solid #1a1a1a':'background:transparent;border:0.5px solid var(--border2)');
+        box.innerHTML=checked?'&#10003;':'';
+
+        var lbl=document.createElement('span');
+        lbl.style.cssText='font-size:11px;'+(checked?'color:var(--text2);text-decoration:line-through':'color:var(--text)');
+        lbl.textContent=item;
+
+        tickRow.appendChild(box);
+        tickRow.appendChild(lbl);
+        if(editMode){
+          tickRow.onclick=(function(ri,s,ii){return function(){toggleCheck(ri,s,ii);};})(realIdx,side,i);
+        }
+        row.appendChild(tickRow);
+
+        // Special item extras: date + link
+        if(special&&editMode){
+          var extras=document.createElement('div');
+          extras.style.cssText='display:flex;gap:6px;margin-top:5px;flex-wrap:wrap';
+
+          var dateIn=document.createElement('input');
+          dateIn.type='date';
+          dateIn.className='form-input';
+          dateIn.style.cssText='flex:1;min-width:120px;font-size:10px;padding:4px 6px';
+          dateIn.title=special.label+' date';
+          dateIn.value=mi[special.dateKey]?ukToIso(mi[special.dateKey]):'';
+          dateIn.onchange=(function(ri,dk,lbl2){return function(e){
+            moveIns[ri][dk]=isoToUk(e.target.value);
+            fbSaveMoveIn(moveIns[ri]);
+          };})(realIdx,special.dateKey,special.label);
+
+          var linkIn=document.createElement('input');
+          linkIn.type='url';
+          linkIn.className='form-input';
+          linkIn.style.cssText='flex:2;min-width:140px;font-size:10px;padding:4px 6px';
+          linkIn.placeholder='Google Docs / Drive link...';
+          linkIn.value=mi[special.linkKey]||'';
+          linkIn.onchange=(function(ri,lk){return function(e){
+            moveIns[ri][lk]=e.target.value;
+            fbSaveMoveIn(moveIns[ri]);
+          };})(realIdx,special.linkKey);
+
+          extras.appendChild(dateIn);
+          extras.appendChild(linkIn);
+          row.appendChild(extras);
+        } else if(special&&!editMode){
+          // View mode — show date and link if set
+          var viewExtras=document.createElement('div');
+          viewExtras.style.cssText='display:flex;gap:10px;margin-top:3px;flex-wrap:wrap;padding-left:23px';
+          if(mi[special.dateKey]){
+            var datePill=document.createElement('span');
+            datePill.style.cssText='font-size:10px;color:var(--text2)';
+            datePill.textContent='📅 '+mi[special.dateKey];
+            viewExtras.appendChild(datePill);
+          }
+          if(mi[special.linkKey]){
+            var linkEl=document.createElement('a');
+            linkEl.href=mi[special.linkKey];
+            linkEl.target='_blank';
+            linkEl.style.cssText='font-size:10px;color:#185FA5';
+            linkEl.textContent='📄 View doc';
+            viewExtras.appendChild(linkEl);
+          }
+          if(viewExtras.children.length) row.appendChild(viewExtras);
+        }
+
+        col.appendChild(row);
+      });
+      return col;
+    }
+
+    grid.appendChild(buildCol(TENANT_CHECKLIST, mi.tenantChecks, 'tenant'));
+    grid.appendChild(buildCol(LANDLORD_CHECKLIST, mi.landlordChecks, 'landlord'));
+    card.appendChild(grid);
     container.appendChild(card);
-
-    // Tenant checklist
-    var tCol = document.getElementById('tcol-'+realIdx);
-    var tHead = document.createElement('div');
-    tHead.style.cssText = 'font-size:11px;font-weight:500;color:var(--text);margin-bottom:8px;padding-bottom:4px;border-bottom:0.5px solid var(--border)';
-    tHead.textContent = 'Tenant side ('+tDone+'/'+TENANT_CHECKLIST.length+')';
-    tCol.appendChild(tHead);
-    TENANT_CHECKLIST.forEach(function(item, ti){
-      var checked = mi.tenantChecks[ti];
-      var row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;gap:7px;padding:4px 0;cursor:pointer';
-      var box = document.createElement('div');
-      box.style.cssText = 'width:16px;height:16px;border-radius:3px;border:0.5px solid '+(checked?'#1a1a1a':'var(--border2)')+';background:'+(checked?'#1a1a1a':'transparent')+';flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff';
-      box.innerHTML = checked ? '&#10003;' : '';
-      var label = document.createElement('span');
-      label.style.cssText = 'font-size:11px;color:'+(checked?'var(--text2)':'var(--text)')+(checked?';text-decoration:line-through':'');
-      label.textContent = item;
-      row.appendChild(box); row.appendChild(label);
-      row.onclick = (function(ri,ti){ return function(){ toggleCheck(ri,'tenant',ti); }; })(realIdx, ti);
-      tCol.appendChild(row);
-    });
-
-    // Landlord checklist
-    var lCol = document.getElementById('lcol-'+realIdx);
-    var lHead = document.createElement('div');
-    lHead.style.cssText = 'font-size:11px;font-weight:500;color:var(--text);margin-bottom:8px;padding-bottom:4px;border-bottom:0.5px solid var(--border)';
-    lHead.textContent = 'Landlord side ('+lDone+'/'+LANDLORD_CHECKLIST.length+')';
-    lCol.appendChild(lHead);
-    LANDLORD_CHECKLIST.forEach(function(item, li){
-      var checked = mi.landlordChecks[li];
-      var row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;gap:7px;padding:4px 0;cursor:pointer';
-      var box = document.createElement('div');
-      box.style.cssText = 'width:16px;height:16px;border-radius:3px;border:0.5px solid '+(checked?'#1a1a1a':'var(--border2)')+';background:'+(checked?'#1a1a1a':'transparent')+';flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff';
-      box.innerHTML = checked ? '&#10003;' : '';
-      var label = document.createElement('span');
-      label.style.cssText = 'font-size:11px;color:'+(checked?'var(--text2)':'var(--text)')+(checked?';text-decoration:line-through':'');
-      label.textContent = item;
-      row.appendChild(box); row.appendChild(label);
-      row.onclick = (function(ri,li){ return function(){ toggleCheck(ri,'landlord',li); }; })(realIdx, li);
-      lCol.appendChild(row);
-    });
   });
 }
 
+function ukToIso(str){if(!str)return'';var p=str.split('/');return p.length===3?p[2]+'-'+p[1]+'-'+p[0]:'';}
+function isoToUk(str){if(!str)return'';var p=str.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:'';}
 
-function toggleCheck(miIdx, side, itemIdx){
-  if(side==='tenant') moveIns[miIdx].tenantChecks[itemIdx] = !moveIns[miIdx].tenantChecks[itemIdx];
-  else moveIns[miIdx].landlordChecks[itemIdx] = !moveIns[miIdx].landlordChecks[itemIdx];
-  // Update status
-  var mi = moveIns[miIdx];
-  var total = TENANT_CHECKLIST.length + LANDLORD_CHECKLIST.length;
-  var done = mi.tenantChecks.filter(Boolean).length + mi.landlordChecks.filter(Boolean).length;
-  mi.status = done===total?'Complete':done===0?'Not started':'In progress';
+function toggleCheck(miIdx,side,itemIdx){
+  if(!moveIns[miIdx]._editMode){showToast('Click Edit to unlock the checklist first');return;}
+  if(side==='tenant') moveIns[miIdx].tenantChecks[itemIdx]=!moveIns[miIdx].tenantChecks[itemIdx];
+  else moveIns[miIdx].landlordChecks[itemIdx]=!moveIns[miIdx].landlordChecks[itemIdx];
+  var mi=moveIns[miIdx];
+  var total=TENANT_CHECKLIST.length+LANDLORD_CHECKLIST.length;
+  var done=mi.tenantChecks.filter(Boolean).length+mi.landlordChecks.filter(Boolean).length;
+  mi.status=done===total?'Complete':done===0?'Not started':'In progress';
   renderMoveIns();
-  logActivity('Move-in checklist updated', mi.status+' — '+mi.address, mi.address);
-  fbSaveMoveIn(moveIns[miIdx]);
+  fbSaveMoveIn(mi);
 }
 
 function openAddMoveIn(){
@@ -2181,7 +3063,11 @@ function createMoveIn(){
     tenantChecks: TENANT_CHECKLIST.map(function(){ return false; }),
     landlordChecks: LANDLORD_CHECKLIST.map(function(){ return false; }),
     status: 'Not started',
-    notes: ''
+    notes: '',
+    rtrDate:'', rtrLink:'',
+    inventoryDate:'', inventoryLink:'',
+    moveInConfirmedDate:'', moveInLink:'',
+    _editMode: true
   });
   document.getElementById('movein-modal').classList.remove('open');
   renderMoveIns();
@@ -2878,7 +3764,7 @@ function saveManualPastTenant(){
 var firebaseConfig = {
   apiKey: "AIzaSyAYi9Icg31o6zM8A3LIhXr88_g4Jnn2QdQ",
   authDomain: "dg-lettings.firebaseapp.com",
-  databaseURL: "https://dg-lettings-default-rtdb.europe-west1." + "firebasedatabase.app",
+  databaseURL: "https://dg-lettings-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "dg-lettings",
   storageBucket: "dg-lettings.firebasestorage.app",
   messagingSenderId: "200989315395",
@@ -2893,6 +3779,16 @@ var fbApp, db, DB_READY = false;
 // ── LOAD FROM FIREBASE ──
 function loadFromFirebase(){
   showToast('Loading data from Firebase...');
+
+  // Load templates
+  db.ref('templates').once('value').then(function(snap){
+    var data=snap.val();
+    if(data){
+      TEMPLATES=Object.assign({},DEFAULT_TEMPLATES,data);
+      try{localStorage.setItem('dg_templates',JSON.stringify(TEMPLATES));}catch(e){}
+      loadTemplates();
+    }
+  }).catch(function(e){console.error('FB load templates error',e);});
 
   // Load properties
   db.ref('properties').once('value').then(function(snap){
@@ -3123,6 +4019,19 @@ function initFirebaseIfEmpty(){
     <div class="modal-actions">
       <button class="btn" onclick="document.getElementById('add-pt-modal').classList.remove('open')">Cancel</button>
       <button class="btn btn-primary" onclick="saveManualPastTenant()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="contractor-job-log-modal">
+  <div class="modal" style="max-width:600px;width:100%">
+    <div class="modal-title" id="cjl-title">Job log</div>
+    <div id="cjl-summary" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0"></div>
+    <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">All jobs</div>
+    <div id="cjl-jobs" style="max-height:55vh;overflow-y:auto"></div>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="btn" onclick="document.getElementById('contractor-job-log-modal').classList.remove('open')">Close</button>
+      <button class="btn btn-primary" onclick="copyContractorJobLog()">&#128203; Copy log</button>
     </div>
   </div>
 </div>
