@@ -1,82 +1,88 @@
 // =====================================================
 // DG LETTINGS — INBOUND EMAIL HANDLER
 // Triggered by Microsoft Graph webhook when email arrives
-// Reads email, identifies sender, drafts responses
+// Uses app-only auth (client credentials) — matches create-subscription.js
 // =====================================================
 
 const fetch = (...args) => import('node-fetch').then(({default: f}) => f(...args));
 
-const CLIENT_ID     = process.env.AZURE_CLIENT_ID;
-const CLIENT_SECRET = process.env.AZURE_CLIENT_SECRET;
-const REFRESH_TOKEN = process.env.OUTLOOK_REFRESH_TOKEN;
+const TENANT_ID     = 'f22402ce-b358-43c7-91f9-b90742bf68e4';
+const MAILBOX       = 'maintenance@pickwickestates.com';
 const FIREBASE_URL  = process.env.FIREBASE_URL;
 const FROM_NAME     = 'Dionne — Pickwick Estates';
-const FROM_EMAIL    = process.env.OUTLOOK_EMAIL;
+const FROM_EMAIL    = process.env.OUTLOOK_EMAIL || MAILBOX;
 
+// App-only auth — matches create-subscription.js
 async function getAccessToken() {
   const body = new URLSearchParams({
-    grant_type:    'refresh_token',
-    client_id:     CLIENT_ID,
-    client_secret: CLIENT_SECRET,
-    refresh_token: REFRESH_TOKEN,
-    scope:         'https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Read offline_access',
+    grant_type:    'client_credentials',
+    client_id:     process.env.AZURE_CLIENT_ID,
+    client_secret: process.env.AZURE_CLIENT_SECRET,
+    scope:         'https://graph.microsoft.com/.default',
   });
-  const res = await fetch('https://login.microsoftonline.com/f22402ce-b358-43c7-91f9-b90742bf68e4/oauth2/v2.0/token', { method: 'POST', body });
+  const res = await fetch(
+    `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`,
+    { method: 'POST', body }
+  );
   const data = await res.json();
   if (!data.access_token) throw new Error('Token error: ' + JSON.stringify(data));
   return data.access_token;
 }
 
-// Load all Firebase data
+// Load Firebase data
 async function loadFirebase(path) {
   const res = await fetch(FIREBASE_URL + '/' + path + '.json');
   const data = await res.json();
   return data ? Object.values(data) : [];
 }
 
-// Create Outlook draft
-async function createDraft(token, { to, subject, body }) {
-  const res = await fetch('https://graph.microsoft.com/v1.0/me/messages', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      subject,
-      body: { contentType: 'Text', content: body },
-      toRecipients: to ? [{ emailAddress: { address: to } }] : [],
-      isDraft: true,
-    }),
-  });
-  return await res.json();
-}
-
-// Read full email content
+// Read full email — using mailbox path not 'me'
 async function getEmail(token, messageId) {
-  const res = await fetch('https://graph.microsoft.com/v1.0/me/messages/' + messageId, {
-    headers: { 'Authorization': 'Bearer ' + token },
-  });
+  const res = await fetch(
+    `https://graph.microsoft.com/v1.0/users/${MAILBOX}/messages/${messageId}`,
+    { headers: { 'Authorization': 'Bearer ' + token } }
+  );
   return await res.json();
 }
 
-// Identify sender type and matched property
+// Create draft in the mailbox — using mailbox path not 'me'
+async function createDraft(token, { to, subject, body }) {
+  const res = await fetch(
+    `https://graph.microsoft.com/v1.0/users/${MAILBOX}/messages`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({
+        subject,
+        body:         { contentType: 'Text', content: body },
+        toRecipients: to ? [{ emailAddress: { address: to } }] : [],
+        isDraft:      true,
+      }),
+    }
+  );
+  return await res.json();
+}
+
+// Identify sender type
 function identifySender(fromEmail, fromName, properties, contractors) {
   const emailLower = (fromEmail || '').toLowerCase();
-  const nameLower = (fromName || '').toLowerCase();
+  const nameLower  = (fromName || '').toLowerCase();
 
-  // Check if contractor
   const contractor = contractors.find(c =>
     (c.email || '').toLowerCase() === emailLower ||
     nameLower.includes((c.name || '').toLowerCase().split(' ')[0])
   );
   if (contractor) return { type: 'contractor', match: contractor };
 
-  // Check if landlord
   const llProp = properties.find(p =>
     (p.llEmail || '').toLowerCase() === emailLower ||
     (p.llName || '').toLowerCase().includes(nameLower.split(' ')[0])
   );
   if (llProp) return { type: 'landlord', match: llProp };
 
-  // Check if tenant
   const tenantProp = properties.find(p =>
     (p.tenantEmail || '').toLowerCase() === emailLower ||
     (p.tenant || '').toLowerCase().includes(nameLower.split(' ')[0])
@@ -86,63 +92,56 @@ function identifySender(fromEmail, fromName, properties, contractors) {
   return { type: 'unknown', match: null };
 }
 
-// Find property mentioned in email body/subject
+// Find property mentioned in email
 function findPropertyInEmail(text, properties) {
   const textLower = text.toLowerCase();
   return properties.find(p => {
-    const addr = p.address.toLowerCase();
-    const parts = addr.split(',')[0].split(' ');
-    // Match if at least the street number and name are in the email
+    const parts = p.address.toLowerCase().split(',')[0].split(' ');
     return parts.length >= 2 && textLower.includes(parts.slice(0, 2).join(' '));
   }) || null;
 }
 
-// Detect email intent
+// Detect intent
 function detectIntent(subject, body) {
   const text = (subject + ' ' + body).toLowerCase();
   if (text.includes('boiler') || text.includes('heating') || text.includes('hot water')) return 'boiler';
-  if (text.includes('leak') || text.includes('water damage') || text.includes('damp')) return 'leak';
-  if (text.includes('electric') || text.includes('power') || text.includes('fuse')) return 'electrical';
-  if (text.includes('lock') || text.includes('key') || text.includes('door')) return 'access';
-  if (text.includes('quote') || text.includes('estimate') || text.includes('cost')) return 'quote';
-  if (text.includes('invoice') || text.includes('payment') || text.includes('bill')) return 'invoice';
-  if (text.includes('complete') || text.includes('finished') || text.includes('done')) return 'complete';
+  if (text.includes('leak') || text.includes('water damage') || text.includes('damp'))    return 'leak';
+  if (text.includes('electric') || text.includes('power') || text.includes('fuse'))       return 'electrical';
+  if (text.includes('lock') || text.includes('key') || text.includes('door'))             return 'access';
+  if (text.includes('quote') || text.includes('estimate') || text.includes('cost'))       return 'quote';
+  if (text.includes('invoice') || text.includes('payment') || text.includes('bill'))      return 'invoice';
+  if (text.includes('complete') || text.includes('finished') || text.includes('done'))    return 'complete';
   if (text.includes('approve') || text.includes('authorise') || text.includes('go ahead')) return 'approval';
-  if (text.includes('deposit') || text.includes('refund')) return 'deposit';
-  if (text.includes('notice') || text.includes('leaving') || text.includes('vacate')) return 'notice';
+  if (text.includes('deposit') || text.includes('refund'))                                return 'deposit';
+  if (text.includes('notice') || text.includes('leaving') || text.includes('vacate'))     return 'notice';
   return 'general';
 }
 
-// Use Claude AI to generate smart draft responses
+// Generate draft responses
 async function generateDrafts(emailData, senderInfo, property, intent) {
   const { fromEmail, fromName, subject, body } = emailData;
   const nl = '\n';
-
   const drafts = [];
 
   if (senderInfo.type === 'tenant' && property) {
     const ll = property.llName ? 'Dear ' + property.llName.split(' ')[0] + ',' : 'Dear Landlord,';
-    const tenant = property.tenant;
-    const addr = property.address;
 
-    // 1. Reply to tenant — acknowledgement
     drafts.push({
       to: fromEmail,
       subject: 'Re: ' + subject,
       body: 'Dear ' + fromName.split(' ')[0] + ',' + nl + nl +
-        'Thank you for getting in touch regarding ' + addr + '.' + nl + nl +
+        'Thank you for getting in touch regarding ' + property.address + '.' + nl + nl +
         'I have received your message and will look into this as a matter of priority. I will be in touch shortly with an update.' + nl + nl +
         'If the matter is urgent, please do not hesitate to call us directly.' + nl + nl +
         'Kind regards,' + nl + FROM_NAME,
       label: 'Reply to tenant — acknowledgement'
     });
 
-    // 2. Email to landlord — informing of issue
     drafts.push({
       to: property.llEmail || '',
-      subject: 'Maintenance issue reported — ' + addr,
+      subject: 'Maintenance issue reported — ' + property.address,
       body: ll + nl + nl +
-        'I am writing to advise that your tenant ' + tenant + ' at ' + addr + ' has been in touch regarding the following:' + nl + nl +
+        'I am writing to advise that your tenant ' + property.tenant + ' at ' + property.address + ' has been in touch regarding the following:' + nl + nl +
         '"' + subject + '"' + nl + nl +
         body.substring(0, 300) + (body.length > 300 ? '...' : '') + nl + nl +
         'Please could you confirm whether you would like us to arrange for a contractor to attend, or whether you wish to handle this directly?' + nl + nl +
@@ -154,7 +153,6 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
     const ll = property.llName ? 'Dear ' + property.llName.split(' ')[0] + ',' : 'Dear Landlord,';
 
     if (intent === 'quote') {
-      // Forward quote to landlord
       drafts.push({
         to: property.llEmail || '',
         subject: 'Quote received — ' + property.address,
@@ -165,8 +163,6 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
           'Kind regards,' + nl + FROM_NAME,
         label: 'Forward contractor quote to landlord'
       });
-
-      // Acknowledge receipt to contractor
       drafts.push({
         to: fromEmail,
         subject: 'Re: ' + subject,
@@ -176,9 +172,7 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
           'Kind regards,' + nl + FROM_NAME,
         label: 'Acknowledge quote receipt to contractor'
       });
-
     } else if (intent === 'complete') {
-      // Notify landlord works complete
       drafts.push({
         to: property.llEmail || '',
         subject: 'Works completed — ' + property.address,
@@ -203,9 +197,8 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
 
   } else if (senderInfo.type === 'landlord' && property) {
     if (intent === 'approval') {
-      // Find relevant job for this property
       drafts.push({
-        to: '',  // Contractor email to be filled
+        to: '',
         subject: 'Works approved — please proceed — ' + property.address,
         body: 'Hi,' + nl + nl +
           'I am writing to confirm that the landlord has approved the works at ' + property.address + '.' + nl + nl +
@@ -215,15 +208,12 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
           'Kind regards,' + nl + FROM_NAME,
         label: 'Instruct contractor — works approved'
       });
-
-      // Notify tenant
       drafts.push({
         to: property.tenantEmail || '',
         subject: 'Maintenance update — ' + property.address,
         body: 'Dear ' + property.tenant.split(' ')[0] + ',' + nl + nl +
           'I am writing to advise that works have been approved for your property at ' + property.address + '.' + nl + nl +
           'A contractor will be in touch shortly to arrange a convenient time to attend.' + nl + nl +
-          'Please ensure access is available and let us know if you have any questions.' + nl + nl +
           'Kind regards,' + nl + FROM_NAME,
         label: 'Notify tenant — works approved'
       });
@@ -250,34 +240,32 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
 // Log job to Firebase
 async function logJob(property, subject, fromName, intent) {
   if (!property) return;
-  const jobRef = FIREBASE_URL + '/jobs.json';
-  const job = {
-    id: Date.now(),
-    prop: property.address,
-    tenant: property.tenant,
-    issue: subject,
-    status: 'New — awaiting response',
-    contractor: '',
-    contractorId: '',
-    access: 'Contact tenant to arrange',
-    quote: 0,
-    invoice: 0,
-    notes: 'Auto-logged from email by ' + fromName,
-    date: new Date().toLocaleDateString('en-GB'),
-    intent: intent,
-  };
-  await fetch(jobRef, {
+  await fetch(FIREBASE_URL + '/jobs.json', {
     method: 'POST',
-    body: JSON.stringify(job),
+    body: JSON.stringify({
+      id:           Date.now(),
+      prop:         property.address,
+      tenant:       property.tenant,
+      issue:        subject,
+      status:       'New — awaiting response',
+      contractor:   '',
+      contractorId: '',
+      access:       'Contact tenant to arrange',
+      quote:        0,
+      invoice:      0,
+      notes:        'Auto-logged from email by ' + fromName,
+      date:         new Date().toLocaleDateString('en-GB'),
+      intent:       intent,
+    }),
   });
 }
 
 exports.handler = async function(event) {
-  // Microsoft Graph sends a validation token on first subscription setup
+  // Validation handshake — Microsoft sends this when subscription is first created
   const params = new URLSearchParams(event.rawQuery || '');
   const validationToken = params.get('validationToken');
   if (validationToken) {
-    // Must return the token as plain text to validate subscription
+    console.log('Validation token received — confirming subscription');
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'text/plain' },
@@ -285,70 +273,74 @@ exports.handler = async function(event) {
     };
   }
 
-  // Handle actual notification
   if (!event.body) return { statusCode: 200, body: 'No body' };
 
   try {
     const notification = JSON.parse(event.body);
     const values = notification.value || [];
+    console.log('Notifications received:', values.length);
 
     if (!values.length) return { statusCode: 200, body: 'No notifications' };
 
     const token = await getAccessToken();
+    console.log('Token acquired');
+
     const [properties, contractors] = await Promise.all([
       loadFirebase('properties'),
       loadFirebase('contractors'),
     ]);
+    console.log('Firebase loaded — properties:', properties.length, 'contractors:', contractors.length);
 
     const results = [];
 
     for (const notif of values) {
-      // Verify client state for security
-      if (notif.clientState !== 'dg-lettings-secret-2026') continue;
-
-      const messageId = notif.resourceData && notif.resourceData.id;
-      if (!messageId) continue;
-
-      // Get full email
-      const email = await getEmail(token, messageId);
-      if (!email || !email.from) continue;
-
-      const fromEmail = email.from.emailAddress.address;
-      const fromName = email.from.emailAddress.name || fromEmail;
-      const subject = email.subject || '(No subject)';
-      const body = email.body ? email.body.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : '';
-
-      // Skip if email is from ourselves
-      if (fromEmail.toLowerCase() === FROM_EMAIL.toLowerCase()) continue;
-
-      // Identify sender
-      const senderInfo = identifySender(fromEmail, fromName, properties, contractors);
-
-      // Find property mentioned
-      const emailText = subject + ' ' + body;
-      let property = senderInfo.match && senderInfo.type !== 'contractor' ? senderInfo.match : null;
-      if (!property) property = findPropertyInEmail(emailText, properties);
-
-      // Detect intent
-      const intent = detectIntent(subject, body);
-
-      // Generate draft responses
-      const drafts = await generateDrafts({ fromEmail, fromName, subject, body }, senderInfo, property, intent);
-
-      // Create all drafts in Outlook
-      for (const draft of drafts) {
-        await createDraft(token, draft);
+      if (notif.clientState !== 'dg-lettings-secret-2026') {
+        console.log('Invalid clientState — skipping');
+        continue;
       }
 
-      // Log maintenance job if it's a new issue from tenant
+      const messageId = notif.resourceData && notif.resourceData.id;
+      if (!messageId) { console.log('No messageId'); continue; }
+
+      const email = await getEmail(token, messageId);
+      console.log('Email fetched:', email.subject);
+
+      if (!email || !email.from) { console.log('No from address'); continue; }
+
+      const fromEmail = email.from.emailAddress.address;
+      const fromName  = email.from.emailAddress.name || fromEmail;
+      const subject   = email.subject || '(No subject)';
+      const body      = email.body ? email.body.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : '';
+
+      if (fromEmail.toLowerCase() === MAILBOX.toLowerCase()) { console.log('Skipping own email'); continue; }
+
+      const senderInfo = identifySender(fromEmail, fromName, properties, contractors);
+      console.log('Sender identified as:', senderInfo.type);
+
+      let property = senderInfo.match && senderInfo.type !== 'contractor' ? senderInfo.match : null;
+      if (!property) property = findPropertyInEmail(subject + ' ' + body, properties);
+      console.log('Property matched:', property ? property.address : 'none');
+
+      const intent = detectIntent(subject, body);
+      console.log('Intent:', intent);
+
+      const drafts = await generateDrafts({ fromEmail, fromName, subject, body }, senderInfo, property, intent);
+      console.log('Drafts to create:', drafts.length);
+
+      for (const draft of drafts) {
+        const result = await createDraft(token, draft);
+        console.log('Draft created:', result.id || result.error);
+      }
+
       if (senderInfo.type === 'tenant' && property && !['quote','invoice','approval','complete','deposit','notice'].includes(intent)) {
         await logJob(property, subject, fromName, intent);
+        console.log('Job logged to Firebase');
       }
 
       results.push({
-        from: fromName,
-        type: senderInfo.type,
-        property: property ? property.address : 'unmatched',
+        from:          fromName,
+        type:          senderInfo.type,
+        property:      property ? property.address : 'unmatched',
         intent,
         draftsCreated: drafts.length,
       });
@@ -361,6 +353,6 @@ exports.handler = async function(event) {
 
   } catch(e) {
     console.error('Email handler error:', e.message);
-    return { statusCode: 200, body: JSON.stringify({ error: e.message }) }; // Always return 200 to Microsoft
+    return { statusCode: 200, body: JSON.stringify({ error: e.message }) };
   }
 };
