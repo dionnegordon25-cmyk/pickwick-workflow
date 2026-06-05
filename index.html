@@ -1173,6 +1173,7 @@ function renderDashFollowUps(){
 }
 
 function renderAllDashCards(){
+  if(typeof loadChecklist === 'function') loadChecklist();
   renderDashCompAlerts();
   renderDashDepositAlerts();
   renderDashAptAlerts();
@@ -4105,6 +4106,11 @@ function loadFromFirebase(){
       });
       console.log('Properties loaded from Firebase: '+loaded.length);
     }
+    // Re-render compliance/deposit/apt cards now properties are loaded
+    renderDashCompAlerts();
+    renderDashDepositAlerts();
+    renderDashAptAlerts();
+    renderUrgentList();
   });
 
   // Load jobs
@@ -4116,6 +4122,8 @@ function loadFromFirebase(){
       updateOpsStats();
       console.log('Jobs loaded: '+jobs.length);
     }
+    // Render dashboard cards after jobs loaded (jobs needed for chase/follow-up)
+    setTimeout(renderAllDashCards, 200);
   });
 
   // Load contractors
@@ -4156,7 +4164,8 @@ function loadFromFirebase(){
   });
 
   DB_READY = true;
-  setTimeout(renderAllDashCards, 1500);
+  // Initial render with base data before Firebase loads complete
+  setTimeout(renderAllDashCards, 100);
 }
 
 // ── SAVE HELPERS ──
