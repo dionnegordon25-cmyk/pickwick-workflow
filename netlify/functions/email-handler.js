@@ -1,7 +1,7 @@
 // =====================================================
-// DG LETTINGS — INBOUND EMAIL HANDLER
-// Triggered by Microsoft Graph webhook when email arrives
+// DG LETTINGS — INBOUND EMAIL HANDLER v3
 // Intent-driven — works regardless of sender type
+// Deduplication via Firebase processed IDs
 // =====================================================
 
 const fetch = (...args) => import('node-fetch').then(({default: f}) => f(...args));
@@ -34,6 +34,23 @@ async function loadFirebase(path) {
   const res = await fetch(FIREBASE_URL + '/' + path + '.json');
   const data = await res.json();
   return data ? Object.values(data) : [];
+}
+
+// Check if message already processed (Firebase-persisted deduplication)
+async function isAlreadyProcessed(messageId) {
+  const key = messageId.replace(/[^a-zA-Z0-9]/g, '').substring(0, 60);
+  const res = await fetch(FIREBASE_URL + '/processedMessages/' + key + '.json');
+  const data = await res.json();
+  return !!data;
+}
+
+// Mark message as processed in Firebase (expires after 24 hours via TTL value)
+async function markProcessed(messageId) {
+  const key = messageId.replace(/[^a-zA-Z0-9]/g, '').substring(0, 60);
+  await fetch(FIREBASE_URL + '/processedMessages/' + key + '.json', {
+    method: 'PUT',
+    body: JSON.stringify({ processedAt: Date.now(), expires: Date.now() + 86400000 }),
+  });
 }
 
 // Read full email
@@ -117,8 +134,7 @@ function detectIntent(subject, body) {
   return 'general';
 }
 
-// ── INTENT-DRIVEN DRAFT GENERATION ──────────────────────────────
-// Works regardless of who sent the email — intent + property drive the response
+// ── INTENT-DRIVEN DRAFT GENERATION ──────────────────────────────────────
 async function generateDrafts(emailData, senderInfo, property, intent) {
   const { fromEmail, fromName, subject, body } = emailData;
   const nl = '\n';
@@ -139,7 +155,6 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
     return drafts;
   }
 
-  // Helpers
   const llFirst     = property.llName ? property.llName.split(' ')[0]   : 'Landlord';
   const tenFirst    = property.tenant ? property.tenant.split(' ')[0]   : 'Resident';
   const senderFirst = fromName        ? fromName.split(' ')[0]          : 'there';
@@ -147,12 +162,11 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
   const isTenant    = senderInfo.type === 'tenant';
   const isLandlord  = senderInfo.type === 'landlord';
 
-  // ── MAINTENANCE: boiler, leak, electrical, access, general ───
   const isMaintenanceIntent = ['boiler','leak','electrical','access','general'].includes(intent);
 
   if (isMaintenanceIntent) {
 
-    // 1. Acknowledge the sender — whoever they are
+    // 1. Acknowledge the sender
     drafts.push({
       to: fromEmail,
       subject: 'Re: ' + subject,
@@ -166,8 +180,8 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
       label: 'Acknowledge sender — ' + senderInfo.type
     });
 
-    // 2. Notify landlord (unless they are the sender)
-    if (!isLandlord && property.llEmail) {
+    // 2. Notify landlord (only if they are NOT the sender AND we have their email)
+    if (!isLandlord && property.llEmail && property.llEmail.trim()) {
       drafts.push({
         to: property.llEmail,
         subject: 'Maintenance issue reported — ' + addr,
@@ -179,10 +193,22 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
           'Kind regards,' + nl + FROM_NAME,
         label: 'Notify landlord — maintenance reported'
       });
+    } else if (!isLandlord && (!property.llEmail || !property.llEmail.trim())) {
+      // No landlord email — create internal flag draft instead
+      drafts.push({
+        to: FROM_EMAIL,
+        subject: '[ACTION NEEDED] No landlord email — ' + addr,
+        body: 'A maintenance issue has been reported at ' + addr + ' but no landlord email address is recorded.' + nl + nl +
+          'Issue: ' + subject + nl +
+          'Reported by: ' + fromName + ' (' + senderInfo.type + ')' + nl + nl +
+          'Please add the landlord email to the property record and notify them manually.' + nl + nl +
+          'Kind regards,' + nl + FROM_NAME,
+        label: 'Internal — missing landlord email'
+      });
     }
 
-    // 3. Notify tenant (unless they are the sender)
-    if (!isTenant && property.tenantEmail) {
+    // 3. Notify tenant (only if NOT the sender AND we have their email)
+    if (!isTenant && property.tenantEmail && property.tenantEmail.trim()) {
       drafts.push({
         to: property.tenantEmail,
         subject: 'Maintenance update — ' + addr,
@@ -194,7 +220,7 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
       });
     }
 
-    // 4. Internal action draft — to: blank for Dionne to fill in contractor
+    // 4. Internal contractor instruction draft
     drafts.push({
       to: '',
       subject: 'INSTRUCT CONTRACTOR — ' + intent.toUpperCase() + ' — ' + addr,
@@ -202,8 +228,9 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
         'Property:    ' + addr + nl +
         'Issue type:  ' + intent + nl +
         'Reported by: ' + fromName + ' (' + senderInfo.type + ')' + nl +
-        'Tenant:      ' + (property.tenant  || 'Not recorded') + nl +
-        'Landlord:    ' + (property.llName  || 'Not recorded') + nl + nl +
+        'Tenant:      ' + (property.tenant   || 'Not recorded') + nl +
+        'Landlord:    ' + (property.llName   || 'Not recorded') + nl +
+        'LL email:    ' + (property.llEmail  || 'NOT ON RECORD — add to property') + nl + nl +
         'Original message:' + nl +
         body.substring(0, 400) + (body.length > 400 ? '...' : '') + nl + nl +
         'Kind regards,' + nl + FROM_NAME,
@@ -211,9 +238,9 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
     });
   }
 
-  // ── QUOTE ────────────────────────────────────────────────────
+  // ── QUOTE ─────────────────────────────────────────────────────────────
   else if (intent === 'quote') {
-    if (property.llEmail) {
+    if (property.llEmail && property.llEmail.trim()) {
       drafts.push({
         to: property.llEmail,
         subject: 'Quote received — ' + addr,
@@ -236,9 +263,9 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
     });
   }
 
-  // ── INVOICE ──────────────────────────────────────────────────
+  // ── INVOICE ───────────────────────────────────────────────────────────
   else if (intent === 'invoice') {
-    if (property.llEmail) {
+    if (property.llEmail && property.llEmail.trim()) {
       drafts.push({
         to: property.llEmail,
         subject: 'Invoice received — ' + addr,
@@ -261,9 +288,9 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
     });
   }
 
-  // ── WORKS COMPLETE ───────────────────────────────────────────
+  // ── WORKS COMPLETE ────────────────────────────────────────────────────
   else if (intent === 'complete') {
-    if (property.llEmail) {
+    if (property.llEmail && property.llEmail.trim()) {
       drafts.push({
         to: property.llEmail,
         subject: 'Works completed — ' + addr,
@@ -274,7 +301,7 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
         label: 'Notify landlord — works complete'
       });
     }
-    if (property.tenantEmail) {
+    if (property.tenantEmail && property.tenantEmail.trim()) {
       drafts.push({
         to: property.tenantEmail,
         subject: 'Maintenance update — works complete — ' + addr,
@@ -287,7 +314,7 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
     }
   }
 
-  // ── APPROVAL ─────────────────────────────────────────────────
+  // ── APPROVAL ──────────────────────────────────────────────────────────
   else if (intent === 'approval') {
     drafts.push({
       to: '',
@@ -299,7 +326,7 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
         'Kind regards,' + nl + FROM_NAME,
       label: 'Instruct contractor — works approved'
     });
-    if (property.tenantEmail) {
+    if (property.tenantEmail && property.tenantEmail.trim()) {
       drafts.push({
         to: property.tenantEmail,
         subject: 'Maintenance update — ' + addr,
@@ -311,7 +338,7 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
     }
   }
 
-  // ── DEPOSIT ──────────────────────────────────────────────────
+  // ── DEPOSIT ───────────────────────────────────────────────────────────
   else if (intent === 'deposit') {
     drafts.push({
       to: fromEmail,
@@ -324,7 +351,7 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
     });
   }
 
-  // ── NOTICE ───────────────────────────────────────────────────
+  // ── NOTICE ────────────────────────────────────────────────────────────
   else if (intent === 'notice') {
     drafts.push({
       to: fromEmail,
@@ -335,7 +362,7 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
         'Kind regards,' + nl + FROM_NAME,
       label: 'Acknowledge notice / tenancy query'
     });
-    if (!isLandlord && property.llEmail) {
+    if (!isLandlord && property.llEmail && property.llEmail.trim()) {
       drafts.push({
         to: property.llEmail,
         subject: 'Tenancy update — ' + addr,
@@ -375,7 +402,31 @@ async function logJob(property, subject, fromName, intent) {
   });
 }
 
-// ── MAIN HANDLER ─────────────────────────────────────────────────
+// Update automation stats in Firebase — keeps CRM strip in sync
+async function updateAutomationStats(newDrafts) {
+  try {
+    const res = await fetch(FIREBASE_URL + '/automationStats.json');
+    const current = await res.json() || {};
+    const today = new Date().toLocaleDateString('en-GB');
+    const updated = {
+      lastRun:          new Date().toISOString(),
+      lastRunDate:      today,
+      draftsToday:      (current.lastRunDate === today ? (current.draftsToday || 0) : 0) + newDrafts,
+      draftsTotal:      (current.draftsTotal || 0) + newDrafts,
+      emailsProcessed:  (current.emailsProcessed || 0) + 1,
+      status:           'active',
+    };
+    await fetch(FIREBASE_URL + '/automationStats.json', {
+      method: 'PUT',
+      body: JSON.stringify(updated),
+    });
+    console.log('Automation stats updated — drafts today:', updated.draftsToday);
+  } catch(e) {
+    console.log('Stats update failed (non-critical):', e.message);
+  }
+}
+
+// ── MAIN HANDLER ─────────────────────────────────────────────────────────
 exports.handler = async function(event) {
 
   // Validation handshake
@@ -419,6 +470,14 @@ exports.handler = async function(event) {
       const messageId = notif.resourceData && notif.resourceData.id;
       if (!messageId) { console.log('No messageId'); continue; }
 
+      // Firebase-persisted deduplication — works across separate webhook calls
+      const alreadyDone = await isAlreadyProcessed(messageId);
+      if (alreadyDone) {
+        console.log('Already processed — skipping duplicate');
+        continue;
+      }
+      await markProcessed(messageId);
+
       const email = await getEmail(token, messageId);
       if (!email || !email.from) { console.log('No from address'); continue; }
 
@@ -438,10 +497,10 @@ exports.handler = async function(event) {
       const senderInfo = identifySender(fromEmail, fromName, properties, contractors);
       console.log('Sender identified as:', senderInfo.type);
 
-      // Find property — first try sender match, then search email text
       let property = senderInfo.match && senderInfo.type !== 'contractor' ? senderInfo.match : null;
       if (!property) property = findPropertyInEmail(subject + ' ' + body, properties);
       console.log('Property matched:', property ? property.address : 'none');
+      console.log('Landlord email:', property ? (property.llEmail || 'MISSING') : 'n/a');
 
       const intent = detectIntent(subject, body);
       console.log('Intent:', intent);
@@ -451,7 +510,7 @@ exports.handler = async function(event) {
 
       for (const draft of drafts) {
         const result = await createDraft(token, draft);
-        console.log('Draft created:', result.id || JSON.stringify(result.error));
+        console.log('Draft created:', draft.label, '— to:', draft.to || '(blank)', '— id:', result.id || JSON.stringify(result.error));
       }
 
       // Auto-log maintenance jobs to Firebase
@@ -461,10 +520,16 @@ exports.handler = async function(event) {
         console.log('Job logged to Firebase');
       }
 
+      // Update automation stats
+      if (drafts.length > 0) {
+        await updateAutomationStats(drafts.length);
+      }
+
       results.push({
         from:          fromName,
         type:          senderInfo.type,
         property:      property ? property.address : 'unmatched',
+        llEmail:       property ? (property.llEmail || 'MISSING') : 'n/a',
         intent,
         draftsCreated: drafts.length,
       });
