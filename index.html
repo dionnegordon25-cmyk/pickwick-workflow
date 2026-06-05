@@ -162,15 +162,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <div class="nav">
     <button class="nav-btn active" onclick="showPage('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
     <button class="nav-btn" onclick="showPage('maintenance',this)"><i class="ti ti-tools"></i> Maintenance</button>
+    <button class="nav-btn" onclick="showPage('moveins',this)"><i class="ti ti-door-enter"></i> Move-ins</button>
     <button class="nav-btn" onclick="showPage('properties',this)"><i class="ti ti-building"></i> All properties</button>
     <button class="nav-btn" onclick="showPage('compliance',this)"><i class="ti ti-shield-check"></i> Compliance</button>
     <button class="nav-btn" onclick="showPage('deposits',this)"><i class="ti ti-cash"></i> Deposits</button>
     <button class="nav-btn" onclick="showPage('contractors',this)"><i class="ti ti-tool"></i> Contractors</button>
-    <button class="nav-btn" onclick="showPage('reports',this)"><i class="ti ti-chart-bar"></i> Reports</button>
-    <button class="nav-btn" onclick="showPage('settings',this)"><i class="ti ti-settings"></i> Settings</button>
-    <button class="nav-btn" onclick="showPage('moveins',this)"><i class="ti ti-door-enter"></i> Move-ins</button>
     <button class="nav-btn" onclick="showPage('pasttenants',this)"><i class="ti ti-users"></i> Past tenants</button>
+    <button class="nav-btn" onclick="showPage('reports',this)"><i class="ti ti-chart-bar"></i> Reports</button>
     <button class="nav-btn" onclick="showPage('activity',this)"><i class="ti ti-history"></i> Activity log</button>
+    <button class="nav-btn" onclick="showPage('settings',this)"><i class="ti ti-settings"></i> Settings</button>
   </div>
 </div>
 
@@ -234,24 +234,27 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   </div>
   <div class="three-col">
     <div class="col">
-      <div class="card"><div class="section-title">Daily ops checklist</div><div id="checklist"></div></div>
       <div class="card">
-        <div class="section-title">Compliance alerts <a>View all</a></div>
-        <div class="alert-item alert-red"><span class="alert-due red">OVERDUE</span><div class="alert-prop">34 Queenstown Road</div><div class="alert-detail">Gas Safety Certificate</div></div>
-        <div class="alert-item alert-red"><span class="alert-due red">2 days</span><div class="alert-prop">8C Hurstbourne Gdns</div><div class="alert-detail">EICR</div></div>
-        <div class="alert-item alert-amber"><span class="alert-due amber">7 days</span><div class="alert-prop">22 Elmore Street</div><div class="alert-detail">EPC</div></div>
-        <div class="alert-item alert-amber"><span class="alert-due amber">12 days</span><div class="alert-prop">5 Briarwood Close</div><div class="alert-detail">Licence expiry</div></div>
-        <div class="alert-item alert-purple"><span class="alert-due" style="color:#534AB7">28 days</span><div class="alert-prop">17 Grove Lane</div><div class="alert-detail">Smoke &amp; CO check</div></div>
+        <div class="section-title">Daily ops checklist
+          <span id="checklist-date" style="font-size:10px;font-weight:400;color:var(--text2)"></span>
+        </div>
+        <div id="checklist"></div>
+        <div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border)">
+          <div style="font-size:11px;font-weight:500;color:var(--text);margin-bottom:6px">Action required today</div>
+          <div id="dash-urgent-list"><div style="font-size:11px;color:var(--text2)">Loading...</div></div>
+        </div>
       </div>
       <div class="card">
-        <div class="section-title">Deposits &amp; PI</div>
-        <div class="alert-item alert-red"><div class="alert-prop">12A Clapham High St</div><div class="alert-detail">Deposit not protected — 4 days</div></div>
-        <div class="alert-item alert-amber"><div class="alert-prop">31 Rectory Grove</div><div class="alert-detail">PI not yet served</div></div>
+        <div class="section-title">Compliance alerts <a onclick="navToCompliance(\'\',\'urgent\')" style="cursor:pointer">View all</a></div>
+        <div id="dash-comp-alerts"><div style="font-size:11px;color:var(--text2);padding:6px 0">Loading...</div></div>
       </div>
       <div class="card">
-        <div class="section-title">Tenancy reviews &amp; notices</div>
-        <div class="alert-item alert-purple" style="margin-bottom:5px"><div class="alert-prop">45 Larkhall Rise <span class="pill pill-purple" style="font-size:9px">Anniversary</span></div><div class="alert-detail">Rent review due 1 Jun · £1,450/mo</div></div>
-        <div class="alert-item alert-red"><div class="alert-prop">9 Abbeville Road <span class="pill pill-red" style="font-size:9px">S8 active</span></div><div class="alert-detail">Notice expires 3 Jun · Arrears £2,340</div></div>
+        <div class="section-title">Deposits &amp; PI <a onclick="navToDeposits(\'dispute\')" style="cursor:pointer">View all</a></div>
+        <div id="dash-deposit-alerts"><div style="font-size:11px;color:var(--text2);padding:6px 0">Loading...</div></div>
+      </div>
+      <div class="card">
+        <div class="section-title">APT anniversaries <a onclick="navToReport(\'apt_anniversaries\')" style="cursor:pointer">View all</a></div>
+        <div id="dash-apt-alerts"><div style="font-size:11px;color:var(--text2);padding:6px 0">Loading...</div></div>
       </div>
     </div>
     <div class="col">
@@ -293,15 +296,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="col">
       <div class="card">
         <div class="section-title">Move-ins <a onclick="navToMoveIns()" style="cursor:pointer">View all</a></div>
-        <div class="movein-item"><div class="movein-prop">12A Clapham High St</div><div class="movein-tenant">Sarah Ahmed · 28 May</div><div class="movein-footer"><span class="pill pill-red">PI outstanding</span><button class="job-btn" onclick="navToMoveIns()">Open</button></div></div>
-        <div class="movein-item"><div class="movein-prop">17 Grove Lane</div><div class="movein-tenant">James Patel · 1 Jun</div><div class="movein-footer"><span class="pill pill-blue">Inventory booked</span><button class="job-btn" onclick="navToMoveIns()">Open</button></div></div>
-        <div class="movein-item"><div class="movein-prop">5 Briarwood Close</div><div class="movein-tenant">L. Okonkwo · 7 Jun</div><div class="movein-footer"><span class="pill pill-amber">Referencing</span><button class="job-btn" onclick="navToMoveIns()">Open</button></div></div>
+        <div id="dash-moveins"><div style="font-size:11px;color:var(--text2);padding:6px 0">Loading...</div></div>
       </div>
       <div class="card">
         <div class="section-title">Follow-ups outstanding</div>
-        <div class="follow-item"><span class="follow-days" style="color:#A32D2D">4 days</span><div class="follow-prop">Acare Group (Mackie)</div><div class="follow-detail">No response — 24D Marmora Rd</div></div>
-        <div class="follow-item"><span class="follow-days" style="color:#854F0B">2 days</span><div class="follow-prop">Mr &amp; Mrs Benson (LL)</div><div class="follow-detail">Approval outstanding — 31 Rectory Grove</div></div>
-        <div class="follow-item"><span class="follow-days" style="color:#854F0B">2 days</span><div class="follow-prop">Sarah Ahmed (tenant)</div><div class="follow-detail">Tenancy docs not returned</div></div>
+        <div id="dash-followups"><div style="font-size:11px;color:var(--text2);padding:6px 0">No jobs needing chase</div></div>
       </div>
       <div class="card">
         <div class="section-title">Quick stats</div>
@@ -428,7 +427,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <button class="btn btn-sm btn-primary" onclick="openAddProperty()"><i class="ti ti-plus"></i> Add property</button>
     </div>
       <input class="search-bar" type="text" placeholder="Search by address, tenant, landlord or postcode..." id="prop-search" oninput="filterProps()">
-      <div style="overflow-x:auto"><table class="prop-table"><thead><tr><th>Address</th><th>Tenant</th><th>Landlord</th><th>Rent/mo</th><th>Deposit</th><th>Start date</th><th>Deposit status</th><th></th></tr></thead><tbody id="prop-tbody"></tbody></table></div>
+      <div style="overflow-x:auto"><table class="prop-table"><thead><tr><th>Address</th><th>Tenant</th><th>Landlord</th><th>Rent/mo</th><th>Fee</th><th>Deposit</th><th>Start date</th><th>Deposit status</th><th></th></tr></thead><tbody id="prop-tbody"></tbody></table></div>
       <div id="prop-count" style="font-size:11px;color:var(--text2);margin-top:8px"></div>
     </div>
     <div style="display:flex;flex-direction:column;gap:10px">
@@ -747,8 +746,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
 <div class="modal-overlay" id="modal">
   <div class="modal">
-    <div class="modal-title" id="m-title"></div>
-    <div class="modal-sub" id="m-sub"></div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+      <div><div class="modal-title" id="m-title"></div><div class="modal-sub" id="m-sub"></div></div>
+      <button class="btn btn-sm" onclick="toggleEditProp()" id="edit-prop-btn-top" style="flex-shrink:0;border-color:#534AB7;color:#534AB7"><i class="ti ti-pencil"></i> Edit</button>
+    </div>
     <div class="modal-grid" id="m-grid"></div>
     <div class="modal-section">Draft email</div>
     <div class="email-type-row" id="email-types"></div>
@@ -763,7 +764,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <button class="btn" onclick="closeModal()">Close</button>
       <button class="btn" onclick="openEndTenancy()" style="border-color:#854F0B;color:#854F0B" id="end-tenancy-btn"><i class="ti ti-door-exit"></i> End tenancy</button>
       <button class="btn" onclick="confirmDeleteProp()" style="border-color:#A32D2D;color:#A32D2D" id="delete-prop-btn"><i class="ti ti-trash"></i> Delete</button>
-      <button class="btn" onclick="toggleEditProp()" id="edit-prop-btn" style="border-color:#534AB7;color:#534AB7"><i class="ti ti-pencil"></i> Edit record</button>
+      <button class="btn" onclick="toggleEditProp()" id="edit-prop-btn" style="display:none;border-color:#534AB7;color:#534AB7"><i class="ti ti-pencil"></i> Edit record</button>
       <button class="btn btn-primary" onclick="savePropertyRecord()" id="save-prop-btn" style="display:none;background:#534AB7;border-color:#534AB7"><i class="ti ti-check"></i> Save changes</button>
       <button class="btn btn-primary" onclick="copyEmail()"><i class="ti ti-copy"></i> Copy email</button>
       <button class="btn btn-blue" onclick="sendOutlook()"><i class="ti ti-mail"></i> Open in Outlook</button>
@@ -890,9 +891,148 @@ function depPill(s){
 document.getElementById('s-disputes').textContent=PROPERTIES.filter(p=>p.depositStatus.toLowerCase().includes('dispute')||p.depositStatus.toLowerCase().includes('claim')).length;
 document.getElementById('s-ready').textContent=PROPERTIES.filter(p=>p.depositStatus==='Available for repayment').length;
 document.getElementById('s-avgrent').textContent=fmtGBP(Math.round(PROPERTIES.reduce((a,p)=>a+p.rent,0)/PROPERTIES.length));
-const tasks=[{label:'Check PayProp AM',done:true},{label:'Check PayProp PM',done:false},{label:'Contractor chasing',done:false},{label:'Compliance review',done:true},{label:'Outstanding enquiries',done:false},{label:'Deposit / PI check',done:false}];
-const cl=document.getElementById('checklist');
-tasks.forEach((t,i)=>{const el=document.createElement('div');el.className='check-item';el.innerHTML=`<div class="check-box${t.done?' done':''}" id="cb${i}">${t.done?'✓':''}</div><span class="check-label${t.done?' done':''}" id="cl${i}">${t.label}</span>`;el.onclick=()=>{t.done=!t.done;document.getElementById('cb'+i).className='check-box'+(t.done?' done':'');document.getElementById('cb'+i).textContent=t.done?'✓':'';document.getElementById('cl'+i).className='check-label'+(t.done?' done':'');};cl.appendChild(el);});
+// ── DAILY OPS CHECKLIST ──────────────────────────────────────────────
+var FIXED_TASKS = ['Check PayProp AM', 'Check PayProp PM'];
+var checklistState = {};
+
+function getChecklistKey(){
+  return 'checklist_' + new Date().toISOString().split('T')[0];
+}
+
+function loadChecklist(){
+  var key = getChecklistKey();
+  try {
+    var saved = localStorage.getItem(key);
+    checklistState = saved ? JSON.parse(saved) : {};
+  } catch(e){ checklistState = {}; }
+  renderChecklist();
+  // Set date label
+  var dateEl = document.getElementById('checklist-date');
+  if(dateEl) dateEl.textContent = new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+}
+
+function saveChecklist(){
+  try { localStorage.setItem(getChecklistKey(), JSON.stringify(checklistState)); } catch(e){}
+}
+
+function renderChecklist(){
+  var cl = document.getElementById('checklist');
+  if(!cl) return;
+  cl.innerHTML = '';
+  FIXED_TASKS.forEach(function(label){
+    var done = !!checklistState[label];
+    var el = document.createElement('div');
+    el.className = 'check-item';
+    el.style.cursor = 'pointer';
+    el.innerHTML = '<div class="check-box' + (done?' done':'') + '">' + (done?'✓':'') + '</div>'
+      + '<span class="check-label' + (done?' done':'') + '">' + label + '</span>';
+    el.onclick = (function(lbl){ return function(){
+      checklistState[lbl] = !checklistState[lbl];
+      saveChecklist();
+      renderChecklist();
+    };})(label);
+    cl.appendChild(el);
+  });
+}
+
+function renderUrgentList(){
+  var el = document.getElementById('dash-urgent-list');
+  if(!el) return;
+  var today = new Date();
+  var items = [];
+
+  // Compliance certs — alert at 60 days, auto-open correct email draft on click
+  var certs = [
+    {key:'gsc',       label:'GSC',            emailType:'gsc'},
+    {key:'eicr',      label:'EICR',           emailType:'eicr'},
+    {key:'epc',       label:'EPC',            emailType:'epc'},
+    {key:'propLicence',label:'Licence',       emailType:'licence'},
+    {key:'smokeAlarm',label:'Smoke & CO',     emailType:'smoke_co'},
+  ];
+  PROPERTIES.forEach(function(p){
+    certs.forEach(function(c){
+      if(!p[c.key]) return;
+      var days = Math.round((new Date(p[c.key]) - today) / 86400000);
+      if(days <= 60){
+        var overdue = days < 0;
+        var urgent  = days <= 14;
+        items.push({
+          color:   overdue ? '#A32D2D' : urgent ? '#854F0B' : '#534AB7',
+          icon:    overdue ? '🔴' : urgent ? '🟡' : '🔵',
+          text:    (overdue ? 'OVERDUE' : days+'d') + ' — ' + c.label + ' renewal · ' + p.address.split(',')[0],
+          sub:     p.llName ? 'LL: ' + p.llName + (p.llEmail ? ' · Click to draft reminder email' : ' · No landlord email on record') : 'No landlord on record — click to open',
+          onclick: 'openPropWithEmail(' + PROPERTIES.indexOf(p) + ','' + c.emailType + '')'
+        });
+      }
+    });
+  });
+
+  // Jobs needing chase (3+ days)
+  var chases = getChaseJobs();
+  chases.forEach(function(j){
+    var days = daysSince(j.lastActionDate || j.dateLogged);
+    var c = getContractor(j.contractorId);
+    items.push({
+      color: '#A32D2D',
+      icon: '⚠️',
+      text: 'Chase ' + c.name + ' · ' + j.prop.split(',')[0] + ' (' + days + 'd no action)',
+      sub: j.issue.substring(0,50),
+      onclick: 'openJobDetail(' + jobs.indexOf(j) + ')'
+    });
+  });
+
+  // Deposit disputes
+  PROPERTIES.filter(function(p){
+    return p.depositStatus && (p.depositStatus.toLowerCase().includes('dispute') || p.depositStatus.toLowerCase().includes('claim'));
+  }).forEach(function(p){
+    items.push({
+      color: '#854F0B',
+      icon: '💰',
+      text: 'Deposit dispute — ' + p.address.split(',')[0],
+      sub: p.depositStatus,
+      onclick: 'openPropWithEmail(' + PROPERTIES.indexOf(p) + ','deposit')'
+    });
+  });
+
+  // APT anniversaries within 60 days
+  PROPERTIES.forEach(function(p){
+    if(!p.startDate) return;
+    var parts = p.startDate.split('/');
+    if(parts.length !== 3) return;
+    var start = new Date(parts[2], parts[1]-1, parts[0]);
+    var nextAnniv = new Date(today.getFullYear(), start.getMonth(), start.getDate());
+    if(nextAnniv < today) nextAnniv = new Date(today.getFullYear()+1, start.getMonth(), start.getDate());
+    var days = Math.round((nextAnniv - today) / 86400000);
+    if(days <= 60){
+      items.push({
+        color: '#534AB7',
+        icon: '📅',
+        text: 'APT anniversary in ' + days + 'd — ' + p.address.split(',')[0],
+        sub: '£' + p.rent.toLocaleString() + '/mo · Click to draft Section 13 / rent review email',
+        onclick: 'openPropWithEmail(' + PROPERTIES.indexOf(p) + ','anniversary')'
+      });
+    }
+  });
+
+  if(!items.length){
+    el.innerHTML = '<div style="display:flex;align-items:center;gap:6px;padding:4px 0">'
+      + '<span>✅</span><span style="font-size:11px;color:var(--text2)">Nothing urgent — all clear</span></div>';
+    return;
+  }
+
+  el.innerHTML = items.map(function(item){
+    return '<div onclick="'+item.onclick+'" style="display:flex;align-items:flex-start;gap:7px;padding:6px 8px;margin-bottom:5px;border-radius:var(--radius-md);background:var(--bg);cursor:pointer;border-left:3px solid '+item.color+'">'
+      + '<span style="font-size:12px;flex-shrink:0;margin-top:1px">'+item.icon+'</span>'
+      + '<div style="min-width:0"><div style="font-size:11px;font-weight:500;color:var(--text);line-height:1.4">'+item.text+'</div>'
+      + (item.sub ? '<div style="font-size:10px;color:var(--text2);margin-top:1px">'+item.sub+'</div>' : '')
+      + '</div>'
+      + '<span style="margin-left:auto;flex-shrink:0;font-size:10px;color:var(--text2);align-self:center">→</span>'
+      + '</div>';
+  }).join('');
+}
+
+loadChecklist();
+// ── END DAILY OPS CHECKLIST ───────────────────────────────────────────
 const dl=document.getElementById('prop-list');PROPERTIES.forEach(p=>{const o=document.createElement('option');o.value=p.address;dl.appendChild(o);});
 const csel=document.getElementById('nj-contractor');CONTRACTORS.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name+' — '+c.trade.split('·')[0].trim();csel.appendChild(o);});
 function propSelected(){
@@ -908,6 +1048,140 @@ function contractorSelected(){const id=document.getElementById('nj-contractor').
 let jobs=[{prop:'24D Marmora Road, SE22 0RX',issue:'Boiler pressure dropping — heating failure risk',contractorId:'acare',status:'Overdue — no response',pill:'pill-red',tenant:'Rory Wilson',tenantPhone:'07700900001',access:'Key held at office — call tenant 24hrs before',notes:'Banging noise when heating fires. No hot water since Monday.',quote:0,invoice:0,category:'Gas / Heating',dateLogged:'04/06/2026',lastActionDate:'04/06/2026'},{prop:'F1, 129 Honor Oak Road, SE23 3SL',issue:'Kitchen leak — potential water damage',contractorId:'acare',status:'Works in progress',pill:'pill-blue',tenant:'George Anagnos',tenantPhone:'07700900002',access:'Tenant working from home.',notes:'Leak under sink. Towels placed. Check ceiling below.',quote:0,invoice:0,category:'Gas / Heating',dateLogged:'02/06/2026',lastActionDate:'02/06/2026'},{prop:'67 Woolstone Road, SE23 2TQ',issue:'Front door lock faulty',contractorId:'vincent',status:'Awaiting approval',pill:'pill-amber',tenant:'Conor Mason',tenantPhone:'07700900003',access:'Tenant available afternoons only.',notes:'Lock intermittently failing. Security risk.',quote:0,invoice:0,category:'General',dateLogged:'28/05/2026',lastActionDate:'28/05/2026'},{prop:'10 THE FIELDINGS, SE23 3QA',issue:'Bathroom extractor fan not working',contractorId:'sarfmon',status:'Quote received £180',pill:'pill-yellow',tenant:'Maxine Nixon',tenantPhone:'07700900004',access:'Key held at office.',notes:'Fan dead. Quote £180+VAT. Awaiting landlord sign-off.',quote:0,invoice:0,category:'Electrical',dateLogged:'30/05/2026',lastActionDate:'30/05/2026'},{prop:'340D Brownhill Road, SE6 1AY',issue:'Broken window — ground floor',contractorId:'glass',status:'Awaiting contractor',pill:'pill-amber',tenant:'Adwok Tipo',tenantPhone:'07700900005',access:'Tenant at home all day.',notes:'Ground floor rear window cracked.',quote:0,invoice:0,category:'Glazing',dateLogged:'25/05/2026',lastActionDate:'25/05/2026'},{prop:'88 LYNDHURST GROVE, SE15 5AH',issue:'Garden gate repair',contractorId:'holacasa',status:'Complete',pill:'pill-green',tenant:'Dominic Lowndes',tenantPhone:'07700900006',access:'N/A',notes:'Works completed. Invoice awaited.',quote:0,invoice:0,category:'General',dateLogged:'20/05/2026',lastActionDate:'20/05/2026'}];
 function updateOpsStats(){const urgent=jobs.filter(j=>j.pill==='pill-red'||j.status.toLowerCase().includes('overdue'));const awaiting=jobs.filter(j=>j.status.toLowerCase().includes('awaiting contractor'));const approvals=jobs.filter(j=>j.status.toLowerCase().includes('awaiting approval'));const chases=getChaseJobs();document.getElementById('ops-urgent').textContent=urgent.length;document.getElementById('ops-urgent-sub').textContent=urgent.length>0?urgent.length+' overdue':'all on track';document.getElementById('ops-awaiting').textContent=awaiting.length;document.getElementById('ops-approvals').textContent=approvals.length;var strip=document.getElementById('chase-strip');var clear=document.getElementById('chase-strip-clear');var label=document.getElementById('chase-strip-label');if(chases.length>0){if(strip){strip.style.display='flex';}if(clear){clear.style.display='none';}if(label){label.textContent=chases.length+' job'+(chases.length>1?'s':'')+' need chasing';}}else{if(strip){strip.style.display='none';}if(clear){clear.style.display='flex';}}}
 updateOpsStats();
+
+// ── LIVE DASHBOARD CARDS ──────────────────────────────────────────────
+function renderDashCompAlerts(){
+  var el = document.getElementById('dash-comp-alerts');
+  if(!el) return;
+  var today = new Date();
+  var urgent = [];
+  var certs = [
+    {key:'gsc',        label:'Gas Safety Certificate', emailType:'gsc'},
+    {key:'eicr',       label:'EICR',                  emailType:'eicr'},
+    {key:'epc',        label:'EPC',                   emailType:'epc'},
+    {key:'propLicence',label:'Licence expiry',         emailType:'licence'},
+    {key:'smokeAlarm', label:'Smoke & CO check',       emailType:'smoke_co'},
+  ];
+  PROPERTIES.forEach(function(p){
+    certs.forEach(function(c){
+      if(!p[c.key]) return;
+      var days = Math.round((new Date(p[c.key]) - today) / 86400000);
+      if(days <= 60){
+        urgent.push({prop: p.address.split(',')[0], label: c.label, days: days, pid: PROPERTIES.indexOf(p), emailType: c.emailType});
+      }
+    });
+  });
+  urgent.sort(function(a,b){ return a.days - b.days; });
+  if(!urgent.length){
+    el.innerHTML = '<div style="font-size:11px;color:var(--text2);padding:6px 0">✅ No compliance due within 60 days</div>';
+    return;
+  }
+  el.innerHTML = urgent.slice(0,5).map(function(u){
+    var cls = u.days < 0 ? 'alert-red' : u.days <= 14 ? 'alert-red' : u.days <= 30 ? 'alert-amber' : 'alert-purple';
+    var dueCls = u.days < 0 ? 'red' : u.days <= 30 ? 'amber' : '';
+    var dueLabel = u.days < 0 ? 'OVERDUE' : u.days + ' days';
+    return '<div class="alert-item '+cls+'" style="cursor:pointer" onclick="openPropWithEmail('+u.pid+',''+u.emailType+'')">'
+      +'<span class="alert-due '+dueCls+'">'+dueLabel+'</span>'
+      +'<div class="alert-prop">'+u.prop+'</div>'
+      +'<div class="alert-detail">'+u.label+' · click to draft reminder</div></div>';
+  }).join('');
+}
+
+function renderDashDepositAlerts(){
+  var el = document.getElementById('dash-deposit-alerts');
+  if(!el) return;
+  var issues = PROPERTIES.filter(function(p){
+    var s = p.depositStatus.toLowerCase();
+    return s.includes('dispute') || s.includes('claim') || s.includes('awaiting');
+  });
+  if(!issues.length){
+    el.innerHTML = '<div style="font-size:11px;color:var(--text2);padding:6px 0">✅ No deposit issues</div>';
+    return;
+  }
+  el.innerHTML = issues.slice(0,4).map(function(p){
+    var s = p.depositStatus.toLowerCase();
+    var cls = s.includes('dispute')||s.includes('claim') ? 'alert-red' : 'alert-amber';
+    return '<div class="alert-item '+cls+'" style="cursor:pointer" onclick="openProp('+PROPERTIES.indexOf(p)+')">'
+      +'<div class="alert-prop">'+p.address.split(',')[0]+'</div>'
+      +'<div class="alert-detail">'+p.depositStatus+'</div></div>';
+  }).join('');
+}
+
+function renderDashAptAlerts(){
+  var el = document.getElementById('dash-apt-alerts');
+  if(!el) return;
+  var today = new Date();
+  var upcoming = PROPERTIES.filter(function(p){
+    if(!p.startDate) return false;
+    var parts = p.startDate.split('/');
+    if(parts.length !== 3) return false;
+    var start = new Date(parts[2], parts[1]-1, parts[0]);
+    var nextAnniv = new Date(today.getFullYear(), start.getMonth(), start.getDate());
+    if(nextAnniv < today) nextAnniv = new Date(today.getFullYear()+1, start.getMonth(), start.getDate());
+    var days = Math.round((nextAnniv - today) / 86400000);
+    p._daysToAnniv = days;
+    return days <= 60;
+  }).sort(function(a,b){ return a._daysToAnniv - b._daysToAnniv; });
+  if(!upcoming.length){
+    el.innerHTML = '<div style="font-size:11px;color:var(--text2);padding:6px 0">No anniversaries due within 60 days</div>';
+    return;
+  }
+  el.innerHTML = upcoming.slice(0,4).map(function(p){
+    var cls = p._daysToAnniv <= 14 ? 'alert-red' : 'alert-purple';
+    return '<div class="alert-item '+cls+'" style="cursor:pointer" onclick="openProp('+PROPERTIES.indexOf(p)+')">'
+      +'<div class="alert-prop">'+p.address.split(',')[0]+' <span class="pill pill-purple" style="font-size:9px">Anniversary</span></div>'
+      +'<div class="alert-detail">'+p._daysToAnniv+' days · £'+p.rent.toLocaleString()+'/mo</div></div>';
+  }).join('');
+}
+
+function renderDashMoveIns(){
+  var el = document.getElementById('dash-moveins');
+  if(!el) return;
+  var open = moveIns.filter(function(m){ return m.status !== 'Complete'; });
+  if(!open.length){
+    el.innerHTML = '<div style="font-size:11px;color:var(--text2);padding:6px 0">No active move-ins</div>';
+    return;
+  }
+  el.innerHTML = open.slice(0,3).map(function(m){
+    var pct = Math.round(((m.tenantChecks.filter(Boolean).length + m.landlordChecks.filter(Boolean).length) / (10+11)) * 100);
+    var pillCls = pct === 0 ? 'pill-red' : pct < 50 ? 'pill-amber' : 'pill-blue';
+    return '<div class="movein-item">'
+      +'<div class="movein-prop">'+m.address.split(',')[0]+'</div>'
+      +'<div class="movein-tenant">'+m.tenant+(m.moveInDate?' · '+m.moveInDate:'')+'</div>'
+      +'<div class="movein-footer"><span class="pill '+pillCls+'">'+pct+'% complete</span>'
+      +'<button class="job-btn" onclick="navToMoveIns()">Open</button></div></div>';
+  }).join('');
+}
+
+function renderDashFollowUps(){
+  var el = document.getElementById('dash-followups');
+  if(!el) return;
+  var chases = getChaseJobs();
+  if(!chases.length){
+    el.innerHTML = '<div style="font-size:11px;color:var(--text2);padding:6px 0">✅ No outstanding follow-ups</div>';
+    return;
+  }
+  el.innerHTML = chases.slice(0,4).map(function(j){
+    var days = daysSince(j.lastActionDate||j.dateLogged);
+    var c = getContractor(j.contractorId);
+    var col = days >= 5 ? '#A32D2D' : '#854F0B';
+    return '<div class="follow-item" style="cursor:pointer" onclick="openJobDetail('+jobs.indexOf(j)+')">'
+      +'<span class="follow-days" style="color:'+col+'">'+days+' days</span>'
+      +'<div class="follow-prop">'+c.name+'</div>'
+      +'<div class="follow-detail">'+j.issue.substring(0,40)+' — '+j.prop.split(',')[0]+'</div></div>';
+  }).join('');
+}
+
+function renderAllDashCards(){
+  renderDashCompAlerts();
+  renderDashDepositAlerts();
+  renderDashAptAlerts();
+  renderDashMoveIns();
+  renderDashFollowUps();
+  renderDashJobs();
+  renderUrgentList();
+}
+// ── END LIVE DASHBOARD CARDS ──────────────────────────────────────────
 
 // ── AUTOMATION STATUS STRIP ────────────────────────────────────────────
 function updateAutomationStrip(data){
@@ -1569,7 +1843,7 @@ function deleteContractor(){
   renderContractors();
 }
 // contractor-modal listener wired on load (element is after script tag)
-function renderProps(data){document.getElementById('prop-tbody').innerHTML=data.map((p,i)=>`<tr onclick="openProp(${PROPERTIES.findIndex(function(x){return x.id===p.id;})})" style="cursor:pointer"><td><div class="addr-main">${p.address}</div></td><td style="font-size:11px">${p.tenant}</td><td style="font-size:11px">${p.llName?'<strong>'+p.llName+'</strong><br><span style="color:var(--text2);font-size:10px">'+p.llEmail+'</span>':'<span style="color:var(--text2);font-size:10px">Not matched</span>'}</td><td style="font-size:12px;font-weight:500">${fmtGBP(p.rent)}</td><td style="font-size:12px">${fmtGBP(p.deposit)}</td><td style="font-size:11px;color:var(--text2)">${p.startDate}</td><td>${depPill(p.depositStatus)}</td><td><button class="btn btn-sm" onclick="event.stopPropagation();openProp(${PROPERTIES.indexOf(p)})">Open</button></td></tr>`).join('');document.getElementById('prop-count').textContent=data.length+' of 86 shown · '+PROPERTIES.filter(p=>p.llEmail).length+' landlords matched';}
+function renderProps(data){document.getElementById('prop-tbody').innerHTML=data.map((p,i)=>{var pidx=PROPERTIES.findIndex(function(x){return x.id===p.id;});var feeNet=p.mgmtFee?Math.round(p.rent*(p.mgmtFee/100)):'';var feeStr=p.mgmtFee?p.mgmtFee+'% · £'+feeNet:'<span style="color:var(--text2)">—</span>';return '<tr onclick="openProp('+pidx+')" style="cursor:pointer"><td><div class="addr-main">'+p.address+'</div></td>'+'<td style="font-size:11px"><div style="font-weight:500">'+p.tenant+'</div>'+(p.tenantEmail?'<div style="font-size:10px;color:var(--text2)">'+p.tenantEmail+'</div>':'')+(p.tenantPhone?'<div style="font-size:10px;color:var(--text2)">'+p.tenantPhone+'</div>':'')+'</td>'+'<td style="font-size:11px">'+(p.llName?'<div style="font-weight:500">'+p.llName+'</div>'+(p.llEmail?'<div style="font-size:10px;color:var(--text2)">'+p.llEmail+'</div>':''):'<span style="color:var(--text2);font-size:10px">Not matched</span>')+'</td>'+'<td style="font-size:12px;font-weight:500">'+fmtGBP(p.rent)+'</td>'+'<td style="font-size:11px">'+feeStr+'</td>'+'<td style="font-size:12px">'+fmtGBP(p.deposit)+'</td>'+'<td style="font-size:11px;color:var(--text2)">'+p.startDate+'</td>'+'<td>'+depPill(p.depositStatus)+'</td>'+'<td><button class="btn btn-sm" onclick="event.stopPropagation();openProp('+PROPERTIES.indexOf(p)+')">Open</button></td></tr>';}).join('');document.getElementById('prop-count').textContent=data.length+' of 86 shown · '+PROPERTIES.filter(p=>p.llEmail).length+' landlords matched';}
 function filterProps(){const q=document.getElementById('prop-search').value.toLowerCase();renderProps(PROPERTIES.filter(p=>(p.address+p.tenant+p.postcode+(p.llName||'')).toLowerCase().includes(q)));}
 renderProps(PROPERTIES);
 function renderComp(data){
@@ -2300,6 +2574,11 @@ function buildDashboardWidgets(){
   if(pr) pr.innerHTML=recentHTML(recent);
 }
 
+function openPropWithEmail(idx, emailType){
+  openProp(idx);
+  setTimeout(function(){ switchEmailType(emailType); }, 100);
+}
+
 function openProp(idx){
   if(idx < 0 || idx >= PROPERTIES.length) return;
   activeProp = PROPERTIES[idx];
@@ -2352,7 +2631,9 @@ function openProp(idx){
   // Email types
   var EMAIL_TYPES=[
     {id:'gsc',label:'GSC reminder'},{id:'eicr',label:'EICR reminder'},{id:'epc',label:'EPC reminder'},
-    {id:'deposit',label:'Deposit chaser'},{id:'maintenance',label:'Maintenance update'},{id:'rent_review',label:'Rent review'}
+    {id:'licence',label:'Licence renewal'},{id:'smoke_co',label:'Smoke & CO check'},
+    {id:'deposit',label:'Deposit chaser'},{id:'maintenance',label:'Maintenance update'},
+    {id:'rent_review',label:'Rent review'},{id:'anniversary',label:'APT anniversary'}
   ];
   var etContainer = document.getElementById('email-types');
   etContainer.innerHTML = '';
@@ -2386,7 +2667,13 @@ function buildEmail(type, p){
     maintenance:{subject:'Maintenance update — '+addr,
       body:ll+nl+nl+'I am writing with an update regarding a maintenance matter at '+addr+'.'+nl+nl+'Tenant: '+p.tenant+nl+'Tenancy start: '+p.startDate+nl+nl+'[Please add issue description and contractor details here.]'+nl+nl+'Please let me know if you are happy to authorise works to proceed.'+nl+nl+'Kind regards,'+nl+FROM},
     rent_review:{subject:'Tenancy anniversary & rent review — '+addr,
-      body:ll+nl+nl+'I hope you are well.'+nl+nl+'I am writing as the tenancy at '+addr+' is approaching its anniversary — a good opportunity to review the current rent in line with market conditions.'+nl+nl+'Current rent: '+r+' per month'+nl+'Tenant: '+p.tenant+nl+'Tenancy start: '+p.startDate+nl+nl+'Any increase would need to be served by way of a Section 13 notice with the required notice period.'+nl+nl+'Kind regards,'+nl+FROM}
+      body:ll+nl+nl+'I hope you are well.'+nl+nl+'I am writing as the tenancy at '+addr+' is approaching its anniversary — a good opportunity to review the current rent in line with market conditions.'+nl+nl+'Current rent: '+r+' per month'+nl+'Tenant: '+p.tenant+nl+'Tenancy start: '+p.startDate+nl+nl+'Any increase would need to be served by way of a Section 13 notice with the required notice period.'+nl+nl+'Kind regards,'+nl+FROM},
+    licence:{subject:'Property licence renewal required — '+addr,
+      body:ll+nl+nl+'I hope this finds you well.'+nl+nl+'I am writing to advise that the property licence for '+addr+' is due for renewal.'+nl+nl+'Please could you confirm whether you have received the renewal notice from the local authority, and whether you would like us to assist with the renewal process.'+nl+nl+'A property without a valid licence cannot legally be let and may be subject to financial penalties, so please do act on this promptly.'+nl+nl+'Kind regards,'+nl+FROM},
+    smoke_co:{subject:'Smoke & CO alarm check required — '+addr,
+      body:ll+nl+nl+'I hope you are well.'+nl+nl+'I am writing as the smoke and carbon monoxide alarm check at '+addr+' is due.'+nl+nl+'Under the Smoke and Carbon Monoxide Alarm (Amendment) Regulations 2022, working smoke alarms are required on every storey and a CO alarm is required in any room containing a solid fuel appliance. We are required to confirm compliance at the start of each tenancy and periodically thereafter.'+nl+nl+'Please could you confirm you are happy for us to arrange a check, or advise if you have recently had this carried out.'+nl+nl+'Kind regards,'+nl+FROM},
+    anniversary:{subject:'APT anniversary & rent review — '+addr,
+      body:ll+nl+nl+'I hope you are well.'+nl+nl+'I am writing as the tenancy at '+addr+' is approaching its anniversary.'+nl+nl+'Tenant: '+p.tenant+nl+'Monthly rent: '+r+nl+'Tenancy start: '+p.startDate+nl+nl+'Under the Renters\' Rights Act 2025, rent may only be increased once every 12 months via a statutory Section 13 notice. If you wish to review the rent, please let me know and I will prepare the necessary notice.'+nl+nl+'Kind regards,'+nl+FROM}
   };
   return t[type]||t['gsc'];
 }
@@ -2646,6 +2933,7 @@ function openAddProperty(){
    +'<div class="mf"><div class="mf-label">Postcode</div><input class="form-input" id="ep-postcode" placeholder="SE23 1AB" style="width:100%;margin-top:3px"></div>'
    +'<div class="mf"><div class="mf-label">Tenant name</div><input class="form-input" id="ep-tenant" placeholder="Full name" style="width:100%;margin-top:3px"></div>'
    +'<div class="mf"><div class="mf-label">Tenant phone</div><input class="form-input" id="ep-tenantPhone" placeholder="07700 000000" style="width:100%;margin-top:3px"></div>'
+   +'<div class="mf"><div class="mf-label">Tenant email</div><input class="form-input" id="ep-tenantEmail" placeholder="tenant@email.com" style="width:100%;margin-top:3px"></div>'
    +'<div class="mf"><div class="mf-label">Landlord name</div><input class="form-input" id="ep-llName" placeholder="Full name" style="width:100%;margin-top:3px"></div>'
    +'<div class="mf"><div class="mf-label">Landlord email</div><input class="form-input" id="ep-llEmail" placeholder="email@example.com" style="width:100%;margin-top:3px"></div>'
    +'<div class="mf"><div class="mf-label">Monthly rent (£)</div><input class="form-input" id="ep-rent" type="number" placeholder="0" style="width:100%;margin-top:3px"></div>'
@@ -3623,6 +3911,7 @@ function showPage(id,btn){
   var pg=document.getElementById('page-'+id);
   if(pg) pg.classList.add('active');
   if(btn) btn.classList.add('active');
+  if(id==='dashboard') renderAllDashCards();
   if(id==='properties') buildDashboardWidgets();
   if(id==='reports') buildReportCards();
   if(id==='compliance') filterComp();
@@ -3867,6 +4156,7 @@ function loadFromFirebase(){
   });
 
   DB_READY = true;
+  setTimeout(renderAllDashCards, 1500);
 }
 
 // ── SAVE HELPERS ──
