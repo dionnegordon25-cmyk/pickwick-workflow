@@ -944,12 +944,21 @@ function updateAutomationStrip(data){
     webhook.style.color='#854F0B';
   }
 }
-(function(){
-  fetch('/.netlify/functions/automation-status')
-    .then(function(r){return r.ok?r.json():null;})
-    .then(function(data){if(data) updateAutomationStrip(data);})
-    .catch(function(){});
-})();
+function loadAutomationStats(){
+  if(!DB_READY||!db){ setTimeout(loadAutomationStats,2000); return; }
+  db.ref('automationStats').once('value').then(function(snap){
+    var data=snap.val();
+    if(data&&data.status==='active'){
+      updateAutomationStrip({
+        active:true,
+        draftsToday:data.draftsToday||0,
+        emailsProcessed:data.emailsProcessed||0,
+        lastActivity:data.lastRunDate?'Last run: '+data.lastRunDate:'—',
+      });
+    }
+  }).catch(function(e){console.log('Stats load:',e.message);});
+}
+setTimeout(loadAutomationStats,3000);
 // ── END AUTOMATION STRIP ───────────────────────────────────────────────
 
 function getContractor(id){return CONTRACTORS.find(c=>c.id===id)||{name:'TBC',phone:'',email:'',phone2:''};}
