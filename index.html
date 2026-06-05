@@ -961,7 +961,7 @@ function renderUrgentList(){
           icon:    overdue ? '🔴' : urgent ? '🟡' : '🔵',
           text:    (overdue ? 'OVERDUE' : days+'d') + ' — ' + c.label + ' renewal · ' + p.address.split(',')[0],
           sub:     p.llName ? 'LL: ' + p.llName + (p.llEmail ? ' · Click to draft reminder email' : ' · No landlord email on record') : 'No landlord on record — click to open',
-          onclick: 'openPropWithEmail(' + PROPERTIES.indexOf(p) + ','' + c.emailType + '')'
+          fn: (function(pi,et){return function(){openPropWithEmail(pi,et);};})(PROPERTIES.indexOf(p),c.emailType)
         });
       }
     });
@@ -990,7 +990,7 @@ function renderUrgentList(){
       icon: '💰',
       text: 'Deposit dispute — ' + p.address.split(',')[0],
       sub: p.depositStatus,
-      onclick: 'openPropWithEmail(' + PROPERTIES.indexOf(p) + ','deposit')'
+      fn: (function(pi){return function(){openPropWithEmail(pi,'deposit');};})(PROPERTIES.indexOf(p))
     });
   });
 
@@ -1009,7 +1009,7 @@ function renderUrgentList(){
         icon: '📅',
         text: 'APT anniversary in ' + days + 'd — ' + p.address.split(',')[0],
         sub: '£' + p.rent.toLocaleString() + '/mo · Click to draft Section 13 / rent review email',
-        onclick: 'openPropWithEmail(' + PROPERTIES.indexOf(p) + ','anniversary')'
+        fn: (function(pi){return function(){openPropWithEmail(pi,'anniversary');};})(PROPERTIES.indexOf(p))
       });
     }
   });
@@ -1080,11 +1080,13 @@ function renderDashCompAlerts(){
     var cls = u.days < 0 ? 'alert-red' : u.days <= 14 ? 'alert-red' : u.days <= 30 ? 'alert-amber' : 'alert-purple';
     var dueCls = u.days < 0 ? 'red' : u.days <= 30 ? 'amber' : '';
     var dueLabel = u.days < 0 ? 'OVERDUE' : u.days + ' days';
-    return '<div class="alert-item '+cls+'" style="cursor:pointer" onclick="openPropWithEmail('+u.pid+',''+u.emailType+'')">'
-      +'<span class="alert-due '+dueCls+'">'+dueLabel+'</span>'
-      +'<div class="alert-prop">'+u.prop+'</div>'
-      +'<div class="alert-detail">'+u.label+' · click to draft reminder</div></div>';
-  }).join('');
+    var div = document.createElement('div');
+    div.className = 'alert-item ' + cls;
+    div.style.cursor = 'pointer';
+    div.innerHTML = '<span class="alert-due '+dueCls+'">'+dueLabel+'</span><div class="alert-prop">'+u.prop+'</div><div class="alert-detail">'+u.label+' · click to draft reminder</div>';
+    div.onclick = (function(pid,et){return function(){openPropWithEmail(pid,et);};})(u.pid,u.emailType);
+    el.appendChild(div);
+  });
 }
 
 function renderDashDepositAlerts(){
