@@ -1,3 +1,4 @@
+// @netlify schedule: 0 6 */2 * *
 // =====================================================
 // DG LETTINGS — RENEW GRAPH API WEBHOOK SUBSCRIPTION
 // Runs every 2 days via scheduler to keep inbox watcher alive
