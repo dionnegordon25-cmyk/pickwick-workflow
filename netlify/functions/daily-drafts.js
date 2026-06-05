@@ -1,3 +1,4 @@
+// @netlify schedule: 0 8 * * *
 // =====================================================
 // DG LETTINGS — DAILY OUTLOOK DRAFT CREATOR
 // Netlify Scheduled Function — runs every morning 8am
