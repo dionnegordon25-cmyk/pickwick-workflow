@@ -2,14 +2,6 @@
   functions = "netlify/functions"
   publish = "."
 
-[[scheduled_functions]]
-  name = "daily-drafts"
-  cron = "0 8 * * *"
-
-[[scheduled_functions]]
-  name = "renew-subscription"
-  cron = "0 6 */2 * *"
-
 [build.environment]
   SECRETS_SCAN_OMIT_KEYS = "AZURE_CLIENT_ID,AZURE_CLIENT_SECRET,AZURE_TENANT_ID,FIREBASE_URL,OUTLOOK_EMAIL,OUTLOOK_PASSWORD,OUTLOOK_REFRESH_TOKEN"
 
