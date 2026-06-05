@@ -2579,7 +2579,16 @@ function buildDashboardWidgets(){
 
 function openPropWithEmail(idx, emailType){
   openProp(idx);
-  setTimeout(function(){ switchEmailType(emailType); }, 100);
+  // Wait for modal and email type buttons to fully render before switching
+  setTimeout(function(){
+    // Activate the correct email type button visually
+    var btns = document.querySelectorAll('.email-type-btn');
+    var EMAIL_TYPES_ORDER = ['gsc','eicr','epc','licence','smoke_co','deposit','maintenance','rent_review','anniversary'];
+    var targetIdx = EMAIL_TYPES_ORDER.indexOf(emailType);
+    btns.forEach(function(b){ b.classList.remove('active'); });
+    if(btns[targetIdx]) btns[targetIdx].classList.add('active');
+    switchEmailType(emailType);
+  }, 150);
 }
 
 function openProp(idx){
