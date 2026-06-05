@@ -1,18 +1,18 @@
 // =====================================================
 // DG LETTINGS — INBOUND EMAIL HANDLER
 // Triggered by Microsoft Graph webhook when email arrives
-// Uses app-only auth (client credentials) — matches create-subscription.js
+// Intent-driven — works regardless of sender type
 // =====================================================
 
 const fetch = (...args) => import('node-fetch').then(({default: f}) => f(...args));
 
-const TENANT_ID     = 'f22402ce-b358-43c7-91f9-b90742bf68e4';
-const MAILBOX       = 'maintenance@pickwickestates.com';
-const FIREBASE_URL  = process.env.FIREBASE_URL;
-const FROM_NAME     = 'Dionne — Pickwick Estates';
-const FROM_EMAIL    = process.env.OUTLOOK_EMAIL || MAILBOX;
+const TENANT_ID    = 'f22402ce-b358-43c7-91f9-b90742bf68e4';
+const MAILBOX      = 'maintenance@pickwickestates.com';
+const FIREBASE_URL = process.env.FIREBASE_URL;
+const FROM_NAME    = 'Dionne — Pickwick Estates';
+const FROM_EMAIL   = process.env.OUTLOOK_EMAIL || MAILBOX;
 
-// App-only auth — matches create-subscription.js
+// App-only auth
 async function getAccessToken() {
   const body = new URLSearchParams({
     grant_type:    'client_credentials',
@@ -36,7 +36,7 @@ async function loadFirebase(path) {
   return data ? Object.values(data) : [];
 }
 
-// Read full email — using mailbox path not 'me'
+// Read full email
 async function getEmail(token, messageId) {
   const res = await fetch(
     `https://graph.microsoft.com/v1.0/users/${MAILBOX}/messages/${messageId}`,
@@ -45,7 +45,7 @@ async function getEmail(token, messageId) {
   return await res.json();
 }
 
-// Create draft in the mailbox — using mailbox path not 'me'
+// Create draft in mailbox
 async function createDraft(token, { to, subject, body }) {
   const res = await fetch(
     `https://graph.microsoft.com/v1.0/users/${MAILBOX}/messages`,
@@ -69,7 +69,7 @@ async function createDraft(token, { to, subject, body }) {
 // Identify sender type
 function identifySender(fromEmail, fromName, properties, contractors) {
   const emailLower = (fromEmail || '').toLowerCase();
-  const nameLower  = (fromName || '').toLowerCase();
+  const nameLower  = (fromName  || '').toLowerCase();
 
   const contractor = contractors.find(c =>
     (c.email || '').toLowerCase() === emailLower ||
@@ -79,20 +79,20 @@ function identifySender(fromEmail, fromName, properties, contractors) {
 
   const llProp = properties.find(p =>
     (p.llEmail || '').toLowerCase() === emailLower ||
-    (p.llName || '').toLowerCase().includes(nameLower.split(' ')[0])
+    (p.llName  || '').toLowerCase().includes(nameLower.split(' ')[0])
   );
   if (llProp) return { type: 'landlord', match: llProp };
 
   const tenantProp = properties.find(p =>
     (p.tenantEmail || '').toLowerCase() === emailLower ||
-    (p.tenant || '').toLowerCase().includes(nameLower.split(' ')[0])
+    (p.tenant      || '').toLowerCase().includes(nameLower.split(' ')[0])
   );
   if (tenantProp) return { type: 'tenant', match: tenantProp };
 
   return { type: 'unknown', match: null };
 }
 
-// Find property mentioned in email
+// Find property mentioned in email text
 function findPropertyInEmail(text, properties) {
   const textLower = text.toLowerCase();
   return properties.find(p => {
@@ -101,127 +101,31 @@ function findPropertyInEmail(text, properties) {
   }) || null;
 }
 
-// Detect intent
+// Detect intent from subject + body
 function detectIntent(subject, body) {
   const text = (subject + ' ' + body).toLowerCase();
-  if (text.includes('boiler') || text.includes('heating') || text.includes('hot water')) return 'boiler';
-  if (text.includes('leak') || text.includes('water damage') || text.includes('damp'))    return 'leak';
+  if (text.includes('boiler') || text.includes('heating') || text.includes('hot water'))  return 'boiler';
+  if (text.includes('leak')   || text.includes('water damage') || text.includes('damp'))  return 'leak';
   if (text.includes('electric') || text.includes('power') || text.includes('fuse'))       return 'electrical';
-  if (text.includes('lock') || text.includes('key') || text.includes('door'))             return 'access';
-  if (text.includes('quote') || text.includes('estimate') || text.includes('cost'))       return 'quote';
+  if (text.includes('lock')   || text.includes('key') || text.includes('door'))           return 'access';
+  if (text.includes('quote')  || text.includes('estimate') || text.includes('cost'))      return 'quote';
   if (text.includes('invoice') || text.includes('payment') || text.includes('bill'))      return 'invoice';
   if (text.includes('complete') || text.includes('finished') || text.includes('done'))    return 'complete';
   if (text.includes('approve') || text.includes('authorise') || text.includes('go ahead')) return 'approval';
   if (text.includes('deposit') || text.includes('refund'))                                return 'deposit';
-  if (text.includes('notice') || text.includes('leaving') || text.includes('vacate'))     return 'notice';
+  if (text.includes('notice')  || text.includes('leaving') || text.includes('vacate'))    return 'notice';
   return 'general';
 }
 
-// Generate draft responses
+// ── INTENT-DRIVEN DRAFT GENERATION ──────────────────────────────
+// Works regardless of who sent the email — intent + property drive the response
 async function generateDrafts(emailData, senderInfo, property, intent) {
   const { fromEmail, fromName, subject, body } = emailData;
   const nl = '\n';
   const drafts = [];
 
-  if (senderInfo.type === 'tenant' && property) {
-    const ll = property.llName ? 'Dear ' + property.llName.split(' ')[0] + ',' : 'Dear Landlord,';
-
-    drafts.push({
-      to: fromEmail,
-      subject: 'Re: ' + subject,
-      body: 'Dear ' + fromName.split(' ')[0] + ',' + nl + nl +
-        'Thank you for getting in touch regarding ' + property.address + '.' + nl + nl +
-        'I have received your message and will look into this as a matter of priority. I will be in touch shortly with an update.' + nl + nl +
-        'If the matter is urgent, please do not hesitate to call us directly.' + nl + nl +
-        'Kind regards,' + nl + FROM_NAME,
-      label: 'Reply to tenant — acknowledgement'
-    });
-
-    drafts.push({
-      to: property.llEmail || '',
-      subject: 'Maintenance issue reported — ' + property.address,
-      body: ll + nl + nl +
-        'I am writing to advise that your tenant ' + property.tenant + ' at ' + property.address + ' has been in touch regarding the following:' + nl + nl +
-        '"' + subject + '"' + nl + nl +
-        body.substring(0, 300) + (body.length > 300 ? '...' : '') + nl + nl +
-        'Please could you confirm whether you would like us to arrange for a contractor to attend, or whether you wish to handle this directly?' + nl + nl +
-        'Kind regards,' + nl + FROM_NAME,
-      label: 'Inform landlord of tenant issue'
-    });
-
-  } else if (senderInfo.type === 'contractor' && property) {
-    const ll = property.llName ? 'Dear ' + property.llName.split(' ')[0] + ',' : 'Dear Landlord,';
-
-    if (intent === 'quote') {
-      drafts.push({
-        to: property.llEmail || '',
-        subject: 'Quote received — ' + property.address,
-        body: ll + nl + nl +
-          'Please find below a quote received from ' + fromName + ' for works at ' + property.address + ':' + nl + nl +
-          body.substring(0, 500) + (body.length > 500 ? '...' : '') + nl + nl +
-          'Please could you confirm whether you are happy to proceed with these works?' + nl + nl +
-          'Kind regards,' + nl + FROM_NAME,
-        label: 'Forward contractor quote to landlord'
-      });
-      drafts.push({
-        to: fromEmail,
-        subject: 'Re: ' + subject,
-        body: 'Hi ' + fromName.split(' ')[0] + ',' + nl + nl +
-          'Thank you for sending over the quote for ' + property.address + '.' + nl + nl +
-          'I have forwarded this to the landlord for approval and will be in touch as soon as I hear back.' + nl + nl +
-          'Kind regards,' + nl + FROM_NAME,
-        label: 'Acknowledge quote receipt to contractor'
-      });
-    } else if (intent === 'complete') {
-      drafts.push({
-        to: property.llEmail || '',
-        subject: 'Works completed — ' + property.address,
-        body: ll + nl + nl +
-          'I am writing to advise that ' + fromName + ' has confirmed works are now complete at ' + property.address + '.' + nl + nl +
-          'Please let me know if you require any further information.' + nl + nl +
-          'Kind regards,' + nl + FROM_NAME,
-        label: 'Notify landlord works complete'
-      });
-    } else if (intent === 'invoice') {
-      drafts.push({
-        to: property.llEmail || '',
-        subject: 'Invoice received — ' + property.address,
-        body: ll + nl + nl +
-          'Please find below an invoice received from ' + fromName + ' for works at ' + property.address + ':' + nl + nl +
-          body.substring(0, 400) + nl + nl +
-          'Please could you confirm you are happy for this to be processed?' + nl + nl +
-          'Kind regards,' + nl + FROM_NAME,
-        label: 'Forward invoice to landlord'
-      });
-    }
-
-  } else if (senderInfo.type === 'landlord' && property) {
-    if (intent === 'approval') {
-      drafts.push({
-        to: '',
-        subject: 'Works approved — please proceed — ' + property.address,
-        body: 'Hi,' + nl + nl +
-          'I am writing to confirm that the landlord has approved the works at ' + property.address + '.' + nl + nl +
-          'Please could you confirm your availability to attend and provide a proposed date?' + nl + nl +
-          'Tenant contact: ' + property.tenant + nl +
-          'Please arrange access directly with the tenant.' + nl + nl +
-          'Kind regards,' + nl + FROM_NAME,
-        label: 'Instruct contractor — works approved'
-      });
-      drafts.push({
-        to: property.tenantEmail || '',
-        subject: 'Maintenance update — ' + property.address,
-        body: 'Dear ' + property.tenant.split(' ')[0] + ',' + nl + nl +
-          'I am writing to advise that works have been approved for your property at ' + property.address + '.' + nl + nl +
-          'A contractor will be in touch shortly to arrange a convenient time to attend.' + nl + nl +
-          'Kind regards,' + nl + FROM_NAME,
-        label: 'Notify tenant — works approved'
-      });
-    }
-  }
-
-  // Unknown sender — flag for manual review
-  if (senderInfo.type === 'unknown' || !property) {
+  // No property matched — flag for manual review
+  if (!property) {
     drafts.push({
       to: FROM_EMAIL,
       subject: '[ACTION NEEDED] Unmatched email — ' + subject,
@@ -232,6 +136,217 @@ async function generateDrafts(emailData, senderInfo, property, intent) {
         'Original message:' + nl + body.substring(0, 500),
       label: 'Unmatched email — manual review needed'
     });
+    return drafts;
+  }
+
+  // Helpers
+  const llFirst     = property.llName ? property.llName.split(' ')[0]   : 'Landlord';
+  const tenFirst    = property.tenant ? property.tenant.split(' ')[0]   : 'Resident';
+  const senderFirst = fromName        ? fromName.split(' ')[0]          : 'there';
+  const addr        = property.address;
+  const isTenant    = senderInfo.type === 'tenant';
+  const isLandlord  = senderInfo.type === 'landlord';
+
+  // ── MAINTENANCE: boiler, leak, electrical, access, general ───
+  const isMaintenanceIntent = ['boiler','leak','electrical','access','general'].includes(intent);
+
+  if (isMaintenanceIntent) {
+
+    // 1. Acknowledge the sender — whoever they are
+    drafts.push({
+      to: fromEmail,
+      subject: 'Re: ' + subject,
+      body: 'Dear ' + senderFirst + ',' + nl + nl +
+        'Thank you for getting in touch regarding ' + addr + '.' + nl + nl +
+        'We have received your message and will look into this as a matter of priority.' + nl + nl +
+        (isTenant
+          ? 'We will arrange for a contractor to attend and will be in touch shortly to confirm a date and time. If the matter is urgent please do not hesitate to call us directly.'
+          : 'We will arrange for a contractor to attend and will keep you updated on progress.') + nl + nl +
+        'Kind regards,' + nl + FROM_NAME,
+      label: 'Acknowledge sender — ' + senderInfo.type
+    });
+
+    // 2. Notify landlord (unless they are the sender)
+    if (!isLandlord && property.llEmail) {
+      drafts.push({
+        to: property.llEmail,
+        subject: 'Maintenance issue reported — ' + addr,
+        body: 'Dear ' + llFirst + ',' + nl + nl +
+          'I am writing to advise that a ' + intent + ' issue has been reported at ' + addr + '.' + nl + nl +
+          'Reported by: ' + fromName + nl +
+          'Details: ' + body.substring(0, 300) + (body.length > 300 ? '...' : '') + nl + nl +
+          'We are arranging for a contractor to attend. I will keep you updated on progress and will seek your approval before any significant works are instructed.' + nl + nl +
+          'Kind regards,' + nl + FROM_NAME,
+        label: 'Notify landlord — maintenance reported'
+      });
+    }
+
+    // 3. Notify tenant (unless they are the sender)
+    if (!isTenant && property.tenantEmail) {
+      drafts.push({
+        to: property.tenantEmail,
+        subject: 'Maintenance update — ' + addr,
+        body: 'Dear ' + tenFirst + ',' + nl + nl +
+          'I am writing to advise that we have been notified of a ' + intent + ' issue at your property and are arranging for a contractor to attend.' + nl + nl +
+          'We will be in touch shortly to confirm a date and time. If the matter is urgent please do not hesitate to contact us directly.' + nl + nl +
+          'Kind regards,' + nl + FROM_NAME,
+        label: 'Notify tenant — contractor being arranged'
+      });
+    }
+
+    // 4. Internal action draft — to: blank for Dionne to fill in contractor
+    drafts.push({
+      to: '',
+      subject: 'INSTRUCT CONTRACTOR — ' + intent.toUpperCase() + ' — ' + addr,
+      body: 'ACTION REQUIRED — please instruct appropriate contractor.' + nl + nl +
+        'Property:    ' + addr + nl +
+        'Issue type:  ' + intent + nl +
+        'Reported by: ' + fromName + ' (' + senderInfo.type + ')' + nl +
+        'Tenant:      ' + (property.tenant  || 'Not recorded') + nl +
+        'Landlord:    ' + (property.llName  || 'Not recorded') + nl + nl +
+        'Original message:' + nl +
+        body.substring(0, 400) + (body.length > 400 ? '...' : '') + nl + nl +
+        'Kind regards,' + nl + FROM_NAME,
+      label: 'Internal — instruct contractor'
+    });
+  }
+
+  // ── QUOTE ────────────────────────────────────────────────────
+  else if (intent === 'quote') {
+    if (property.llEmail) {
+      drafts.push({
+        to: property.llEmail,
+        subject: 'Quote received — ' + addr,
+        body: 'Dear ' + llFirst + ',' + nl + nl +
+          'Please find below a quote received from ' + fromName + ' for works at ' + addr + ':' + nl + nl +
+          body.substring(0, 500) + (body.length > 500 ? '...' : '') + nl + nl +
+          'Please could you confirm whether you are happy to proceed with these works?' + nl + nl +
+          'Kind regards,' + nl + FROM_NAME,
+        label: 'Forward quote to landlord'
+      });
+    }
+    drafts.push({
+      to: fromEmail,
+      subject: 'Re: ' + subject,
+      body: 'Hi ' + senderFirst + ',' + nl + nl +
+        'Thank you for sending over the quote for ' + addr + '.' + nl + nl +
+        'I have forwarded this to the landlord for approval and will be in touch as soon as I hear back.' + nl + nl +
+        'Kind regards,' + nl + FROM_NAME,
+      label: 'Acknowledge quote received'
+    });
+  }
+
+  // ── INVOICE ──────────────────────────────────────────────────
+  else if (intent === 'invoice') {
+    if (property.llEmail) {
+      drafts.push({
+        to: property.llEmail,
+        subject: 'Invoice received — ' + addr,
+        body: 'Dear ' + llFirst + ',' + nl + nl +
+          'Please find below an invoice received from ' + fromName + ' for works at ' + addr + ':' + nl + nl +
+          body.substring(0, 400) + nl + nl +
+          'Please could you confirm you are happy for this to be processed?' + nl + nl +
+          'Kind regards,' + nl + FROM_NAME,
+        label: 'Forward invoice to landlord'
+      });
+    }
+    drafts.push({
+      to: fromEmail,
+      subject: 'Re: ' + subject,
+      body: 'Hi ' + senderFirst + ',' + nl + nl +
+        'Thank you for sending over the invoice for ' + addr + '.' + nl + nl +
+        'I have passed this to the landlord for approval and will be in touch shortly.' + nl + nl +
+        'Kind regards,' + nl + FROM_NAME,
+      label: 'Acknowledge invoice received'
+    });
+  }
+
+  // ── WORKS COMPLETE ───────────────────────────────────────────
+  else if (intent === 'complete') {
+    if (property.llEmail) {
+      drafts.push({
+        to: property.llEmail,
+        subject: 'Works completed — ' + addr,
+        body: 'Dear ' + llFirst + ',' + nl + nl +
+          'I am writing to advise that ' + fromName + ' has confirmed works are now complete at ' + addr + '.' + nl + nl +
+          'Please let me know if you require any further information.' + nl + nl +
+          'Kind regards,' + nl + FROM_NAME,
+        label: 'Notify landlord — works complete'
+      });
+    }
+    if (property.tenantEmail) {
+      drafts.push({
+        to: property.tenantEmail,
+        subject: 'Maintenance update — works complete — ' + addr,
+        body: 'Dear ' + tenFirst + ',' + nl + nl +
+          'I am writing to confirm that the contractor has advised that works are now complete at your property.' + nl + nl +
+          'If you have any concerns about the works carried out please do not hesitate to get in touch.' + nl + nl +
+          'Kind regards,' + nl + FROM_NAME,
+        label: 'Notify tenant — works complete'
+      });
+    }
+  }
+
+  // ── APPROVAL ─────────────────────────────────────────────────
+  else if (intent === 'approval') {
+    drafts.push({
+      to: '',
+      subject: 'Works approved — proceed — ' + addr,
+      body: 'Hi,' + nl + nl +
+        'The landlord has approved the works at ' + addr + '. Please could you confirm your availability and proposed date?' + nl + nl +
+        'Tenant contact: ' + (property.tenant || 'Not recorded') + nl +
+        'Please arrange access directly with the tenant.' + nl + nl +
+        'Kind regards,' + nl + FROM_NAME,
+      label: 'Instruct contractor — works approved'
+    });
+    if (property.tenantEmail) {
+      drafts.push({
+        to: property.tenantEmail,
+        subject: 'Maintenance update — ' + addr,
+        body: 'Dear ' + tenFirst + ',' + nl + nl +
+          'I am writing to advise that works have been approved for your property. A contractor will be in touch shortly to arrange a convenient time to attend.' + nl + nl +
+          'Kind regards,' + nl + FROM_NAME,
+        label: 'Notify tenant — works approved'
+      });
+    }
+  }
+
+  // ── DEPOSIT ──────────────────────────────────────────────────
+  else if (intent === 'deposit') {
+    drafts.push({
+      to: fromEmail,
+      subject: 'Re: ' + subject,
+      body: 'Dear ' + senderFirst + ',' + nl + nl +
+        'Thank you for your message regarding the deposit for ' + addr + '.' + nl + nl +
+        'I will look into this and come back to you shortly.' + nl + nl +
+        'Kind regards,' + nl + FROM_NAME,
+      label: 'Acknowledge deposit query'
+    });
+  }
+
+  // ── NOTICE ───────────────────────────────────────────────────
+  else if (intent === 'notice') {
+    drafts.push({
+      to: fromEmail,
+      subject: 'Re: ' + subject,
+      body: 'Dear ' + senderFirst + ',' + nl + nl +
+        'Thank you for your message regarding ' + addr + '.' + nl + nl +
+        'I will review the details and come back to you shortly.' + nl + nl +
+        'Kind regards,' + nl + FROM_NAME,
+      label: 'Acknowledge notice / tenancy query'
+    });
+    if (!isLandlord && property.llEmail) {
+      drafts.push({
+        to: property.llEmail,
+        subject: 'Tenancy update — ' + addr,
+        body: 'Dear ' + llFirst + ',' + nl + nl +
+          'I am writing to advise that we have received correspondence regarding ' + addr + ' which may require your attention.' + nl + nl +
+          'Details: ' + body.substring(0, 300) + nl + nl +
+          'Please let me know if you would like to discuss.' + nl + nl +
+          'Kind regards,' + nl + FROM_NAME,
+        label: 'Notify landlord — tenancy correspondence'
+      });
+    }
   }
 
   return drafts;
@@ -260,8 +375,10 @@ async function logJob(property, subject, fromName, intent) {
   });
 }
 
+// ── MAIN HANDLER ─────────────────────────────────────────────────
 exports.handler = async function(event) {
-  // Validation handshake — Microsoft sends this when subscription is first created
+
+  // Validation handshake
   const params = new URLSearchParams(event.rawQuery || '');
   const validationToken = params.get('validationToken');
   if (validationToken) {
@@ -303,8 +420,6 @@ exports.handler = async function(event) {
       if (!messageId) { console.log('No messageId'); continue; }
 
       const email = await getEmail(token, messageId);
-      console.log('Email fetched:', email.subject);
-
       if (!email || !email.from) { console.log('No from address'); continue; }
 
       const fromEmail = email.from.emailAddress.address;
@@ -312,11 +427,18 @@ exports.handler = async function(event) {
       const subject   = email.subject || '(No subject)';
       const body      = email.body ? email.body.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : '';
 
-      if (fromEmail.toLowerCase() === MAILBOX.toLowerCase()) { console.log('Skipping own email'); continue; }
+      console.log('Email fetched:', subject);
+
+      // Skip emails sent from the mailbox itself
+      if (fromEmail.toLowerCase() === MAILBOX.toLowerCase()) {
+        console.log('Skipping own email');
+        continue;
+      }
 
       const senderInfo = identifySender(fromEmail, fromName, properties, contractors);
       console.log('Sender identified as:', senderInfo.type);
 
+      // Find property — first try sender match, then search email text
       let property = senderInfo.match && senderInfo.type !== 'contractor' ? senderInfo.match : null;
       if (!property) property = findPropertyInEmail(subject + ' ' + body, properties);
       console.log('Property matched:', property ? property.address : 'none');
@@ -329,10 +451,12 @@ exports.handler = async function(event) {
 
       for (const draft of drafts) {
         const result = await createDraft(token, draft);
-        console.log('Draft created:', result.id || result.error);
+        console.log('Draft created:', result.id || JSON.stringify(result.error));
       }
 
-      if (senderInfo.type === 'tenant' && property && !['quote','invoice','approval','complete','deposit','notice'].includes(intent)) {
+      // Auto-log maintenance jobs to Firebase
+      const maintenanceIntents = ['boiler','leak','electrical','access','general'];
+      if (property && maintenanceIntents.includes(intent)) {
         await logJob(property, subject, fromName, intent);
         console.log('Job logged to Firebase');
       }
