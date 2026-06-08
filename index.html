@@ -1020,15 +1020,18 @@ function renderUrgentList(){
     return;
   }
 
-  el.innerHTML = items.map(function(item){
-    return '<div onclick="'+item.onclick+'" style="display:flex;align-items:flex-start;gap:7px;padding:6px 8px;margin-bottom:5px;border-radius:var(--radius-md);background:var(--bg);cursor:pointer;border-left:3px solid '+item.color+'">'
-      + '<span style="font-size:12px;flex-shrink:0;margin-top:1px">'+item.icon+'</span>'
+  el.innerHTML = '';
+  items.forEach(function(item){
+    var div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:flex-start;gap:7px;padding:6px 8px;margin-bottom:5px;border-radius:6px;background:var(--bg);cursor:pointer;border-left:3px solid '+item.color;
+    div.innerHTML = '<span style="font-size:12px;flex-shrink:0;margin-top:1px">'+item.icon+'</span>'
       + '<div style="min-width:0"><div style="font-size:11px;font-weight:500;color:var(--text);line-height:1.4">'+item.text+'</div>'
       + (item.sub ? '<div style="font-size:10px;color:var(--text2);margin-top:1px">'+item.sub+'</div>' : '')
       + '</div>'
-      + '<span style="margin-left:auto;flex-shrink:0;font-size:10px;color:var(--text2);align-self:center">→</span>'
-      + '</div>';
-  }).join('');
+      + '<span style="margin-left:auto;flex-shrink:0;font-size:10px;color:var(--text2);align-self:center">→</span>';
+    if(item.fn) div.onclick = item.fn;
+    el.appendChild(div);
+  });
 }
 
 loadChecklist();
