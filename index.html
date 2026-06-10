@@ -4142,27 +4142,17 @@ function loadFromFirebase(){
   db.ref('jobs').once('value').then(function(snap){
     var data = snap.val();
     if(data){
-      var fbJobs = Object.values(data);
-      // Only replace base jobs if Firebase has more (i.e. user has added jobs via CRM)
-      if(fbJobs.length > jobs.length){
-        jobs = fbJobs;
-        console.log('Jobs loaded from Firebase: '+jobs.length);
-      } else {
-        // Firebase has fewer - push our full set to Firebase
-        console.log('Firebase has '+fbJobs.length+' jobs, HTML has '+jobs.length+' — syncing to Firebase');
-        var jobsObj = {};
-        jobs.forEach(function(j,i){ var key = j.fbKey || ('job_'+i); j.fbKey = key; jobsObj[key] = j; });
-        db.ref('jobs').set(jobsObj).then(function(){ console.log('Jobs synced to Firebase: '+jobs.length); });
-      }
+      // Firebase ALWAYS wins — never overwrite user edits
+      jobs = Object.values(data);
+      console.log('Jobs loaded from Firebase: '+jobs.length);
     } else {
-      // No jobs in Firebase at all - write all base jobs
+      // No jobs in Firebase at all — write base jobs once only
       var jobsObj = {};
       jobs.forEach(function(j,i){ var key = j.fbKey || ('job_'+i); j.fbKey = key; jobsObj[key] = j; });
       db.ref('jobs').set(jobsObj).then(function(){ console.log('Base jobs written to Firebase: '+jobs.length); });
     }
     renderJobs();
     updateOpsStats();
-    // Render dashboard cards after jobs loaded (jobs needed for chase/follow-up)
     setTimeout(renderAllDashCards, 200);
   });
 
