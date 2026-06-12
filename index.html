@@ -186,13 +186,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <!-- ── END LOGIN SCREEN ────────────────────────────────── -->
 
 <div class="app" id="main-app" style="display:none">
-<div class="topbar">
-  <div>
-    <div class="topbar-title">DG Lettings — Workflow</div>
-    <div class="topbar-sub">86 live properties &nbsp;·&nbsp; <span id="today-date"></span></div>
+<div class="topbar" style="flex-direction:column;align-items:stretch;padding:8px 16px 0">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+    <div>
+      <div class="topbar-title">DG Lettings — Workflow</div>
+      <div class="topbar-sub">86 live properties &nbsp;·&nbsp; <span id="today-date"></span></div>
+    </div>
+    <button onclick="doLogout()" title="Sign out" style="font-size:11px;padding:5px 10px;border-radius:var(--radius-md);border:0.5px solid var(--border);background:var(--white);color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:4px;font-family:var(--font);white-space:nowrap"><i class="ti ti-logout" style="font-size:13px"></i> Sign out</button>
   </div>
-  <div style="display:flex;align-items:center;gap:8px">
-    <div class="nav" style="flex-wrap:wrap;row-gap:2px">
+  <div class="nav">
     <button class="nav-btn active" onclick="showPage('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
     <button class="nav-btn" onclick="showPage('maintenance',this)"><i class="ti ti-tools"></i> Maintenance</button>
     <button class="nav-btn" onclick="showPage('offeraccepted',this)">Offer Accepted</button>
@@ -205,8 +207,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <button class="nav-btn" onclick="showPage('reports',this)">Reports</button>
     <button class="nav-btn" onclick="showPage('activity',this)">Activity log</button>
     <button class="nav-btn" onclick="showPage('settings',this)">Settings</button>
-  </div>
-  <button onclick="doLogout()" title="Sign out" style="font-size:11px;padding:5px 10px;border-radius:var(--radius-md);border:0.5px solid var(--border);background:var(--white);color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:4px;font-family:var(--font);white-space:nowrap"><i class="ti ti-logout" style="font-size:13px"></i> Sign out</button>
   </div>
 </div>
 
