@@ -686,7 +686,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 </div>
 
 <!-- ACTIVITY LOG PAGE -->
-<div id="page-offeraccepted" class="page" style="display:none">
+<div id="page-offeraccepted" class="page">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
     <div>
       <div style="font-size:16px;font-weight:600;color:var(--text)">Offer Accepted</div>
@@ -696,7 +696,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   </div>
   <!-- Offer list -->
   <div id="offer-list" style="display:flex;flex-direction:column;gap:10px"></div>
-  <div id="offer-empty" style="display:none;font-size:11px;color:var(--text2);padding:20px 0;text-align:center">No accepted offers recorded yet.</div>
+  <div id="offer-empty" style="font-size:11px;color:var(--text2);padding:20px 0;text-align:center">No accepted offers recorded yet. Click <strong>New Offer</strong> to get started.</div>
 </div>
 
 <div id="page-moveins" class="page">
@@ -4009,6 +4009,7 @@ function showPage(id,btn){
   if(id==='deposits'){ filterDep(); renderDepSummary(); }
   if(id==='contractors'){ renderContractors(); renderContractorsSummary(); }
   if(id==='moveins'){ filterMoveIns(); renderMoveInSummary(); }
+  if(id==='offeraccepted'){ renderOffers(); }
   if(id==='activity') renderActivity();
   if(id==='pasttenants'){ filterPastTenants(); renderPTSummary(); }
 }
