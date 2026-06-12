@@ -112,6 +112,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .addr-main{font-weight:500;font-size:12px;color:var(--text);line-height:1.4}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);align-items:flex-start;justify-content:center;z-index:200;padding:20px;overflow-y:auto}
 .modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:12px;padding:24px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.18)}
 .modal{background:var(--white);border-radius:var(--radius-lg);border:0.5px solid var(--border);padding:20px;width:560px;max-width:100%;margin:auto}
 .modal-title{font-size:14px;font-weight:500;color:var(--text);margin-bottom:2px}
 .modal-sub{font-size:11px;color:var(--text2);margin-bottom:12px}
@@ -150,6 +151,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .filter-pill.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
 @media(max-width:900px){.two-col{grid-template-columns:1fr}}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -687,16 +689,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
 <!-- ACTIVITY LOG PAGE -->
 <div id="page-offeraccepted" class="page">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-    <div>
-      <div style="font-size:16px;font-weight:600;color:var(--text)">Offer Accepted</div>
-      <div style="font-size:11px;color:var(--text2);margin-top:2px">Record an accepted offer and auto-generate all tenant and landlord documents</div>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:16px;font-weight:600;color:var(--text)">Offer Accepted</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px">Record an accepted offer and auto-generate all tenant and landlord documents</div>
+      </div>
+      <button class="btn-primary" onclick="openOfferModal()"><i class="ti ti-plus"></i> New Offer</button>
     </div>
-    <button class="btn-primary" onclick="openOfferModal()"><i class="ti ti-plus"></i> New Offer</button>
+    <div id="offer-list" style="display:flex;flex-direction:column;gap:10px"></div>
+    <div id="offer-empty" style="font-size:11px;color:var(--text2);padding:20px 0;text-align:center">No accepted offers recorded yet. Click <strong>New Offer</strong> to get started.</div>
   </div>
-  <!-- Offer list -->
-  <div id="offer-list" style="display:flex;flex-direction:column;gap:10px"></div>
-  <div id="offer-empty" style="font-size:11px;color:var(--text2);padding:20px 0;text-align:center">No accepted offers recorded yet. Click <strong>New Offer</strong> to get started.</div>
 </div>
 
 <div id="page-moveins" class="page">
@@ -4468,6 +4471,14 @@ function offerPropertySelected(){
   else if(fee==12) document.getElementById('om-fee-label').value='Fully Managed';
 }
 
+function recalcDeposits(){
+  var rent = parseFloat(document.getElementById('om-rent').value)||0;
+  if(rent){
+    document.getElementById('om-deposit').value = Math.round(rent*12/52*5);
+    document.getElementById('om-holding').value = Math.round(rent*12/52);
+  }
+}
+
 function tierDropdownChanged(){
   var val = document.getElementById('om-tier').value;
   var pctEl = document.getElementById('om-fee-pct');
@@ -5137,7 +5148,7 @@ function loadOffersFromFirebase(){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
       <div>
         <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px">Monthly rent (£)</div>
-        <input id="om-rent" class="form-input" type="number" placeholder="e.g. 1800" style="width:100%">
+        <input id="om-rent" class="form-input" type="number" placeholder="e.g. 1800" style="width:100%" oninput="recalcDeposits()">
       </div>
       <div>
         <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px">Proposed start date</div>
