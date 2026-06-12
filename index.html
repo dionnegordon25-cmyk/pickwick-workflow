@@ -153,13 +153,46 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 </head>
 <body>
 
-<div class="app">
+<!-- ── LOGIN SCREEN ─────────────────────────────────────── -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:#F5F5F3;align-items:center;justify-content:center;flex-direction:column">
+  <div style="background:#fff;border:0.5px solid #E2E2DF;border-radius:14px;padding:36px 40px;width:360px;max-width:90vw;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+    <!-- Logo / brand -->
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="background:#3C141E;color:#fff;font-family:'Inter',sans-serif;font-size:15px;font-weight:600;padding:10px 20px;border-radius:8px;display:inline-block;margin-bottom:10px">Pickwick Estates</div>
+      <div style="font-size:12px;color:#6B6B6B;margin-top:4px">DG Lettings — Workflow</div>
+    </div>
+    <!-- Fields -->
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;font-weight:500;color:#6B6B6B;display:block;margin-bottom:5px">Email</label>
+      <input id="login-email" type="email" autocomplete="email"
+        style="width:100%;padding:9px 12px;border:0.5px solid #D4D4D0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none"
+        placeholder="your@email.com" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:11px;font-weight:500;color:#6B6B6B;display:block;margin-bottom:5px">Password</label>
+      <input id="login-password" type="password" autocomplete="current-password"
+        style="width:100%;padding:9px 12px;border:0.5px solid #D4D4D0;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;outline:none"
+        placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button onclick="doLogin()"
+      style="width:100%;padding:10px;background:#3C141E;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit">
+      Sign in
+    </button>
+    <div id="login-error" style="display:none;margin-top:12px;padding:8px 12px;background:#FCEBEB;border-radius:6px;font-size:11px;color:#A32D2D;text-align:center"></div>
+    <div id="login-loading" style="display:none;margin-top:12px;text-align:center;font-size:11px;color:#6B6B6B">Signing in...</div>
+  </div>
+  <div style="margin-top:16px;font-size:10px;color:#9B9B9B">Protected by Firebase Authentication</div>
+</div>
+<!-- ── END LOGIN SCREEN ────────────────────────────────── -->
+
+<div class="app" id="main-app" style="display:none">
 <div class="topbar">
   <div>
     <div class="topbar-title">DG Lettings — Workflow</div>
     <div class="topbar-sub">86 live properties &nbsp;·&nbsp; <span id="today-date"></span></div>
   </div>
-  <div class="nav">
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="nav">
     <button class="nav-btn active" onclick="showPage('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
     <button class="nav-btn" onclick="showPage('maintenance',this)"><i class="ti ti-tools"></i> Maintenance</button>
     <button class="nav-btn" onclick="showPage('moveins',this)"><i class="ti ti-door-enter"></i> Move-ins</button>
@@ -171,6 +204,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <button class="nav-btn" onclick="showPage('reports',this)"><i class="ti ti-chart-bar"></i> Reports</button>
     <button class="nav-btn" onclick="showPage('activity',this)"><i class="ti ti-history"></i> Activity log</button>
     <button class="nav-btn" onclick="showPage('settings',this)"><i class="ti ti-settings"></i> Settings</button>
+  </div>
+  <button onclick="doLogout()" title="Sign out" style="font-size:11px;padding:5px 10px;border-radius:var(--radius-md);border:0.5px solid var(--border);background:var(--white);color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:4px;font-family:var(--font);white-space:nowrap"><i class="ti ti-logout" style="font-size:13px"></i> Sign out</button>
   </div>
 </div>
 
@@ -3964,6 +3999,64 @@ function showPage(id,btn){
   if(id==='pasttenants'){ filterPastTenants(); renderPTSummary(); }
 }
 
+// ── AUTH FUNCTIONS ───────────────────────────────────────────────
+function showLoginScreen(){
+  var login = document.getElementById('login-screen');
+  var app   = document.getElementById('main-app');
+  if(login) login.style.display = 'flex';
+  if(app)   app.style.display   = 'none';
+  setTimeout(function(){
+    var em = document.getElementById('login-email');
+    if(em) em.focus();
+  }, 100);
+}
+
+function showApp(){
+  var login = document.getElementById('login-screen');
+  var app   = document.getElementById('main-app');
+  if(login) login.style.display = 'none';
+  if(app)   app.style.display   = 'block';
+  DB_READY = true;
+  setTimeout(function(){
+    initFirebaseIfEmpty();
+    loadFromFirebase();
+  }, 300);
+}
+
+function doLogin(){
+  var email    = (document.getElementById('login-email').value||'').trim();
+  var password = document.getElementById('login-password').value||'';
+  var errEl    = document.getElementById('login-error');
+  var loadEl   = document.getElementById('login-loading');
+  var btn      = document.querySelector('#login-screen button');
+  if(!email||!password){
+    errEl.textContent='Please enter your email and password.';
+    errEl.style.display='block'; return;
+  }
+  errEl.style.display='none';
+  loadEl.style.display='block';
+  if(btn) btn.disabled=true;
+  firebase.auth().signInWithEmailAndPassword(email, password)
+    .then(function(){ loadEl.style.display='none'; })
+    .catch(function(e){
+      loadEl.style.display='none';
+      if(btn) btn.disabled=false;
+      var msg = 'Incorrect email or password.';
+      if(e.code==='auth/too-many-requests') msg='Too many attempts. Please try again later.';
+      if(e.code==='auth/network-request-failed') msg='Network error. Check your connection.';
+      errEl.textContent=msg;
+      errEl.style.display='block';
+    });
+}
+
+function doLogout(){
+  firebase.auth().signOut().then(function(){
+    showLoginScreen();
+    showToast('Signed out');
+  });
+}
+// ── END AUTH FUNCTIONS ────────────────────────────────────────────
+
 // Also update renderMoveIns to use filtered renderer
 function renderMoveIns(){ filterMoveIns(); }
 
@@ -3977,20 +4070,27 @@ window.addEventListener('load', function(){
     s.onerror=function(){ console.error('Failed to load: '+src); };
     document.head.appendChild(s);
   }
-  loadScript('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js', function(){
-    loadScript('https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js', function(){
+  loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js', function(){
+    loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js', function(){
+      loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js', function(){
       try {
         fbApp = firebase.initializeApp(firebaseConfig);
         db = firebase.database();
-        DB_READY = true;
         console.log('Firebase connected');
-        setTimeout(function(){
-          initFirebaseIfEmpty();
-          loadFromFirebase();
-        }, 500);
+        // Check auth state before showing app
+        firebase.auth().onAuthStateChanged(function(user){
+          if(user){
+            console.log('Logged in:', user.email);
+            showApp();
+          } else {
+            showLoginScreen();
+          }
+        });
       } catch(e) {
         console.error('Firebase init error:', e);
+        showLoginScreen();
       }
+      });  // end auth script
     });
   });
   var cm=document.getElementById('contractor-modal');
