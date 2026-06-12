@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.gstatic.com; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://graph.microsoft.com;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DG Lettings — Workflow</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
@@ -151,7 +152,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .filter-pill.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
 @media(max-width:900px){.two-col{grid-template-columns:1fr}}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -4721,16 +4722,30 @@ function downloadOfferDoc(offerId, docType){
 }
 
 function generatePickwickPDF(sections, filename, offer){
-  // Use jsPDF if available, else fallback to printable HTML
-  if(typeof window.jspdf !== 'undefined' || typeof window.jsPDF !== 'undefined'){
-    buildJsPDF(sections, filename, offer);
-  } else {
-    // Load jsPDF dynamically
-    var s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    s.onload = function(){ buildJsPDF(sections, filename, offer); };
-    document.head.appendChild(s);
+  function tryBuild(){
+    var jsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+    if(jsPDF){ buildJsPDF(sections, filename, offer); }
+    else { showToast('PDF library still loading — please try again in a moment'); }
   }
+  // Already loaded?
+  if((window.jspdf && window.jspdf.jsPDF) || window.jsPDF){
+    buildJsPDF(sections, filename, offer);
+    return;
+  }
+  // Try loading from jsDelivr
+  showToast('Preparing PDF...');
+  var s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
+  s.onload = function(){ tryBuild(); };
+  s.onerror = function(){
+    // Fallback to cdnjs
+    var s2 = document.createElement('script');
+    s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s2.onload = function(){ tryBuild(); };
+    s2.onerror = function(){ showToast('Could not load PDF library. Check internet connection.'); };
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s);
 }
 
 function buildJsPDF(sections, filename, offer){
@@ -4946,6 +4961,13 @@ function loadOffersFromFirebase(){
     var data = snap.val();
     if(data){
       offers = Object.values(data).sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+      // Rebuild doc content store for all loaded offers
+      if(!window.offerDocStore) window.offerDocStore = {};
+      offers.forEach(function(offer){
+        if(!window.offerDocStore[offer.id]){
+          window.offerDocStore[offer.id] = buildAllDocContent(offer);
+        }
+      });
       renderOffers();
     }
   });
