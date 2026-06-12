@@ -687,6 +687,19 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 </div>
 
 <!-- ACTIVITY LOG PAGE -->
+<div id="page-offeraccepted" class="page" style="display:none">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-size:16px;font-weight:600;color:var(--text)">Offer Accepted</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:2px">Record an accepted offer and auto-generate all tenant and landlord documents</div>
+    </div>
+    <button class="btn-primary" onclick="openOfferModal()"><i class="ti ti-plus"></i> New Offer</button>
+  </div>
+  <!-- Offer list -->
+  <div id="offer-list" style="display:flex;flex-direction:column;gap:10px"></div>
+  <div id="offer-empty" style="display:none;font-size:11px;color:var(--text2);padding:20px 0;text-align:center">No accepted offers recorded yet.</div>
+</div>
+
 <div id="page-moveins" class="page">
   <div class="two-col">
     <div>
@@ -1547,38 +1560,40 @@ function renderDashJobs(){
   if(!dl) return;
   dl.innerHTML='';
   var open=jobs.filter(function(j){return j.status.toLowerCase()!=='complete';});
-  var display=open.slice(0,4);
+  var display=open.slice(0,5);
   if(display.length===0){dl.innerHTML='<div style="font-size:11px;color:var(--text2);padding:6px 0">No open jobs.</div>';return;}
-  display.forEach(function(job){
+  display.forEach(function(job,i){
     var c=getContractor(job.contractorId);
-    var row=document.createElement('div');
-    row.style.cssText='padding:7px 0;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px';
-    row.innerHTML='<div style="min-width:0"><div style="font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+job.prop+'</div>'
-      +'<div style="font-size:10px;color:var(--text2)">'+c.name+' · '+job.issue+'</div></div>'
-      +'<span class="pill '+job.pill+'" style="flex-shrink:0;font-size:9px">'+job.status+'</span>';
-    dl.appendChild(row);
+    var chase=jobNeedsChase(job);
+    var days=daysSince(job.lastActionDate||job.dateLogged);
+    var STATUS_COLORS={'overdue — no response':'#A32D2D','works in progress':'#185FA5','awaiting approval':'#854F0B','quote received':'#534AB7','complete':'#3B6D11','awaiting contractor':'#854F0B'};
+    var sl=job.status.toLowerCase();
+    var borderCol=STATUS_COLORS[sl]||'#854F0B';
+    var issueText=(job.issue||'').substring(0,120)+((job.issue||'').length>120?'...':'');
+    var card=document.createElement('div');
+    card.style.cssText='padding:8px 10px;border-bottom:0.5px solid var(--border);cursor:pointer;border-left:2px solid '+borderCol+';margin-bottom:2px;background:var(--white);'+(chase?'background:#FFF8F8;':'');
+    card.onclick=function(){navToMaintenance();};
+    card.innerHTML=
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:3px">'
+        +'<div style="font-size:11px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%">'+job.prop+'</div>'
+        +'<span class="pill '+job.pill+'" style="flex-shrink:0;font-size:9px;padding:1px 7px">'+(chase?'⚠️ '+days+'d — ':'')+job.status+'</span>'
+      +'</div>'
+      +'<div style="font-size:10px;color:var(--text2);line-height:1.4">'
+        +'<span style="font-weight:500;color:var(--text)">'+(job.category||'')+'</span>'+(c&&c.name?' · '+c.name:'')
+      +'</div>'
+      +'<div style="font-size:10px;color:var(--text);margin-top:2px;line-height:1.4">'+issueText+'</div>';
+    dl.appendChild(card);
   });
-  if(open.length>4){
+  if(open.length>5){
     var more=document.createElement('div');
-    more.style.cssText='font-size:10px;color:var(--text2);padding:6px 0;cursor:pointer;text-align:right';
-    more.textContent='+'+(open.length-4)+' more — view all';
-    more.onclick=function(){showPage('maintenance',document.querySelector('.nav-btn[onclick*=maintenance]'));};
+    more.style.cssText='font-size:10px;color:var(--text2);padding:6px 0;text-align:center;cursor:pointer';
+    more.textContent='+ '+(open.length-5)+' more open jobs';
+    more.onclick=function(){navToMaintenance();};
     dl.appendChild(more);
   }
 }
-renderDashJobs();
-loadTemplates();
 
-// Populate contractor filter dropdown and edit modal contractor select
-(function(){
-  var sel=document.getElementById('job-filter-contractor');
-  if(sel){CONTRACTORS.forEach(function(c){var o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o);});}
-  var esel=document.getElementById('ej-contractor');
-  if(esel){var blank=document.createElement('option');blank.value='';blank.textContent='Select contractor...';esel.appendChild(blank);CONTRACTORS.forEach(function(c){var o=document.createElement('option');o.value=c.id;o.textContent=c.name+' — '+c.trade.split('·')[0].trim();esel.appendChild(o);});}
-})();
 
-let editJobIdx=null;
-const pillMap={'Awaiting contractor':'pill-amber','Quote requested':'pill-yellow','Quote received':'pill-yellow','Awaiting approval':'pill-amber','Works in progress':'pill-blue','Complete':'pill-green','Overdue — no response':'pill-red'};
 function openEditJobModal(idx){
   editJobIdx=idx;
   var job=jobs[idx];
@@ -4020,6 +4035,7 @@ function showApp(){
   setTimeout(function(){
     initFirebaseIfEmpty();
     loadFromFirebase();
+    loadOffersFromFirebase();
   }, 300);
 }
 
@@ -4398,6 +4414,533 @@ function initFirebaseIfEmpty(){
   });
 }
 
+
+// ── OFFER ACCEPTED ────────────────────────────────────────────────
+
+var currentOffer = null;
+var sigCanvas = null, sigCtx = null, sigDrawing = false;
+var sigCallback = null;
+var offers = [];
+
+function openOfferModal(){
+  var sel = document.getElementById('om-property');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">Select property...</option>';
+  PROPERTIES.forEach(function(p,i){
+    var opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = p.address;
+    sel.appendChild(opt);
+  });
+  document.getElementById('offer-modal').style.display = 'flex';
+}
+
+function closeOfferModal(){
+  document.getElementById('offer-modal').style.display = 'none';
+}
+
+function offerPropertySelected(){
+  var idx = document.getElementById('om-property').value;
+  if(idx==='') return;
+  var p = PROPERTIES[parseInt(idx)];
+  if(!p) return;
+  if(p.tenant){
+    var row = document.querySelector('.om-tenant-row');
+    if(row){
+      row.querySelector('.om-t-name').value = p.tenant.split(/[&\/]/)[0].trim();
+      row.querySelector('.om-t-email').value = p.tenantEmail||'';
+      row.querySelector('.om-t-phone').value = p.tenantPhone||'';
+    }
+  }
+  var rent = p.rent||0;
+  if(rent){
+    document.getElementById('om-rent').value = rent;
+    document.getElementById('om-deposit').value = Math.round(rent*12/52*5);
+    document.getElementById('om-holding').value = Math.round(rent*12/52);
+  }
+  // Pull fee from property record
+  var fee = p.mgmtFee||0;
+  var feeLabel = p.mgmtFeeLabel||'';
+  if(fee){ document.getElementById('om-fee-pct').value = fee; }
+  if(feeLabel){ document.getElementById('om-fee-label').value = feeLabel; }
+  else if(fee==6) document.getElementById('om-fee-label').value='Let Only';
+  else if(fee==10) document.getElementById('om-fee-label').value='Let & Rent Collection';
+  else if(fee==12) document.getElementById('om-fee-label').value='Fully Managed';
+}
+
+function tierDropdownChanged(){
+  var val = document.getElementById('om-tier').value;
+  var pctEl = document.getElementById('om-fee-pct');
+  var lblEl = document.getElementById('om-fee-label');
+  if(val==='let_only'){pctEl.value=6;lblEl.value='Let Only';}
+  else if(val==='let_collect'){pctEl.value=10;lblEl.value='Let & Rent Collection';}
+  else if(val==='fully_managed'){pctEl.value=12;lblEl.value='Fully Managed';}
+  else if(val==='custom'){pctEl.value='';lblEl.value='';}
+}
+
+function addOfferTenant(){
+  var list = document.getElementById('om-tenants-list');
+  var row = document.createElement('div');
+  row.className = 'om-tenant-row';
+  row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-bottom:6px';
+  row.innerHTML = '<input class="form-input om-t-name" placeholder="Full name" style="font-size:11px">'
+    +'<input class="form-input om-t-email" placeholder="Email" type="email" style="font-size:11px">'
+    +'<input class="form-input om-t-phone" placeholder="Mobile" style="font-size:11px">'
+    +'<button onclick="removeOfferTenant(this)" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px;padding:0 4px">x</button>';
+  list.appendChild(row);
+}
+
+function removeOfferTenant(btn){
+  var rows = document.querySelectorAll('.om-tenant-row');
+  if(rows.length>1) btn.closest('.om-tenant-row').remove();
+}
+
+function getTierLabel(feePct, feeLabel){
+  if(feeLabel && feePct) return feeLabel+' - '+feePct+'% + VAT';
+  if(feeLabel) return feeLabel;
+  if(feePct) return feePct+'% + VAT';
+  return 'As agreed';
+}
+function getTierPct(feePct){ return feePct?parseFloat(feePct):0; }
+
+function submitOffer(){
+  var propIdx = document.getElementById('om-property').value;
+  if(propIdx===''){showToast('Please select a property');return;}
+  var prop = PROPERTIES[parseInt(propIdx)];
+  var tenantRows = document.querySelectorAll('.om-tenant-row');
+  var tenants = [];
+  tenantRows.forEach(function(row){
+    var name = row.querySelector('.om-t-name').value.trim();
+    var email = row.querySelector('.om-t-email').value.trim();
+    var phone = row.querySelector('.om-t-phone').value.trim();
+    if(name) tenants.push({name:name,email:email,phone:phone});
+  });
+  if(!tenants.length){showToast('Please add at least one tenant');return;}
+  var rent = parseFloat(document.getElementById('om-rent').value)||0;
+  var start = document.getElementById('om-start').value;
+  var deposit = parseFloat(document.getElementById('om-deposit').value)||Math.round(rent*12/52*5);
+  var holding = parseFloat(document.getElementById('om-holding').value)||Math.round(rent*12/52);
+  var feePct = document.getElementById('om-fee-pct').value||'';
+  var feeLabel = document.getElementById('om-fee-label').value||'As agreed';
+  var notes = document.getElementById('om-notes').value;
+
+  currentOffer = {
+    id: 'OA-'+Date.now(),
+    propAddress: prop.address,
+    propIdx: parseInt(propIdx),
+    llName: prop.llName||'', llEmail: prop.llEmail||'', llMobile: prop.llMobile||'',
+    tenants: tenants,
+    rent: rent, deposit: deposit, holdingDeposit: holding,
+    feePct: feePct, feeLabel: feeLabel,
+    start: start, notes: notes,
+    date: new Date().toISOString().split('T')[0],
+    status: 'Offer accepted', docs: [],
+    gdprSigned: false, gdprTimestamp: null,
+  };
+
+  closeOfferModal();
+  openSigModal('GDPR Consent - '+tenants[0].name, function(sigData){
+    currentOffer.gdprSig = sigData;
+    currentOffer.gdprSigned = true;
+    currentOffer.gdprTimestamp = new Date().toISOString();
+    finishOfferSubmit();
+  });
+}
+
+function finishOfferSubmit(){
+  if(db) db.ref('offers/'+currentOffer.id).set(currentOffer);
+  offers.unshift(currentOffer);
+  generateOfferDocuments(currentOffer);
+  showToast('Offer recorded - generating documents...');
+}
+
+function generateOfferDocuments(offer){
+  offer.docs = [
+    {type:'pretenant',    label:'Pre-Tenancy Pack'},
+    {type:'gdpr',         label:'GDPR Consent'},
+    {type:'fees',         label:'Tenant Fees Schedule'},
+    {type:'rtr',          label:'RTR Request'},
+    {type:'llinstruct',   label:'LL Instruction & T&Cs'},
+    {type:'lloffer',      label:'LL Offer Letter'},
+    {type:'llcompliance', label:'LL Compliance Request'},
+  ];
+  if(!window.offerDocStore) window.offerDocStore = {};
+  window.offerDocStore[offer.id] = buildAllDocContent(offer);
+  if(db) db.ref('offers/'+offer.id+'/docs').set(offer.docs);
+  createMoveInFromOffer(offer);
+  renderOffers();
+  showToast('Documents ready - click to download');
+}
+
+function buildAllDocContent(offer){
+  var today = new Date().toLocaleDateString('en-GB');
+  var tenantNames = offer.tenants.map(function(t){return t.name;}).join(' & ');
+  var weeklyRent = (offer.rent*12/52).toFixed(2);
+  var pct = getTierPct(offer.feePct);
+  var annualFee = pct?(offer.rent*12*pct/100).toFixed(2):'As agreed';
+  var vatAmt = pct?((offer.rent*12*pct/100)*0.2).toFixed(2):'';
+  var annualTotal = pct?((offer.rent*12*pct/100)*1.2).toFixed(2):'As agreed';
+  var tierDisplay = getTierLabel(offer.feePct, offer.feeLabel);
+  var prop = PROPERTIES[offer.propIdx]||{};
+
+  // Outstanding compliance items
+  var outstanding = [];
+  if(!prop.gsc) outstanding.push('Gas Safety Certificate (GSC) - required annually');
+  if(!prop.eicr) outstanding.push('Electrical Installation Condition Report (EICR) - required every 5 years');
+  if(!prop.epc) outstanding.push('Energy Performance Certificate (EPC) - minimum rating E');
+  if(!prop.smokeAlarm) outstanding.push('Smoke alarm tested and confirmed on each floor');
+  if(!prop.coDetector) outstanding.push('Carbon monoxide detector in any room with solid fuel appliance');
+  var compItems = outstanding.length
+    ? outstanding.map(function(i){return '- '+i;}).join('\n')
+    : '- All compliance certificates appear on file. Please confirm they are current.';
+
+  return {
+    pretenant: [
+      {h:'Pre-Tenancy Information Pack'},
+      {sub:'Property: '+offer.propAddress},
+      {sub:'Tenant(s): '+tenantNames},
+      {sub:'Proposed rent: GBP '+offer.rent+' per calendar month'},
+      {sub:'Proposed start date: '+(offer.start||'TBC')},
+      {sub:'Security deposit: GBP '+offer.deposit+' (5 weeks rent)'},
+      {sub:'Holding deposit: GBP '+offer.holdingDeposit+' (1 week rent)'},
+      {body:'Thank you for your application. We are pleased to confirm the above offer has been accepted subject to satisfactory referencing and Right to Rent checks.'},
+      {h2:'Next Steps'},
+      {body:'1. Referencing: You will shortly receive an invitation from Rightmove Referencing. Please complete this promptly.\n2. Right to Rent: Please send a copy of your passport or Home Office share code to maintenance@pickwickestates.com.\n3. Holding deposit: GBP '+offer.holdingDeposit+' is payable to secure the property.\n4. Tenancy agreement: We will send this once referencing is complete.\n5. Balance: Full deposit and first months rent are due before move-in.'},
+      {h2:'Documents You Will Receive Before Move-In'},
+      {body:'- Assured Periodic Tenancy agreement\n- How to Rent guide (current edition)\n- Gas Safety Certificate (if applicable)\n- Energy Performance Certificate\n- Electrical Installation Condition Report\n- Deposit protection prescribed information'},
+      {footer:'Pickwick Estates | Alps Estates Ltd | maintenance@pickwickestates.com'},
+    ],
+    gdpr: [
+      {h:'GDPR - Data Processing Consent'},
+      {sub:'Property: '+offer.propAddress+' | Date: '+today},
+      {sub:'Tenant(s): '+tenantNames},
+      {body:'Pickwick Estates (Alps Estates Ltd) collects and processes your personal data for the purpose of managing your tenancy. This includes:\n\n- Processing your tenancy application and referencing\n- Registering your deposit with the Deposit Protection Service\n- Communicating with you about your tenancy\n- Complying with legal obligations (Right to Rent, safety compliance etc.)\n- Maintaining records as required by law'},
+      {body:'Your data will not be sold or shared with third parties except where required by law or necessary to manage your tenancy (e.g. contractors, deposit schemes, referencing providers).'},
+      {body:'You have the right to access, correct or request deletion of your personal data at any time by contacting maintenance@pickwickestates.com.'},
+      {h2:'Declaration'},
+      {body:'By signing below I confirm I have read and understood this data processing consent notice and agree to Pickwick Estates processing my personal data as described above.'},
+      {sig:'Tenant signature', name:tenantNames, date:today, sigData:offer.gdprSig},
+      {footer:'Pickwick Estates | Alps Estates Ltd | Registered in England & Wales'},
+    ],
+    fees: [
+      {h:'Tenant Fees Schedule'},
+      {sub:'Compliant with the Tenant Fees Act 2019 and Renters Rights Act 2025'},
+      {sub:'Property: '+offer.propAddress+' | Date: '+today},
+      {h2:'Permitted Payments'},
+      {body:'1. RENT\nGBP '+offer.rent+' per calendar month'},
+      {body:'2. HOLDING DEPOSIT (refundable)\nGBP '+offer.holdingDeposit+' (equivalent to 1 weeks rent: GBP '+weeklyRent+'/week)\nRefundable on successful referencing or if the landlord withdraws.'},
+      {body:'3. SECURITY DEPOSIT\nGBP '+offer.deposit+' (equivalent to 5 weeks rent)\nRegistered with the Deposit Protection Service within 30 days of receipt.'},
+      {body:'4. CHANGES TO TENANCY (if requested by tenant)\nGBP 50 + VAT (GBP 60 inc. VAT) per agreed variation'},
+      {body:'5. EARLY TERMINATION (if requested by tenant)\nReasonable costs not exceeding rent outstanding for the remainder of the tenancy.'},
+      {body:'6. UNPAID RENT\nInterest at 3% above Bank of England base rate from the date payment is more than 14 days overdue.'},
+      {body:'7. LOST KEYS / SECURITY DEVICES\nReasonable costs of replacement.'},
+      {h2:'No Other Fees Are Payable'},
+      {body:'Pickwick Estates is a member of The Property Redress Scheme.\nClient money is protected under the Propertymark Client Money Protection Scheme.'},
+      {footer:'Pickwick Estates | Alps Estates Ltd | maintenance@pickwickestates.com'},
+    ],
+    rtr: [
+      {h:'Right to Rent - Document Request'},
+      {sub:'Property: '+offer.propAddress+' | Date: '+today},
+      {sub:'To: '+tenantNames},
+      {body:'As required by the Immigration Act 2014, we must verify that all adult occupiers have the right to rent in England before the tenancy commences.'},
+      {h2:'Please Provide One of the Following'},
+      {body:'- A copy of your valid UK or EU/EEA passport\n- A Biometric Residence Permit (BRP)\n- A Home Office share code (visit gov.uk/prove-right-to-rent)\n- A UK birth certificate plus evidence of your National Insurance number'},
+      {body:'Please send copies to maintenance@pickwickestates.com at your earliest convenience and before the proposed start date of '+(offer.start||'TBC')+'.'},
+      {body:'If you are using a Home Office share code, please also provide your date of birth so we can complete the online check.'},
+      {footer:'Pickwick Estates | Alps Estates Ltd | maintenance@pickwickestates.com'},
+    ],
+    llinstruct: [
+      {h:'Lettings Instruction & Terms of Business'},
+      {sub:'Date: '+today},
+      {sub:'Re: '+offer.propAddress},
+      {sub:'Landlord: '+(offer.llName||'')},
+      {body:'Thank you for instructing Pickwick Estates in connection with the letting of the above property. We are pleased to confirm the following terms of our appointment.'},
+      {h2:'Service & Fee'},
+      {body:'Service: '+tierDisplay+'\nFee: '+(pct?pct+'% of annual rent + VAT':'As agreed')+'\nAnnual fee (ex VAT): GBP '+annualFee+'\n'+(vatAmt?'VAT: GBP '+vatAmt+'\nAnnual fee (inc VAT): GBP '+annualTotal:'')},
+      {h2:'Withdrawal Fee'},
+      {body:'Should you withdraw your instruction after an applicant has been found and referenced, a withdrawal fee of GBP 700 + VAT (GBP 840 inc. VAT) will be payable to cover referencing, administration and marketing costs incurred.'},
+      {h2:'Our Responsibilities'},
+      {body:'- Marketing the property and conducting viewings\n- Tenant referencing via Rightmove\n- Preparation of tenancy documentation and move-in\n- Compliance coordination and certificate management\n- Deposit registration with the Deposit Protection Service'+(offer.feeLabel&&offer.feeLabel!='Let Only'?'\n- Rent collection and arrears management':'')+((offer.feeLabel&&offer.feeLabel.toLowerCase().includes('managed'))?'\n- Maintenance coordination and contractor management\n- Routine property inspections\n- Annual rent reviews and Section 13 notices':'')},
+      {h2:'Your Responsibilities'},
+      {body:'- Ensuring all compliance certificates are current (GSC, EICR, EPC)\n- Maintaining buildings insurance throughout the tenancy\n- Responding promptly to maintenance issues where landlord approval is required\n- Notifying us of any mortgage or superior lease restrictions on subletting'},
+      {body:'By proceeding with this instruction you confirm acceptance of these terms.'},
+      {footer:'Pickwick Estates | Alps Estates Ltd | Registered in England & Wales | Member of The Property Redress Scheme'},
+    ],
+    lloffer: [
+      {h:'Offer Confirmation'},
+      {sub:'Date: '+today},
+      {sub:'Re: '+offer.propAddress},
+      {sub:'Landlord: '+(offer.llName||'Dear Landlord')},
+      {body:'We are pleased to confirm that the following offer has been received and accepted for your property:'},
+      {table:[
+        ['Applicant(s)', tenantNames],
+        ['Proposed rent', 'GBP '+offer.rent+' per calendar month'],
+        ['Proposed start date', offer.start||'TBC'],
+        ['Security deposit', 'GBP '+offer.deposit+' (5 weeks rent)'],
+        ['Holding deposit', 'GBP '+offer.holdingDeposit+' (1 week rent - received)'],
+        ['Service', tierDisplay],
+      ]},
+      {body:(offer.notes?'Notes: '+offer.notes+'\n\n':'')+'Referencing is now underway via Rightmove. We will keep you updated on progress and will confirm once all checks have been satisfactorily completed before any tenancy commences.'},
+      {body:'Please note that in the meantime we will be in touch separately regarding any outstanding compliance certificates required before move-in.'},
+      {footer:'Pickwick Estates | Alps Estates Ltd | maintenance@pickwickestates.com'},
+    ],
+    llcompliance: [
+      {h:'Pre-Tenancy Compliance Request'},
+      {sub:'Date: '+today},
+      {sub:'Re: '+offer.propAddress},
+      {sub:'Proposed start date: '+(offer.start||'TBC')},
+      {body:'In preparation for the new tenancy, please ensure the following compliance requirements are in place before the proposed start date. All certificates and documentation must be provided to us before keys are released to the tenant.'},
+      {h2:'Outstanding Items'},
+      {body:compItems},
+      {h2:'Action Required'},
+      {body:'Please arrange for all outstanding items to be completed and send copies of all certificates to maintenance@pickwickestates.com as soon as possible.\n\nIf you would like us to arrange any of the above on your behalf, please confirm and we will obtain quotes from our approved contractors.'},
+      {footer:'Pickwick Estates | Alps Estates Ltd | maintenance@pickwickestates.com'},
+    ],
+  };
+}
+
+function downloadOfferDoc(offerId, docType){
+  var store = window.offerDocStore||{};
+  var content = (store[offerId]||{})[docType];
+  if(!content){showToast('Document not available - please regenerate');return;}
+  var labels = {pretenant:'Pre-Tenancy-Pack',gdpr:'GDPR-Consent',fees:'Tenant-Fees-Schedule',rtr:'RTR-Request',llinstruct:'LL-Instruction-TCs',lloffer:'LL-Offer-Letter',llcompliance:'LL-Compliance-Request'};
+  var offer = offers.find(function(o){return o.id===offerId;})||{propAddress:'property'};
+  var addr = offer.propAddress.split(',')[0].replace(/ /g,'-');
+  generatePickwickPDF(content, labels[docType]+'-'+addr, offer);
+}
+
+function generatePickwickPDF(sections, filename, offer){
+  // Use jsPDF if available, else fallback to printable HTML
+  if(typeof window.jspdf !== 'undefined' || typeof window.jsPDF !== 'undefined'){
+    buildJsPDF(sections, filename, offer);
+  } else {
+    // Load jsPDF dynamically
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload = function(){ buildJsPDF(sections, filename, offer); };
+    document.head.appendChild(s);
+  }
+}
+
+function buildJsPDF(sections, filename, offer){
+  var jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+  if(!jsPDF){showToast('PDF library not loaded - try again');return;}
+
+  var doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  var W=210, H=297;
+  var LM=18, RM=192, CW=RM-LM;
+  var MAROON=[60,20,30], DKGREEN=[26,92,58], SAGE=[120,190,160], PALE=[232,245,239];
+  var WHITE=[255,255,255], BLACK=[26,26,26], GREY=[107,107,107];
+
+  function setFill(rgb){ doc.setFillColor(rgb[0],rgb[1],rgb[2]); }
+  function setTxt(rgb){ doc.setTextColor(rgb[0],rgb[1],rgb[2]); }
+  function setFont(style,size){ doc.setFont('helvetica',style); doc.setFontSize(size); }
+
+  // Header bar
+  setFill(DKGREEN); doc.rect(0,0,W,22,'F');
+  setFill(SAGE); doc.rect(0,22,W,1.5,'F');
+  // Logo text
+  setTxt(WHITE); setFont('bold',13);
+  doc.text('PICKWICK ESTATES',LM,9);
+  setFont('normal',7); setTxt(SAGE);
+  doc.text('ALPS ESTATES LTD | LETTINGS & PROPERTY MANAGEMENT',LM,14);
+  // Right side
+  setFont('normal',7); setTxt(WHITE);
+  doc.text('maintenance@pickwickestates.com',RM,9,{align:'right'});
+  doc.text('pickwickestates.co.uk',RM,14,{align:'right'});
+
+  var y = 30;
+
+  sections.forEach(function(sec){
+    if(sec.h){
+      // Section title
+      setFill(DKGREEN); doc.rect(LM,y,CW,9,'F');
+      setTxt(WHITE); setFont('bold',11);
+      doc.text(sec.h.toUpperCase(),LM+3,y+6.2);
+      y+=13;
+    } else if(sec.h2){
+      setTxt(DKGREEN); setFont('bold',9);
+      doc.text(sec.h2,LM,y);
+      y+=5;
+      // Underline
+      setFill(SAGE); doc.rect(LM,y-1,CW,0.5,'F');
+      y+=2;
+    } else if(sec.sub){
+      setFont('normal',9); setTxt(GREY);
+      doc.text(sec.sub,LM,y);
+      y+=5;
+    } else if(sec.body){
+      setFont('normal',9); setTxt(BLACK);
+      var lines = doc.splitTextToSize(sec.body,CW);
+      // Check page break
+      if(y + lines.length*5 > H-20){ addFooter(doc,W,H,DKGREEN,SAGE,WHITE); doc.addPage(); addHeader(doc,W,DKGREEN,SAGE,WHITE); y=30; }
+      doc.text(lines,LM,y);
+      y += lines.length*5 + 3;
+    } else if(sec.table){
+      sec.table.forEach(function(row){
+        setFill(PALE); doc.rect(LM,y,60,6,'F');
+        setFill(WHITE); doc.rect(LM+60,y,CW-60,6,'F');
+        setFont('bold',8.5); setTxt(DKGREEN);
+        doc.text(row[0],LM+2,y+4.2);
+        setFont('normal',8.5); setTxt(BLACK);
+        doc.text(row[1]||'',LM+62,y+4.2);
+        // border
+        doc.setDrawColor(200,220,210); doc.setLineWidth(0.3);
+        doc.rect(LM,y,CW,6,'S');
+        y+=6;
+      });
+      y+=4;
+    } else if(sec.sig){
+      // Signature block
+      setFill(PALE); doc.rect(LM,y,CW,22,'F');
+      setFont('bold',8); setTxt(DKGREEN);
+      doc.text(sec.sig,LM+3,y+5);
+      setFont('normal',7.5); setTxt(GREY);
+      doc.text('Name: '+sec.name,LM+3,y+10);
+      doc.text('Date: '+sec.date,LM+3,y+15);
+      if(sec.sigData){
+        try{ doc.addImage(sec.sigData,'PNG',LM+80,y+2,60,18); }catch(e){}
+      }
+      // GDPR timestamp
+      if(offer&&offer.gdprTimestamp){
+        doc.text('Electronically signed: '+new Date(offer.gdprTimestamp).toLocaleString('en-GB'),LM+3,y+19);
+      }
+      y+=26;
+    }
+  });
+
+  // Footer on last page
+  addFooter(doc,W,H,DKGREEN,SAGE,WHITE);
+
+  doc.save(filename+'.pdf');
+  showToast('PDF saved: '+filename+'.pdf');
+}
+
+function addHeader(doc,W,DKGREEN,SAGE,WHITE){
+  doc.setFillColor(DKGREEN[0],DKGREEN[1],DKGREEN[2]); doc.rect(0,0,W,22,'F');
+  doc.setFillColor(SAGE[0],SAGE[1],SAGE[2]); doc.rect(0,22,W,1.5,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(10);
+  doc.text('PICKWICK ESTATES',18,9);
+  doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(SAGE[0],SAGE[1],SAGE[2]);
+  doc.text('ALPS ESTATES LTD | LETTINGS & PROPERTY MANAGEMENT',18,14);
+}
+
+function addFooter(doc,W,H,DKGREEN,SAGE,WHITE){
+  doc.setFillColor(DKGREEN[0],DKGREEN[1],DKGREEN[2]); doc.rect(0,H-10,W,10,'F');
+  doc.setFillColor(SAGE[0],SAGE[1],SAGE[2]); doc.rect(0,H-11,W,1,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','normal'); doc.setFontSize(7);
+  doc.text('Pickwick Estates | Alps Estates Ltd | Member of The Property Redress Scheme | Propertymark CMP',W/2,H-5,{align:'center'});
+}
+
+function renderOffers(){
+  var list = document.getElementById('offer-list');
+  var empty = document.getElementById('offer-empty');
+  if(!list) return;
+  list.innerHTML='';
+  if(!offers.length){if(empty)empty.style.display='block';return;}
+  if(empty)empty.style.display='none';
+  offers.forEach(function(offer){
+    var card = document.createElement('div');
+    card.style.cssText='background:var(--white);border:0.5px solid var(--border);border-left:3px solid #1A5C3A;border-radius:10px;padding:14px 16px;margin-bottom:8px';
+    var tenantNames = offer.tenants.map(function(t){return t.name;}).join(' & ');
+    var docsHtml = (offer.docs||[]).map(function(d){
+      return '<button onclick="downloadOfferDoc(\''+offer.id+'\',\''+d.type+'\')" style="font-size:10px;padding:3px 10px;border:0.5px solid #1A5C3A;border-radius:5px;background:#E8F5EF;color:#1A5C3A;cursor:pointer;margin:2px">Download '+d.label+'</button>';
+    }).join('');
+    card.innerHTML=
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
+        +'<div>'
+          +'<div style="font-size:13px;font-weight:500">'+offer.propAddress+'</div>'
+          +'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+tenantNames+' | GBP '+offer.rent+' pcm | Start: '+(offer.start||'TBC')+'</div>'
+          +'<div style="font-size:10px;color:var(--text2);margin-top:1px">'+getTierLabel(offer.feePct,offer.feeLabel)+'</div>'
+        +'</div>'
+        +'<span style="font-size:10px;padding:2px 10px;border-radius:10px;background:#EAF3DE;color:#1A5C3A;font-weight:500">'+offer.status+'</span>'
+      +'</div>'
+      +'<div style="font-size:10px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Documents</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">'+docsHtml+'</div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:8px;border-top:0.5px solid var(--border)">'
+        +'<a href="https://www.rightmove.co.uk/landlords/find-a-tenant/referencing.html" target="_blank" style="font-size:10px;padding:4px 12px;border:0.5px solid #1A5C3A;border-radius:5px;color:#1A5C3A;text-decoration:none;font-weight:500">Rightmove Referencing</a>'
+        +'<a href="https://www.depositprotection.com/landlords/protect-a-deposit" target="_blank" style="font-size:10px;padding:4px 12px;border:0.5px solid #185FA5;border-radius:5px;color:#185FA5;text-decoration:none;font-weight:500">DPS Registration</a>'
+        +'<button onclick="sendRTREmail(\''+offer.id+'\')" style="font-size:10px;padding:4px 12px;border:0.5px solid var(--border);border-radius:5px;background:var(--bg);cursor:pointer">RTR Request Email</button>'
+        +(offer.gdprSigned?'<span style="font-size:10px;color:#1A5C3A;padding:4px 8px;background:#EAF3DE;border-radius:5px">GDPR signed '+(offer.gdprTimestamp?offer.gdprTimestamp.split('T')[0]:'')+'</span>':'')
+      +'</div>';
+    list.appendChild(card);
+  });
+}
+
+function sendRTREmail(offerId){
+  var offer = offers.find(function(o){return o.id===offerId;});
+  if(!offer||!offer.tenants[0].email){showToast('No tenant email on record');return;}
+  var subject = 'Right to Rent Check - '+offer.propAddress;
+  var body = 'Dear '+offer.tenants[0].name+',\n\nThank you for your application for '+offer.propAddress+'.\n\nAs required by the Immigration Act 2014, we must verify your right to rent before the tenancy commences. Please send one of the following to maintenance@pickwickestates.com:\n\n- A copy of your valid passport or national identity card\n- A Biometric Residence Permit (BRP)\n- A Home Office share code (visit gov.uk/prove-right-to-rent)\n\nKind regards,\nPickwick Estates';
+  window.location.href='mailto:'+offer.tenants[0].email+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+}
+
+function createMoveInFromOffer(offer){
+  var tenantNames = offer.tenants.map(function(t){return t.name;}).join(' & ');
+  var newMovein = {
+    address:offer.propAddress, tenant:tenantNames,
+    tenantEmail:offer.tenants[0].email||'', tenantPhone:offer.tenants[0].phone||'',
+    startDate:offer.start||'', rent:offer.rent, deposit:offer.deposit,
+    status:'Referencing in progress', offerId:offer.id,
+    dateCreated:new Date().toISOString().split('T')[0],
+  };
+  if(db) db.ref('moveins/'+offer.id).set(newMovein);
+}
+
+// ── SIGNATURE PAD ──────────────────────────────────────────────────
+function openSigModal(label, callback){
+  sigCallback = callback;
+  document.getElementById('sig-label').textContent = label;
+  document.getElementById('sig-modal').style.display = 'flex';
+  initSigPad();
+}
+
+function closeSigModal(){
+  document.getElementById('sig-modal').style.display = 'none';
+  sigCallback = null;
+}
+
+function initSigPad(){
+  sigCanvas = document.getElementById('sig-canvas');
+  if(!sigCanvas) return;
+  sigCtx = sigCanvas.getContext('2d');
+  sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height);
+  sigCtx.strokeStyle='#1A1A1A'; sigCtx.lineWidth=2; sigCtx.lineCap='round';
+  function getPos(e){
+    var r=sigCanvas.getBoundingClientRect();
+    var scaleX=sigCanvas.width/r.width, scaleY=sigCanvas.height/r.height;
+    var src=e.touches?e.touches[0]:e;
+    return {x:(src.clientX-r.left)*scaleX, y:(src.clientY-r.top)*scaleY};
+  }
+  sigCanvas.onmousedown=function(e){sigDrawing=true;var p=getPos(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);};
+  sigCanvas.onmousemove=function(e){if(!sigDrawing)return;var p=getPos(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();};
+  sigCanvas.onmouseup=function(){sigDrawing=false;};
+  sigCanvas.ontouchstart=function(e){e.preventDefault();sigDrawing=true;var p=getPos(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);};
+  sigCanvas.ontouchmove=function(e){e.preventDefault();if(!sigDrawing)return;var p=getPos(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();};
+  sigCanvas.ontouchend=function(){sigDrawing=false;};
+}
+
+function clearSig(){ if(sigCtx) sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height); }
+
+function confirmSig(){
+  if(!sigCanvas){closeSigModal();return;}
+  var data = sigCanvas.toDataURL('image/png');
+  closeSigModal();
+  if(sigCallback) sigCallback(data);
+}
+
+function loadOffersFromFirebase(){
+  if(!db) return;
+  db.ref('offers').once('value').then(function(snap){
+    var data = snap.val();
+    if(data){
+      offers = Object.values(data).sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+      renderOffers();
+    }
+  });
+}
+
+// ── END OFFER ACCEPTED ─────────────────────────────────────────────
 </script>
 
 <div class="modal-overlay" id="end-tenancy-modal">
@@ -4541,5 +5084,120 @@ function initFirebaseIfEmpty(){
   </div>
 </div>
 
+
+<!-- ── OFFER ACCEPTED MODAL ──────────────────────────────────── -->
+<div id="offer-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:600px;width:95vw;max-height:92vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:14px;font-weight:600;color:var(--text)">🏠 Record Accepted Offer</div>
+      <button onclick="closeOfferModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text2)">✕</button>
+    </div>
+
+    <!-- Property -->
+    <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px">Property</div>
+    <select id="om-property" class="form-input" style="width:100%;margin-bottom:12px" onchange="offerPropertySelected()">
+      <option value="">Select property...</option>
+    </select>
+
+    <!-- Fee tier -->
+    <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px">Management service &amp; fee</div>
+    <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:6px">
+      <select id="om-tier" class="form-input" onchange="tierDropdownChanged()">
+        <option value="">— Select or enter below —</option>
+        <option value="let_only">Let Only — 6% + VAT</option>
+        <option value="let_collect">Let &amp; Rent Collection — 10% + VAT</option>
+        <option value="fully_managed">Fully Managed — 12% + VAT</option>
+        <option value="custom">Custom / as agreed</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div>
+        <div style="font-size:10px;color:var(--text2);margin-bottom:3px">Fee % (ex VAT)</div>
+        <input id="om-fee-pct" class="form-input" type="number" min="0" max="100" step="0.5" placeholder="e.g. 12" style="width:100%">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text2);margin-bottom:3px">Service description (for documents)</div>
+        <input id="om-fee-label" class="form-input" placeholder="e.g. Fully Managed" style="width:100%">
+      </div>
+    </div>
+
+    <!-- Tenants -->
+    <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px">Tenants</div>
+    <div id="om-tenants-list">
+      <div class="om-tenant-row" style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-bottom:6px">
+        <input class="form-input om-t-name" placeholder="Full name" style="font-size:11px">
+        <input class="form-input om-t-email" placeholder="Email" type="email" style="font-size:11px">
+        <input class="form-input om-t-phone" placeholder="Mobile" style="font-size:11px">
+        <button onclick="removeOfferTenant(this)" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px;padding:0 4px">✕</button>
+      </div>
+    </div>
+    <button onclick="addOfferTenant()" style="font-size:10px;color:var(--text2);background:none;border:0.5px dashed var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;margin-bottom:12px">+ Add tenant</button>
+
+    <!-- Rent & dates -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div>
+        <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px">Monthly rent (£)</div>
+        <input id="om-rent" class="form-input" type="number" placeholder="e.g. 1800" style="width:100%">
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px">Proposed start date</div>
+        <input id="om-start" class="form-input" type="date" style="width:100%">
+      </div>
+    </div>
+
+    <!-- Deposit -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div>
+        <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px">Deposit (£) <span style="font-weight:400;color:var(--text2)">(auto = 5 weeks)</span></div>
+        <input id="om-deposit" class="form-input" type="number" placeholder="Auto-calculated" style="width:100%">
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px">Holding deposit (£) <span style="font-weight:400">(auto = 1 week)</span></div>
+        <input id="om-holding" class="form-input" type="number" placeholder="Auto-calculated" style="width:100%">
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:4px">Offer notes (internal)</div>
+    <textarea id="om-notes" class="form-input" style="width:100%;min-height:50px;resize:vertical;font-family:var(--font);margin-bottom:16px" placeholder="Any special conditions, landlord instructions etc."></textarea>
+
+    <!-- Actions -->
+    <div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:8px">Documents to generate</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px">
+        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="og-pretenant" checked> Pre-Tenancy Pack (tenant)</label>
+        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="og-gdpr" checked> GDPR Consent (tenant)</label>
+        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="og-fees" checked> Tenant Fees Schedule</label>
+        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="og-rtr" checked> RTR Document Request</label>
+        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="og-llinstruct" checked> LL Instruction Letter &amp; T&amp;Cs</label>
+        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="og-lloffer" checked> LL Offer Confirmation</label>
+        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="og-llcompliance" checked> LL Compliance Request</label>
+        <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="og-movein" checked> Move-in Checklist (CRM)</label>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="closeOfferModal()" class="btn-secondary">Cancel</button>
+      <button onclick="submitOffer()" class="btn-primary"><i class="ti ti-file-check"></i> Record offer &amp; generate documents</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SIGNATURE MODAL ────────────────────────────────────────── -->
+<div id="sig-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:500px;width:95vw">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px">Sign here</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:10px" id="sig-label">Please sign to confirm your agreement</div>
+    <canvas id="sig-canvas" width="440" height="140"
+      style="border:1px solid var(--border);border-radius:8px;background:#fff;cursor:crosshair;touch-action:none;width:100%;max-width:440px;display:block"></canvas>
+    <div style="display:flex;gap:8px;margin-top:10px;justify-content:space-between">
+      <button onclick="clearSig()" style="font-size:11px;padding:5px 12px;border:0.5px solid var(--border);background:var(--bg);border-radius:6px;cursor:pointer">Clear</button>
+      <div style="display:flex;gap:8px">
+        <button onclick="closeSigModal()" class="btn-secondary">Cancel</button>
+        <button onclick="confirmSig()" class="btn-primary">Confirm signature</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
