@@ -18,10 +18,10 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
 .app{display:flex;flex-direction:column;min-height:100vh}
-.topbar{background:var(--white);border-bottom:0.5px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:100}
+.topbar{background:var(--white);border-bottom:0.5px solid var(--border);display:flex;align-items:center;position:sticky;top:0;z-index:100}
 .topbar-title{font-size:15px;font-weight:500;color:var(--text)}
 .topbar-sub{font-size:11px;color:var(--text2);margin-top:2px}
-.nav{display:flex;gap:4px;flex-wrap:wrap}
+.nav{display:flex;gap:2px;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
 .nav-btn{font-size:11px;padding:4px 9px;border-radius:var(--radius-md);border:0.5px solid transparent;background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font)}
 .nav-btn.active{background:var(--bg2);border-color:var(--border);color:var(--text);font-weight:500}
 .nav-btn:hover:not(.active){background:var(--bg);color:var(--text)}
@@ -201,21 +201,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <!-- ── END LOGIN SCREEN ────────────────────────────────── -->
 
 <div class="app" id="main-app" style="display:none">
-<div class="topbar" style="flex-direction:column;align-items:stretch;padding:8px 16px 0">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-    <div>
-      <div class="topbar-title">DG Lettings — Workflow</div>
-      <div class="topbar-sub">86 live properties &nbsp;·&nbsp; <span id="today-date"></span></div>
-    </div>
-    <button onclick="doLogout()" title="Sign out" style="font-size:11px;padding:5px 10px;border-radius:var(--radius-md);border:0.5px solid var(--border);background:var(--white);color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:4px;font-family:var(--font);white-space:nowrap"><i class="ti ti-logout" style="font-size:13px"></i> Sign out</button>
+<div class="topbar" style="padding:0 16px;display:flex;align-items:center;gap:12px;min-height:42px">
+  <div style="flex-shrink:0">
+    <div class="topbar-title" style="font-size:12px;font-weight:600;line-height:1.2">DG Lettings</div>
+    <div class="topbar-sub" style="font-size:9px;line-height:1.2"><span id="today-date"></span></div>
   </div>
-  <div class="nav">
-    <button class="nav-btn active" onclick="showPage('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
-    <button class="nav-btn" onclick="showPage('maintenance',this)"><i class="ti ti-tools"></i> Maintenance</button>
+  <div class="nav" style="flex:1">
+    <button class="nav-btn active" onclick="showPage('dashboard',this)">Dashboard</button>
+    <button class="nav-btn" onclick="showPage('maintenance',this)">Maintenance</button>
     <button class="nav-btn" onclick="showPage('offeraccepted',this)">Offer Accepted</button>
     <button class="nav-btn" onclick="showPage('moveins',this)">Move-ins</button>
     <button class="nav-btn" onclick="showPage('properties',this)">All properties</button>
-    <button class="nav-btn" onclick="showPage('compliance',this)"><i class="ti ti-shield-check"></i> Compliance</button>
+    <button class="nav-btn" onclick="showPage('compliance',this)">Compliance</button>
     <button class="nav-btn" onclick="showPage('deposits',this)">Deposits</button>
     <button class="nav-btn" onclick="showPage('contractors',this)">Contractors</button>
     <button class="nav-btn" onclick="showPage('pasttenants',this)">Past tenants</button>
@@ -223,6 +220,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <button class="nav-btn" onclick="showPage('activity',this)">Activity log</button>
     <button class="nav-btn" onclick="showPage('settings',this)">Settings</button>
   </div>
+  <button onclick="doLogout()" style="flex-shrink:0;font-size:10px;padding:4px 8px;border-radius:var(--radius-md);border:0.5px solid var(--border);background:var(--white);color:var(--text2);cursor:pointer;font-family:var(--font);white-space:nowrap">Sign out</button>
 </div>
 
 <div class="content">
@@ -354,7 +352,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="section-title">Follow-ups outstanding</div>
         <div id="dash-followups"><div style="font-size:11px;color:var(--text2);padding:6px 0">No jobs needing chase</div></div>
       </div>
-    id="page-maintenance" class="page">
+    
+</div>
+</div>
+
+<div id="page-maintenance" class="page">
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
       <div class="section-title" style="margin:0">Maintenance jobs</div>
