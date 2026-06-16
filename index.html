@@ -355,6 +355,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     
 </div>
 </div>
+</div>
 
 <div id="page-maintenance" class="page">
   <div class="card">
@@ -4059,7 +4060,7 @@ function showApp(){
   var login = document.getElementById('login-screen');
   var app   = document.getElementById('main-app');
   if(login) login.style.display = 'none';
-  if(app)   app.style.display   = 'block';
+  if(app)   app.style.display   = 'flex';
   DB_READY = true;
   setTimeout(function(){
     initFirebaseIfEmpty();
