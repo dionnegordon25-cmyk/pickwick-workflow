@@ -111,6 +111,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .prop-table tr:last-child td{border-bottom:none}
 .prop-table tr:hover td{background:var(--bg);cursor:pointer}
 .addr-main{font-weight:500;font-size:12px;color:var(--text);line-height:1.4}
+.kanban-col{flex:1;min-width:180px;max-width:220px;background:var(--bg);border-radius:8px;overflow:hidden}
+.kanban-col-hdr{color:#fff;font-size:11px;font-weight:600;padding:8px 10px;display:flex;justify-content:space-between;align-items:center}
+.kanban-count{background:rgba(255,255,255,0.25);border-radius:10px;padding:1px 7px;font-size:10px;margin-left:6px}
+.kanban-cards{padding:6px;display:flex;flex-direction:column;gap:5px;min-height:60px}
+.kanban-card{background:var(--white);border-radius:6px;padding:8px 10px;font-size:10px;cursor:pointer;border:0.5px solid var(--border)}
+.kanban-card:hover{box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+.kc-prop{font-weight:500;color:var(--text);font-size:10.5px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kc-issue{color:var(--text2);font-size:9.5px;line-height:1.4;max-height:2.8em;overflow:hidden}
+.kc-meta{display:flex;justify-content:space-between;margin-top:5px;font-size:9px;color:var(--text2)}
+.kanban-card.chase-flag{border-left:3px solid #A32D2D}
+.chase-log-modal{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;display:flex;align-items:center;justify-content:center}
+.chase-log-box{background:#fff;border-radius:10px;padding:20px;width:380px;max-width:92vw}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);align-items:flex-start;justify-content:center;z-index:200;padding:20px;overflow-y:auto}
 .modal-overlay.open{display:flex}
 .modal-box{background:#fff;border-radius:12px;padding:24px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.18)}
@@ -342,30 +354,22 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="section-title">Follow-ups outstanding</div>
         <div id="dash-followups"><div style="font-size:11px;color:var(--text2);padding:6px 0">No jobs needing chase</div></div>
       </div>
-      <div class="card">
-        <div class="section-title">Quick stats</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-          <div class="port-stat" style="cursor:pointer" onclick="navToMoveIns('In progress')" title="Move-ins in progress — keys not yet released"><div class="port-stat-label">Keys not released</div><div class="port-stat-val">2</div></div>
-          <div class="port-stat" style="cursor:pointer" onclick="navToEndingTenancies()" title="Tenancies ending in 60 days"><div class="port-stat-label">Tenancies ending</div><div class="port-stat-val amber">3</div><div class="port-stat-sub">60 days</div></div>
-          <div class="port-stat" style="cursor:pointer" onclick="navToCompliance('','urgent')" title="View compliance — S13 / rent review notices"><div class="port-stat-label">S13 notices</div><div class="port-stat-val purple">2</div><div class="port-stat-sub">active</div></div>
-          <div class="port-stat" style="cursor:pointer" onclick="navToReport('contractor_earnings')" title="View invoices"><div class="port-stat-label">Invoices due</div><div class="port-stat-val amber">6</div><div class="port-stat-sub">outstanding</div></div>
+    id="page-maintenance" class="page">
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div class="section-title" style="margin:0">Maintenance jobs</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <div style="display:flex;border:0.5px solid var(--border);border-radius:6px;overflow:hidden">
+          <button id="view-list-btn" onclick="setMaintView('list')" style="font-size:10px;padding:4px 10px;border:none;background:#1A5C3A;color:#fff;cursor:pointer">List</button>
+          <button id="view-kanban-btn" onclick="setMaintView('kanban')" style="font-size:10px;padding:4px 10px;border:none;background:var(--bg2);color:var(--text2);cursor:pointer">Kanban</button>
+          <button id="view-contractor-btn" onclick="setMaintView('contractor')" style="font-size:10px;padding:4px 10px;border:none;background:var(--bg2);color:var(--text2);cursor:pointer">By contractor</button>
         </div>
+        <button class="btn-primary" style="font-size:11px;padding:5px 12px" onclick="toggleAddJob()">+ Add job</button>
       </div>
     </div>
-
-
-  </div>
-</div>
-
-<div id="page-maintenance" class="page">
-  <div class="card">
-    <div class="section-title">
-      All maintenance jobs
-      <button class="btn btn-sm btn-primary" onclick="toggleAddJob()"><i class="ti ti-plus"></i> Add job</button>
-    </div>
-    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
-      <input class="search-bar" type="text" id="job-search" placeholder="🔍 Search property, tenant, contractor..." oninput="renderJobs()" style="flex:2;min-width:200px;margin-bottom:0">
-      <select class="form-input" id="job-filter-status" onchange="renderJobs()" style="flex:1;min-width:150px;font-size:11px">
+    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+      <input class="search-bar" type="text" id="job-search" placeholder="Search property, tenant, contractor..." oninput="renderCurrentView()" style="flex:2;min-width:180px;margin-bottom:0">
+      <select class="form-input" id="job-filter-status" onchange="renderCurrentView()" style="flex:1;min-width:140px;font-size:11px">
         <option value="">All statuses</option>
         <option value="open">Open only</option>
         <option value="overdue">Overdue</option>
@@ -374,14 +378,25 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <option value="works in progress">Works in progress</option>
         <option value="complete">Complete</option>
       </select>
-      <select class="form-input" id="job-filter-contractor" onchange="renderJobs()" style="flex:1;min-width:150px;font-size:11px">
+      <select class="form-input" id="job-filter-contractor" onchange="renderCurrentView()" style="flex:1;min-width:140px;font-size:11px">
         <option value="">All contractors</option>
       </select>
     </div>
-    <!-- Bulk action bar -->
-    <div id="bulk-action-bar" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;background:var(--bg);border-radius:var(--radius-md);margin-bottom:8px">
-      <input type="checkbox" id="job-select-all" style="cursor:pointer">
-      <span id="bulk-count" style="font-size:11px;color:var(--text2)">0 selected</span>
+    <div id="job-table-count" style="font-size:10px;color:var(--text2);margin-bottom:8px"></div>
+    <div id="view-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div id="view-kanban" style="display:none;overflow-x:auto">
+      <div style="display:flex;gap:10px;min-width:900px;padding-bottom:8px">
+        <div class="kanban-col"><div class="kanban-col-hdr" style="background:#854F0B">Awaiting contractor<span id="k-awaiting-count" class="kanban-count"></span></div><div class="kanban-cards" id="k-awaiting-cards"></div></div>
+        <div class="kanban-col"><div class="kanban-col-hdr" style="background:#534AB7">Quote received<span id="k-quoted-count" class="kanban-count"></span></div><div class="kanban-cards" id="k-quoted-cards"></div></div>
+        <div class="kanban-col"><div class="kanban-col-hdr" style="background:#854F0B">Awaiting approval<span id="k-approval-count" class="kanban-count"></span></div><div class="kanban-cards" id="k-approval-cards"></div></div>
+        <div class="kanban-col"><div class="kanban-col-hdr" style="background:#185FA5">In progress<span id="k-progress-count" class="kanban-count"></span></div><div class="kanban-cards" id="k-progress-cards"></div></div>
+        <div class="kanban-col"><div class="kanban-col-hdr" style="background:#1A5C3A">Complete<span id="k-complete-count" class="kanban-count"></span></div><div class="kanban-cards" id="k-complete-cards"></div></div>
+      </div>
+    </div>
+    <div id="view-contractor" style="display:none"></div>
+    <div id="job-table-empty" style="display:none;font-size:11px;color:var(--text2);padding:16px 0;text-align:center">No jobs match the current filter.</div>
+  </div>
+</div>" style="font-size:11px;color:var(--text2)">0 selected</span>
       <button class="job-btn wa" id="bulk-wa-btn">&#128172; WhatsApp selected</button>
       <button class="job-btn" id="bulk-email-btn" style="background:var(--bg2)">&#9993; Email selected</button>
       <button class="job-btn" id="bulk-copy-btn" style="background:var(--bg2)">&#128203; Copy list</button>
@@ -1496,6 +1511,14 @@ function openJobDetail(idx){
   document.getElementById('jd-value').textContent=val;
   document.getElementById('jd-access').textContent=job.access||'—';
   document.getElementById('jd-notes').textContent=job.notes||'No notes.';
+  var chaseLogEl=document.getElementById('jd-chase-log');
+  if(chaseLogEl){
+    if(job.chaseLog&&job.chaseLog.length){
+      chaseLogEl.innerHTML=job.chaseLog.map(function(e){return '<div style="padding:5px 8px;background:var(--bg);border-radius:5px;margin-bottom:4px;border-left:2px solid #1A5C3A">'+e+'</div>';}).join('');
+    } else {
+      chaseLogEl.innerHTML='<div style="color:var(--text2);font-size:11px">No chase entries yet.</div>';
+    }
+  }
   // Show photo link if set
   var photoDiv = document.getElementById('jd-photo-link');
   if(photoDiv){
@@ -4417,6 +4440,232 @@ function initFirebaseIfEmpty(){
       });
     }
   });
+}
+
+
+// MAINTENANCE VIEWS JS - injected into CRM
+var currentMaintView='list';
+
+function setMaintView(view){
+  currentMaintView=view;
+  ['list','kanban','contractor'].forEach(function(v){
+    var btn=document.getElementById('view-'+v+'-btn');
+    if(btn){btn.style.background=v===view?'#1A5C3A':'var(--bg2)';btn.style.color=v===view?'#fff':'var(--text2)';}
+    var el=document.getElementById('view-'+v);
+    if(el) el.style.display=v===view?(v==='list'?'flex':'block'):'none';
+  });
+  renderCurrentView();
+}
+
+function renderCurrentView(){
+  if(currentMaintView==='list') renderJobs();
+  else if(currentMaintView==='kanban') renderKanban();
+  else if(currentMaintView==='contractor') renderByContractor();
+}
+
+function getFilteredJobs(){
+  var filterC=document.getElementById('job-filter-contractor')?document.getElementById('job-filter-contractor').value:'';
+  var filterS=document.getElementById('job-filter-status')?document.getElementById('job-filter-status').value:'';
+  var search=(document.getElementById('job-search')?document.getElementById('job-search').value:'').toLowerCase().trim();
+  return jobs.filter(function(job){
+    if(filterC&&job.contractorId!==filterC) return false;
+    if(filterS==='open'&&job.status.toLowerCase()==='complete') return false;
+    if(filterS==='complete'&&job.status.toLowerCase()!=='complete') return false;
+    if(filterS==='overdue'&&!job.status.toLowerCase().includes('overdue')) return false;
+    if(filterS==='awaiting approval'&&!job.status.toLowerCase().includes('awaiting approval')) return false;
+    if(filterS==='works in progress'&&!job.status.toLowerCase().includes('works in progress')) return false;
+    if(filterS==='awaiting contractor'&&!job.status.toLowerCase().includes('awaiting contractor')) return false;
+    if(search){
+      var c=getContractor(job.contractorId);
+      var hay=(job.prop+' '+(job.tenant||'')+' '+(job.issue||'')+' '+(c?c.name:'')+' '+(job.category||'')).toLowerCase();
+      if(!hay.includes(search)) return false;
+    }
+    return true;
+  });
+}
+
+function makeJobCard(job,idx){
+  var c=getContractor(job.contractorId);
+  var sl=job.status.toLowerCase();
+  var SC={'overdue \u2014 no response':'#A32D2D','works in progress':'#185FA5','awaiting approval':'#854F0B','quote received':'#534AB7','complete':'#1A5C3A','awaiting contractor':'#854F0B'};
+  var borderCol=SC[sl]||'#854F0B';
+  var chase=jobNeedsChase(job);
+  var days=daysSince(job.lastActionDate||job.dateLogged);
+  var lastChase=job.lastChased?('Chased: '+job.lastChased.split('T')[0]):'';
+  var statusLabel=job.status+(chase&&sl!=='complete'?' \u26a0 '+days+'d':'');
+  var valHtml='';
+  if(job.invoice) valHtml='<span style="font-size:10px;font-weight:500;color:#1A5C3A">Inv: \u00a3'+Number(job.invoice).toLocaleString()+'</span>';
+  else if(job.quote) valHtml='<span style="font-size:10px;font-weight:500;color:#534AB7">Quote: \u00a3'+Number(job.quote).toLocaleString()+'</span>';
+  var tenantLine=job.tenant||'';
+  if(job.tenantPhone&&job.tenant) tenantLine+=' \u00b7 '+job.tenantPhone;
+  var contractorName=c&&c.name?c.name:(job.contractorId?job.contractorId:'TBC');
+  var issueText=(job.issue||'').substring(0,160)+((job.issue||'').length>160?'...':'');
+  var accessHtml=job.access&&job.access.trim()?'<div style="font-size:10px;color:var(--text2);margin-top:3px"><strong>Access:</strong> '+job.access+'</div>':'';
+  var card=document.createElement('div');
+  card.style.cssText='background:var(--white);border:0.5px solid var(--border);border-left:3px solid '+borderCol+';border-radius:var(--radius-lg);padding:11px 13px;'+(chase&&sl!=='complete'?'background:#FFF8F8;':'');
+  card.innerHTML=
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">'
+    +'<div style="min-width:0"><div style="font-size:12.5px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+job.prop+'</div>'
+    +'<div style="font-size:10.5px;color:var(--text2);margin-top:1px">'+tenantLine+(tenantLine&&contractorName?' \u00b7 ':'')+contractorName+'</div></div>'
+    +'<span style="font-size:9.5px;padding:2px 8px;border-radius:20px;background:'+(SC[sl]||'#854F0B')+'22;color:'+(SC[sl]||'#854F0B')+';white-space:nowrap;font-weight:500;flex-shrink:0">'+statusLabel+'</span>'
+    +'</div>'
+    +'<div style="font-size:11px;color:var(--text);line-height:1.5;margin-bottom:7px"><span style="font-weight:500">'+(job.category||'General')+'</span> \u00b7 '+issueText+'</div>'
+    +accessHtml
+    +'<div style="display:flex;align-items:center;gap:6px;padding-top:7px;border-top:0.5px solid var(--border);flex-wrap:wrap">'
+    +'<span style="font-size:9.5px;color:var(--text2)">'+(job.dateLogged||'')+'</span>'
+    +valHtml
+    +(lastChase?'<span style="font-size:9.5px;color:#1A5C3A;background:#EAF3DE;padding:1px 7px;border-radius:10px">'+lastChase+'</span>':'')
+    +'<span style="margin-left:auto;display:flex;gap:4px">'
+    +'<button onclick="openChaseModal('+idx+')" style="font-size:9.5px;padding:2px 9px;border:0.5px solid var(--border);border-radius:4px;background:var(--bg2);cursor:pointer">Chase</button>'
+    +'<button onclick="openJobDetail('+idx+')" style="font-size:9.5px;padding:2px 9px;border:0.5px solid var(--border);border-radius:4px;background:var(--bg2);cursor:pointer">View</button>'
+    +'<button onclick="openEditJobModal('+idx+')" style="font-size:9.5px;padding:2px 9px;border:0.5px solid var(--border);border-radius:4px;background:var(--bg2);cursor:pointer">Edit</button>'
+    +'</span></div>';
+  return card;
+}
+
+function renderKanban(){
+  var filtered=getFilteredJobs();
+  var cols={'awaiting contractor':[],'quote received':[],'awaiting approval':[],'works in progress':[],'complete':[]};
+  filtered.forEach(function(job){
+    var sl=job.status.toLowerCase();
+    if(sl.includes('overdue')||sl.includes('awaiting contractor')) cols['awaiting contractor'].push(job);
+    else if(sl.includes('quote received')||sl.includes('quoted')) cols['quote received'].push(job);
+    else if(sl.includes('awaiting approval')) cols['awaiting approval'].push(job);
+    else if(sl.includes('works in progress')||sl.includes('in progress')) cols['works in progress'].push(job);
+    else if(sl==='complete') cols['complete'].push(job);
+    else cols['awaiting contractor'].push(job);
+  });
+  var colMap={'awaiting contractor':'awaiting','quote received':'quoted','awaiting approval':'approval','works in progress':'progress','complete':'complete'};
+  Object.keys(cols).forEach(function(status){
+    var colId=colMap[status];
+    var cardsEl=document.getElementById('k-'+colId+'-cards');
+    var countEl=document.getElementById('k-'+colId+'-count');
+    if(!cardsEl) return;
+    cardsEl.innerHTML='';
+    if(countEl) countEl.textContent=cols[status].length;
+    cols[status].forEach(function(job){
+      var ji=jobs.indexOf(job);
+      var chase=jobNeedsChase(job);
+      var c=getContractor(job.contractorId);
+      var card=document.createElement('div');
+      card.className='kanban-card'+(chase?' chase-flag':'');
+      card.innerHTML='<div class="kc-prop">'+job.prop.split(',')[0]+'</div>'
+        +'<div class="kc-issue">'+(job.issue||'').substring(0,80)+'</div>'
+        +'<div class="kc-meta"><span>'+(c&&c.name?c.name.split(' ')[0]:'TBC')+'</span>'
+        +'<span>'+(job.quote?'<span style="color:#534AB7">\u00a3'+Number(job.quote).toLocaleString()+'</span>':'')
+        +(chase?'<span style="color:#A32D2D"> \u26a0'+daysSince(job.lastActionDate||job.dateLogged)+'d</span>':'')+'</span></div>'
+        +'<div style="display:flex;gap:3px;margin-top:6px">'
+        +'<select onchange="changeJobStatus('+ji+',this.value)" style="font-size:9px;padding:1px 3px;border:0.5px solid var(--border);border-radius:3px;flex:1">'
+        +'<option value="">Move to...</option><option value="Awaiting contractor">Awaiting contractor</option>'
+        +'<option value="Quote received">Quote received</option><option value="Awaiting approval">Awaiting approval</option>'
+        +'<option value="Works in progress">Works in progress</option><option value="Complete">Complete</option>'
+        +'</select>'
+        +'<button onclick="openChaseModal('+ji+')" style="font-size:9px;padding:1px 5px;border:0.5px solid var(--border);border-radius:3px;background:var(--bg2);cursor:pointer">Chase</button>'
+        +'<button onclick="openJobDetail('+ji+')" style="font-size:9px;padding:1px 5px;border:0.5px solid var(--border);border-radius:3px;background:var(--bg2);cursor:pointer">View</button>'
+        +'</div>';
+      cardsEl.appendChild(card);
+    });
+    if(!cols[status].length){
+      var e=document.createElement('div');
+      e.style.cssText='font-size:10px;color:var(--text2);text-align:center;padding:12px 0';
+      e.textContent='No jobs';
+      cardsEl.appendChild(e);
+    }
+  });
+  var count=document.getElementById('job-table-count');
+  if(count) count.textContent=filtered.length+' of '+jobs.length+' jobs';
+}
+
+function changeJobStatus(idx,newStatus){
+  if(!newStatus) return;
+  var job=jobs[idx]; if(!job) return;
+  var PM={'Awaiting contractor':'pill-amber','Quote received':'pill-yellow','Awaiting approval':'pill-amber','Works in progress':'pill-blue','Complete':'pill-green'};
+  job.status=newStatus; job.pill=PM[newStatus]||'pill-amber';
+  job.lastActionDate=new Date().toISOString().split('T')[0];
+  saveJobToFirebase(job);
+  renderKanban();
+  showToast('Status updated: '+newStatus);
+}
+
+function renderByContractor(){
+  var el=document.getElementById('view-contractor'); if(!el) return;
+  el.innerHTML='';
+  var filtered=getFilteredJobs().filter(function(j){return j.status.toLowerCase()!=='complete';});
+  var groups={};
+  filtered.forEach(function(job){var cid=job.contractorId||'__unassigned__';if(!groups[cid])groups[cid]=[];groups[cid].push(job);});
+  var sorted=Object.keys(groups).sort(function(a,b){return groups[b].length-groups[a].length;});
+  if(!sorted.length){el.innerHTML='<div style="font-size:11px;color:var(--text2);padding:16px 0;text-align:center">No open jobs.</div>';return;}
+  sorted.forEach(function(cid){
+    var c=getContractor(cid==='__unassigned__'?'':cid);
+    var cname=c&&c.name?c.name:'Unassigned';
+    var cjobs=groups[cid];
+    var totalQ=cjobs.reduce(function(s,j){return s+(j.quote||0);},0);
+    var chaseN=cjobs.filter(function(j){return jobNeedsChase(j);}).length;
+    var section=document.createElement('div'); section.style.cssText='margin-bottom:16px';
+    var hdr=document.createElement('div');
+    hdr.style.cssText='display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg);border-radius:8px;margin-bottom:6px;flex-wrap:wrap';
+    hdr.innerHTML='<div style="font-size:13px;font-weight:600;color:var(--text)">'+(c&&c.color?'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+c.color+';margin-right:6px;vertical-align:middle"></span>':'')+cname+'</div>'
+      +'<span style="font-size:10px;background:#E6F1FB;color:#185FA5;padding:2px 8px;border-radius:10px">'+cjobs.length+' job'+(cjobs.length!==1?'s':'')+'</span>'
+      +(totalQ?'<span style="font-size:10px;background:#EAF3DE;color:#1A5C3A;padding:2px 8px;border-radius:10px">\u00a3'+totalQ.toLocaleString()+' quoted</span>':'')
+      +(chaseN?'<span style="font-size:10px;background:#FCEBEB;color:#A32D2D;padding:2px 8px;border-radius:10px">\u26a0 '+chaseN+' need chase</span>':'')
+      +(c&&c.phone?'<button onclick="chaseAllForContractor(\''+cid+'\')" style="margin-left:auto;font-size:10px;padding:3px 10px;border:0.5px solid #1A5C3A;border-radius:5px;background:#EAF3DE;color:#1A5C3A;cursor:pointer">Chase all</button>':'');
+    section.appendChild(hdr);
+    var cards=document.createElement('div'); cards.style.cssText='display:flex;flex-direction:column;gap:6px;padding-left:10px';
+    cjobs.forEach(function(job){cards.appendChild(makeJobCard(job,jobs.indexOf(job)));});
+    section.appendChild(cards);
+    el.appendChild(section);
+  });
+  var count=document.getElementById('job-table-count');
+  if(count) count.textContent=filtered.length+' open across '+sorted.length+' contractors';
+}
+
+function chaseAllForContractor(cid){
+  var c=getContractor(cid); if(!c||!c.phone) return;
+  var cjobs=jobs.filter(function(j){return j.contractorId===cid&&j.status.toLowerCase()!=='complete';});
+  var msg='Hi '+c.name.split(' ')[0]+', please could you provide an update on the following jobs:\n\n';
+  cjobs.forEach(function(j,i){msg+=(i+1)+'. '+j.prop.split(',')[0]+' - '+(j.issue||'').substring(0,60)+'\n';});
+  msg+='\nMany thanks,\nPickwick Estates';
+  window.open('https://wa.me/44'+c.phone.replace(/^0/,'').replace(/ /g,'')+'?text='+encodeURIComponent(msg),'_blank');
+}
+
+var chaseJobIdx=-1;
+function openChaseModal(idx){
+  chaseJobIdx=idx;
+  var job=jobs[idx]; if(!job) return;
+  var c=getContractor(job.contractorId);
+  var prevLog=job.chaseLog&&job.chaseLog.length?'<div style="font-size:10px;color:var(--text2);margin-bottom:8px;max-height:80px;overflow-y:auto">'+job.chaseLog.slice(-3).map(function(e){return '<div style="padding:3px 6px;border-left:2px solid #1A5C3A;margin-bottom:3px">'+e+'</div>';}).join('')+'</div>':'';
+  var overlay=document.createElement('div');
+  overlay.className='chase-log-modal'; overlay.id='chase-modal-overlay';
+  overlay.innerHTML='<div class="chase-log-box">'
+    +'<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">Log chase</div>'
+    +'<div style="font-size:11px;color:var(--text2);margin-bottom:8px">'+job.prop+' - '+(job.issue||'').substring(0,60)+'</div>'
+    +(c&&c.name?'<div style="font-size:11px;color:var(--text2);margin-bottom:8px">Contractor: <strong>'+c.name+'</strong></div>':'')
+    +prevLog
+    +'<textarea id="chase-note-input" placeholder="e.g. Mackie attending Friday 20th June PM..." style="width:100%;min-height:72px;padding:8px;border:0.5px solid var(--border);border-radius:6px;font-family:var(--font);font-size:12px;resize:vertical;box-sizing:border-box"></textarea>'
+    +'<div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end">'
+    +'<button onclick="closeChaseModal()" style="padding:6px 14px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg);cursor:pointer;font-size:11px">Cancel</button>'
+    +'<button onclick="saveChase()" style="padding:6px 14px;border:none;border-radius:6px;background:#1A5C3A;color:#fff;cursor:pointer;font-size:11px;font-weight:500">Log chase</button>'
+    +'</div></div>';
+  document.body.appendChild(overlay);
+  setTimeout(function(){var n=document.getElementById('chase-note-input');if(n)n.focus();},100);
+}
+
+function closeChaseModal(){var el=document.getElementById('chase-modal-overlay');if(el)el.remove();chaseJobIdx=-1;}
+
+function saveChase(){
+  var note=document.getElementById('chase-note-input').value.trim();
+  if(!note){showToast('Please add a note');return;}
+  var job=jobs[chaseJobIdx]; if(!job) return;
+  var now=new Date();
+  var display=now.toLocaleDateString('en-GB')+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  if(!job.chaseLog) job.chaseLog=[];
+  job.chaseLog.push(display+' - '+note);
+  job.lastChased=now.toISOString();
+  job.lastActionDate=now.toISOString().split('T')[0];
+  saveJobToFirebase(job);
+  closeChaseModal();
+  renderCurrentView();
+  showToast('Chase logged');
 }
 
 
