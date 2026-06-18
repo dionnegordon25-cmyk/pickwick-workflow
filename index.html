@@ -1394,7 +1394,7 @@ function openJobModal(idx){const job=jobs[idx];const c=getContractor(job.contrac
 function closeJobModal(){document.getElementById('job-modal').classList.remove('open');}
 function copyJobMsg(){navigator.clipboard.writeText(activeJobMsg).then(()=>showToast('Copied to clipboard'));}
 function renderJobs(){
-  var jl=document.getElementById('job-list');
+  var jl=document.getElementById('view-list');
   var empty=document.getElementById('job-table-empty');
   var countEl=document.getElementById('job-table-count');
   if(!jl) return;
