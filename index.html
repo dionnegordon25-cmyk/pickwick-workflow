@@ -355,7 +355,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     
 </div>
 </div>
-</div>
 
 <div id="page-maintenance" class="page">
   <div class="card">
@@ -729,7 +728,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div>
       <div class="card">
         <div class="section-title">Past tenants &amp; archived tenancies
-          <button class="btn btn-sm btn-primary" onclick="openAddPastTenant()"><i class="ti ti-plus"></i> Add manually</button>
+          <button onclick="exportPastTenants()" style="font-size:10px;padding:3px 10px;border:0.5px solid var(--border);border-radius:5px;background:var(--bg);cursor:pointer;margin-right:4px">Export CSV</button><button class="btn btn-sm btn-primary" onclick="openAddPastTenant()"><i class="ti ti-plus"></i> Add manually</button>
         </div>
         <input class="search-bar" type="text" id="pt-search" placeholder="Search by name, address, date..." oninput="filterPastTenants()">
         <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px" id="pt-filter-pills">
@@ -4013,7 +4012,7 @@ function showPage(id,btn){
   if(id==='contractors'){ renderContractors(); renderContractorsSummary(); }
   if(id==='moveins'){ filterMoveIns(); renderMoveInSummary(); }
   if(id==='offeraccepted'){ renderOffers(); }
-  if(id==='maintenance'){ renderCurrentView(); }
+  if(id==='maintenance'){ populateContractorFilter(); renderCurrentView(); }
   if(id==='activity') renderActivity();
   if(id==='pasttenants'){ filterPastTenants(); renderPTSummary(); }
 }
@@ -4471,6 +4470,31 @@ function setMaintView(view){
     if(el) el.style.display=v===view?(v==='list'?'flex':'block'):'none';
   });
   renderCurrentView();
+}
+
+function populateContractorFilter(){
+  var sel=document.getElementById('job-filter-contractor');
+  if(!sel||sel.options.length>1) return;
+  contractorList.forEach(function(c){
+    var opt=document.createElement('option');
+    opt.value=c.id; opt.textContent=c.name;
+    sel.appendChild(opt);
+  });
+}
+
+function exportPastTenants(){
+  var data=window.pastTenants||[];
+  if(!data.length){showToast('No past tenant records to export');return;}
+  var rows=[['Name','Address','Vacated','Type','Notes']];
+  data.forEach(function(t){
+    rows.push([t.name||'',t.address||'',t.vacated||'',t.type||'',t.notes||'']);
+  });
+  var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var blob=new Blob([csv],{type:'text/csv'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='past-tenants-'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click(); showToast('Exported');
 }
 
 function renderCurrentView(){
