@@ -579,7 +579,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div id="import-export-sections"></div>
       </div>
     </div>
-    <div> style="display:none">
+    <div id="report-preview-card" style="display:none">
         <div class="section-title">
           <span id="report-preview-title">Preview</span>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -1594,6 +1594,31 @@ function renderDashJobs(){
 }
 
 
+function openNewJobModal(){
+  // Pre-populate contractor dropdown
+  var sel=document.getElementById('nj-contractor');
+  if(sel && sel.options.length<=1){
+    contractorList.forEach(function(c){
+      var o=document.createElement('option');
+      o.value=c.id; o.textContent=c.name;
+      sel.appendChild(o);
+    });
+  }
+  // Show the add job form (move it to be visible)
+  var form=document.getElementById('add-job-form');
+  if(form){
+    // Open as a modal overlay
+    form.style.cssText='position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.45);display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto';
+    var inner=form.querySelector('.add-job-inner')||form;
+    inner.style.background='#fff';
+    inner.style.borderRadius='10px';
+    inner.style.padding='20px';
+    inner.style.maxWidth='600px';
+    inner.style.width='100%';
+    inner.style.marginTop='20px';
+  }
+}
+
 function openEditJobModal(idx){
   editJobIdx=idx;
   var job=jobs[idx];
@@ -1662,7 +1687,28 @@ function deleteJob(idx){
   if(typeof fbSaveAllJobs==='function') fbSaveAllJobs();
 }
 
-function toggleAddJob(){document.getElementById('add-job-form').classList.toggle('open');}
+function toggleAddJob(){
+  var form=document.getElementById('add-job-form');
+  if(!form) return;
+  var isOpen = form.classList.contains('open');
+  if(isOpen){
+    form.classList.remove('open');
+    form.style.cssText='';
+  } else {
+    form.classList.add('open');
+    // Show as fixed overlay so it works from any page
+    form.style.cssText='position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:500;width:90vw;max-width:620px;max-height:85vh;overflow-y:auto;background:#fff;border-radius:10px;border:0.5px solid var(--border);box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:0';
+    // Populate contractor dropdown
+    var sel=document.getElementById('nj-contractor');
+    if(sel && sel.options.length<=1){
+      contractorList.forEach(function(c){
+        var o=document.createElement('option');
+        o.value=c.id; o.textContent=c.name;
+        sel.appendChild(o);
+      });
+    }
+  }
+}
 function addJob(){const addr=document.getElementById('nj-address').value.trim();const issue=document.getElementById('nj-issue').value.trim();if(!addr||!issue){alert('Please enter at least a property address and issue.');return;}const statusVal=document.getElementById('nj-status').value;const pillMap2={'Awaiting contractor':'pill-amber','Quote requested':'pill-yellow','Quote received':'pill-yellow','Awaiting approval':'pill-amber','Works in progress':'pill-blue','Complete':'pill-green'};var today=new Date();var dd=String(today.getDate()).padStart(2,'0');var mm=String(today.getMonth()+1).padStart(2,'0');var yyyy=today.getFullYear();var todayStr=dd+'/'+mm+'/'+yyyy;var photolink=document.getElementById('nj-photolink')?document.getElementById('nj-photolink').value:'';
 jobs.unshift({prop:addr,issue,photoLink:photolink,contractorId:document.getElementById('nj-contractor').value||'',status:statusVal,pill:pillMap2[statusVal]||'pill-grey',tenant:document.getElementById('nj-tenant').value||'—',tenantPhone:document.getElementById('nj-tenantphone').value||'',access:document.getElementById('nj-access').value||'—',notes:document.getElementById('nj-notes').value||'',quote:parseFloat(document.getElementById('nj-quote').value)||0,invoice:parseFloat(document.getElementById('nj-invoice').value)||0,category:document.getElementById('nj-category')?document.getElementById('nj-category').value:'General',dateLogged:todayStr,lastActionDate:todayStr});['nj-address','nj-issue','nj-tenant','nj-tenantphone','nj-access','nj-notes','nj-quote','nj-invoice'].forEach(id=>document.getElementById(id).value='');document.getElementById('nj-contractor').value='';document.getElementById('contractor-info-row').style.display='none';toggleAddJob();renderJobs();renderDashJobs();updateOpsStats();logActivity('Job added',jobs[0].issue,jobs[0].prop);
   fbSaveAllJobs();}
@@ -2290,6 +2336,62 @@ var REPORTS = [
     }
   }
 ];
+
+function buildImportExportSections(){
+  var container=document.getElementById('import-export-sections');
+  if(!container) return;
+  var sections=[
+    {label:'Jobs / Maintenance log', exportFn:'exportJobsData', importFn:'importJobsData'},
+    {label:'Properties & tenants', exportFn:'exportPropertiesData', importFn:null},
+    {label:'Past tenants', exportFn:'exportPastTenants', importFn:'importPastTenants'},
+    {label:'Offers accepted', exportFn:'exportOffersData', importFn:null},
+  ];
+  container.innerHTML='';
+  sections.forEach(function(s){
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border)';
+    row.innerHTML='<span style="font-size:12px;color:var(--text)">'+s.label+'</span>'
+      +'<div style="display:flex;gap:6px">'
+      +'<button onclick="'+s.exportFn+'()" style="font-size:10px;padding:3px 10px;border:0.5px solid #1A5C3A;border-radius:5px;color:#1A5C3A;background:var(--white);cursor:pointer">Export CSV</button>'
+      +(s.importFn?'<label style="font-size:10px;padding:3px 10px;border:0.5px solid var(--border);border-radius:5px;background:var(--bg);cursor:pointer">Import<input type="file" accept=".csv" style="display:none" onchange="'+s.importFn+'(this)"></label>':'')
+      +'</div>';
+    container.appendChild(row);
+  });
+}
+
+function exportJobsData(){
+  var rows=[['WO','Property','Tenant','Contractor','Category','Issue','Status','Quote','Invoice','Date logged','Last action','Notes']];
+  jobs.forEach(function(j,i){
+    var c=getContractor(j.contractorId);
+    rows.push([i+1,j.prop||'',j.tenant||'',(c?c.name:''),j.category||'',j.issue||'',j.status||'',j.quote||0,j.invoice||0,j.dateLogged||'',j.lastActionDate||'',j.notes||'']);
+  });
+  downloadCSV(rows,'maintenance-jobs-'+new Date().toISOString().split('T')[0]);
+}
+
+function exportPropertiesData(){
+  var rows=[['Address','Tenant','Tenant email','Landlord','LL email','Rent','Deposit','GSC','EICR','EPC','Tenancy start']];
+  PROPERTIES.forEach(function(p){
+    rows.push([p.address||'',p.tenant||'',p.tenantEmail||'',p.llName||'',p.llEmail||'',p.rent||'',p.deposit||'',p.gsc||'',p.eicr||'',p.epc||'',p.tenancyStart||'']);
+  });
+  downloadCSV(rows,'properties-'+new Date().toISOString().split('T')[0]);
+}
+
+function exportOffersData(){
+  var rows=[['ID','Property','Tenants','Rent','Deposit','Start date','Fee','Date recorded','Status']];
+  (offers||[]).forEach(function(o){
+    rows.push([o.id||'',o.propAddress||'',o.tenants?o.tenants.map(function(t){return t.name;}).join(' & '):'',o.rent||'',o.deposit||'',o.start||'',o.feeLabel||'',o.date||'',o.status||'']);
+  });
+  downloadCSV(rows,'offers-'+new Date().toISOString().split('T')[0]);
+}
+
+function downloadCSV(rows, filename){
+  var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c||'').replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var blob=new Blob([csv],{type:'text/csv'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=filename+'.csv'; a.click();
+  showToast('Exported: '+filename+'.csv');
+}
 
 function buildReportCards() {
   var container = document.getElementById('report-cards');
@@ -4006,7 +4108,7 @@ function showPage(id,btn){
   window.scrollTo(0,0);
   if(id==='dashboard') renderAllDashCards();
   if(id==='properties') buildDashboardWidgets();
-  if(id==='reports') buildReportCards();
+  if(id==='reports'){ buildReportCards(); buildImportExportSections(); }
   if(id==='compliance') filterComp();
   if(id==='deposits'){ filterDep(); renderDepSummary(); }
   if(id==='contractors'){ renderContractors(); renderContractorsSummary(); }
@@ -5581,3 +5683,4 @@ function loadOffersFromFirebase(){
 </div>
 </body>
 </html>
+
