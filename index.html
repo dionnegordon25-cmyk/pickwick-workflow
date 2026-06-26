@@ -359,7 +359,69 @@ select.field-input{cursor:pointer}
     </div>
 
     <div id="page-maintenance" class="page">
-      <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);font-size:13px">Maintenance loading...</div>
+      <!-- Ops bar -->
+      <div class="ops-bar">
+        <input class="search-bar" id="maint-search" placeholder="Search jobs, properties, tenants, contractors..." oninput="filterJobs()">
+        <select class="field-input" id="maint-status-filter" onchange="filterJobs()" style="width:180px">
+          <option value="">All statuses</option>
+          <option value="Awaiting contractor">Awaiting contractor</option>
+          <option value="Quote received">Quote received</option>
+          <option value="Awaiting approval">Awaiting approval</option>
+          <option value="In progress">In progress</option>
+          <option value="Complete">Complete</option>
+          <option value="Overdue">Overdue</option>
+          <option value="chase">Needs chasing (3d+)</option>
+        </select>
+        <select class="field-input" id="maint-contractor-filter" onchange="filterJobs()" style="width:160px">
+          <option value="">All contractors</option>
+        </select>
+        <button class="btn btn-navy" onclick="openAddJobModal()">+ Add job</button>
+      </div>
+      <!-- View toggle -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-sm" id="view-list-btn" onclick="setMainView('list')" style="background:var(--navy);color:#fff">List</button>
+          <button class="btn btn-outline btn-sm" id="view-kanban-btn" onclick="setMainView('kanban')">Kanban</button>
+          <button class="btn btn-outline btn-sm" id="view-contractor-btn" onclick="setMainView('contractor')">By contractor</button>
+        </div>
+        <div id="maint-count" style="font-size:11px;color:var(--text3)"></div>
+      </div>
+      <!-- List view -->
+      <div id="maint-list-view">
+        <div class="card" style="padding:0;overflow:hidden">
+          <table class="tbl" id="jobs-table">
+            <thead>
+              <tr>
+                <th style="width:32px"><input type="checkbox" id="job-select-all" onchange="toggleSelectAll(this.checked)"></th>
+                <th>#</th><th>Property / Tenant</th><th>Contractor</th><th>Category</th>
+                <th>Issue</th><th>Status</th><th>Value</th><th>Logged</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="jobs-tbody"></tbody>
+          </table>
+        </div>
+        <div id="bulk-bar" style="display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;border-radius:10px;padding:10px 16px;align-items:center;gap:10px;z-index:200;box-shadow:0 4px 20px rgba(0,0,0,0.3)">
+          <span id="bulk-count" style="font-size:12px"></span>
+          <button class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:#fff" onclick="bulkWhatsApp()">WhatsApp all</button>
+          <button class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:#fff" onclick="bulkMarkComplete()">Mark complete</button>
+          <button class="btn btn-sm" style="background:var(--red-bg);color:var(--red-text)" onclick="bulkDelete()">Delete</button>
+          <button class="btn btn-sm" style="background:rgba(255,255,255,0.1);color:#fff" onclick="clearBulkSelect()">✕</button>
+        </div>
+      </div>
+      <!-- Kanban view -->
+      <div id="maint-kanban-view" style="display:none">
+        <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px">
+          <div style="flex:1;min-width:200px;background:var(--bg);border-radius:8px;padding:10px" id="k-awaiting-contractor"></div>
+          <div style="flex:1;min-width:200px;background:var(--bg);border-radius:8px;padding:10px" id="k-quote-received"></div>
+          <div style="flex:1;min-width:200px;background:var(--bg);border-radius:8px;padding:10px" id="k-awaiting-approval"></div>
+          <div style="flex:1;min-width:200px;background:var(--bg);border-radius:8px;padding:10px" id="k-in-progress"></div>
+          <div style="flex:1;min-width:200px;background:var(--bg);border-radius:8px;padding:10px" id="k-complete"></div>
+        </div>
+      </div>
+      <!-- By contractor view -->
+      <div id="maint-contractor-view" style="display:none">
+        <div id="contractor-groups"></div>
+      </div>
     </div>
 
     <div id="page-offeraccepted" class="page">
@@ -404,6 +466,95 @@ select.field-input{cursor:pointer}
 
   </div>
 </div>
+
+<!-- ADD JOB MODAL -->
+<div class="modal-overlay" id="add-job-modal">
+  <div class="modal modal-lg">
+    <div class="modal-title">Add maintenance job</div>
+    <div class="grid-2">
+      <div class="field-group"><label class="field-label">Property address *</label><input class="field-input" id="aj-prop" list="aj-prop-list" placeholder="Start typing address..." oninput="autoFillTenant()"><datalist id="aj-prop-list"></datalist></div>
+      <div class="field-group"><label class="field-label">Tenant name</label><input class="field-input" id="aj-tenant" placeholder="Auto-fills from address"></div>
+      <div class="field-group"><label class="field-label">Tenant phone</label><input class="field-input" id="aj-phone" placeholder="Auto-fills from address"></div>
+      <div class="field-group"><label class="field-label">Contractor</label><select class="field-input" id="aj-contractor"><option value="">No contractor yet</option></select></div>
+      <div class="field-group"><label class="field-label">Category</label><select class="field-input" id="aj-category"><option>Gas / Heating</option><option>Plumbing</option><option>Electrical</option><option>Glazing</option><option>Carpentry</option><option>Painting &amp; decorating</option><option>Damp / Structural</option><option>Roofing</option><option>Cleaning</option><option>Appliance repair</option><option>General</option><option>Other</option></select></div>
+      <div class="field-group"><label class="field-label">Status</label><select class="field-input" id="aj-status"><option>Awaiting contractor</option><option>Quote received</option><option>Awaiting approval</option><option>In progress</option><option>Complete</option></select></div>
+      <div class="field-group" style="grid-column:1/-1"><label class="field-label">Issue description *</label><textarea class="field-input" id="aj-issue" rows="2" placeholder="Describe the issue..."></textarea></div>
+      <div class="field-group"><label class="field-label">Access details</label><input class="field-input" id="aj-access" placeholder="Key at office, tenant to arrange..."></div>
+      <div class="field-group"><label class="field-label">Notes</label><input class="field-input" id="aj-notes" placeholder="Additional notes..."></div>
+      <div class="field-group"><label class="field-label">Quote (£)</label><input class="field-input" id="aj-quote" type="number" placeholder="0.00"></div>
+      <div class="field-group"><label class="field-label">Invoice (£)</label><input class="field-input" id="aj-invoice" type="number" placeholder="0.00"></div>
+      <div class="field-group" style="grid-column:1/-1"><label class="field-label">Photo / Drive link</label><input class="field-input" id="aj-photo" placeholder="https://drive.google.com/..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('add-job-modal')">Cancel</button>
+      <button class="btn btn-navy" onclick="saveNewJob()">Save job</button>
+    </div>
+  </div>
+</div>
+
+<!-- JOB DETAIL MODAL -->
+<div class="modal-overlay" id="job-detail-modal">
+  <div class="modal modal-lg">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px">
+      <div><div class="modal-title" id="jd-title"></div><div style="font-size:11px;color:var(--text3);margin-top:2px" id="jd-wo"></div></div>
+      <button class="btn btn-outline btn-sm" onclick="closeModal('job-detail-modal')">Close</button>
+    </div>
+    <div style="display:flex;gap:4px;border-bottom:0.5px solid var(--border);margin-bottom:14px" id="jd-tabs">
+      <button class="jd-tab active" onclick="switchJdTab('details',this)" style="padding:5px 12px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--navy);border-bottom:2px solid var(--navy);font-weight:500">Details</button>
+      <button class="jd-tab" onclick="switchJdTab('log',this)" style="padding:5px 12px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--text2)">Chase log</button>
+      <button class="jd-tab" onclick="switchJdTab('contractor',this)" style="padding:5px 12px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--text2)">Contractor</button>
+    </div>
+    <div id="jd-details"></div>
+    <div id="jd-log" style="display:none"></div>
+    <div id="jd-contractor-tab" style="display:none"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="openChaseModal()">Log chase</button>
+      <button class="btn btn-outline btn-sm" onclick="openEditFromDetail()">Edit job</button>
+      <button class="btn btn-navy btn-sm" onclick="closeModal('job-detail-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT JOB MODAL -->
+<div class="modal-overlay" id="edit-job-modal">
+  <div class="modal modal-lg">
+    <div class="modal-title">Edit job</div>
+    <div class="modal-sub" id="ej-sub"></div>
+    <div class="grid-2">
+      <div class="field-group"><label class="field-label">Property</label><input class="field-input" id="ej-prop" list="ej-prop-list"><datalist id="ej-prop-list"></datalist></div>
+      <div class="field-group"><label class="field-label">Tenant</label><input class="field-input" id="ej-tenant"></div>
+      <div class="field-group"><label class="field-label">Tenant phone</label><input class="field-input" id="ej-phone"></div>
+      <div class="field-group"><label class="field-label">Contractor</label><select class="field-input" id="ej-contractor"><option value="">No contractor</option></select></div>
+      <div class="field-group"><label class="field-label">Category</label><select class="field-input" id="ej-category"><option>Gas / Heating</option><option>Plumbing</option><option>Electrical</option><option>Glazing</option><option>Carpentry</option><option>Painting &amp; decorating</option><option>Damp / Structural</option><option>Roofing</option><option>Cleaning</option><option>Appliance repair</option><option>General</option><option>Other</option></select></div>
+      <div class="field-group"><label class="field-label">Status</label><select class="field-input" id="ej-status"><option>Awaiting contractor</option><option>Quote received</option><option>Awaiting approval</option><option>In progress</option><option>Complete</option><option>Overdue</option></select></div>
+      <div class="field-group" style="grid-column:1/-1"><label class="field-label">Issue</label><textarea class="field-input" id="ej-issue" rows="2"></textarea></div>
+      <div class="field-group"><label class="field-label">Access</label><input class="field-input" id="ej-access"></div>
+      <div class="field-group"><label class="field-label">Notes</label><input class="field-input" id="ej-notes"></div>
+      <div class="field-group"><label class="field-label">Quote (£)</label><input class="field-input" id="ej-quote" type="number"></div>
+      <div class="field-group"><label class="field-label">Invoice (£)</label><input class="field-input" id="ej-invoice" type="number"></div>
+      <div class="field-group" style="grid-column:1/-1"><label class="field-label">Photo / Drive link</label><input class="field-input" id="ej-photo"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-red btn-sm" onclick="deleteJob()">Delete job</button>
+      <button class="btn btn-outline" onclick="closeModal('edit-job-modal')">Cancel</button>
+      <button class="btn btn-navy" onclick="saveEditJob()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHASE MODAL -->
+<div class="modal-overlay" id="chase-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">Log chase</div>
+    <div class="modal-sub" id="chase-sub"></div>
+    <div class="field-group"><label class="field-label">Chase note</label><textarea class="field-input" id="chase-note" rows="3" placeholder="Called contractor, left voicemail..."></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('chase-modal')">Cancel</button>
+      <button class="btn btn-navy" onclick="saveChase()">Log chase</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
@@ -928,6 +1079,525 @@ showApp=function(user){
   _origShowApp(user);
   loadDashboard();
 };
+
+// ─── CONTRACTORS DIRECTORY ───────────────────────────────────────────────────
+var CONTRACTORS = [
+  {id:'acare',name:'Acare Group (Mackie)',trade:'Gas · Boiler · Heating · Plumbing · Roofing',phone:'07962 366408',phone2:'07703 473163',email:'acaregroupltd@gmail.com'},
+  {id:'sarfmon',name:'Sarfmon Electrical',trade:'Electrical · EICR',phone:'07944 216665',email:'sarfmonelectrical@outlook.com'},
+  {id:'vincent',name:'Vincent (VW)',trade:'Handyman · General maintenance',phone:'07871 412353',email:'waclawkopec@gmail.com'},
+  {id:'ilg',name:'Inner London Glass',trade:'Glazing · Glass repairs',phone:'07904 240933',email:'nicky@innerlondonglass.co.uk'},
+  {id:'prescott',name:'Prescott Fairchild',trade:'Damp · Structural · Drains',phone:'07444 874512',email:'maintenance@prescottfairchild.com'},
+  {id:'cleanaway',name:'CleanAway',trade:'Cleaning · End of tenancy',phone:'07500 836971',email:'cleanawayuk@hotmail.com'},
+  {id:'holacasa',name:'Hola Casa Ltd',trade:'General maintenance',phone:'',email:''},
+  {id:'tar',name:'TAR Appliance Repairs',trade:'Appliance repairs',phone:'',email:''},
+  {id:'lyb',name:'Love You Block',trade:'Block management · Communal',phone:'',email:''}
+];
+
+function getContractor(id){
+  return CONTRACTORS.find(function(c){ return c.id===id; })||{name:id||'No contractor',trade:'',phone:'',email:''};
+}
+
+// ─── MODAL HELPERS ────────────────────────────────────────────────────────────
+function openModal(id){ var m=document.getElementById(id); if(m) m.classList.add('open'); }
+function closeModal(id){ var m=document.getElementById(id); if(m) m.classList.remove('open'); }
+
+// Close modal on overlay click
+document.addEventListener('click', function(e){
+  if(e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');
+});
+
+// ─── MAINTENANCE VIEW ─────────────────────────────────────────────────────────
+var currentView = 'list';
+var currentJobIdx = null;
+
+function setMainView(v){
+  currentView = v;
+  document.getElementById('maint-list-view').style.display = v==='list'?'block':'none';
+  document.getElementById('maint-kanban-view').style.display = v==='kanban'?'block':'none';
+  document.getElementById('maint-contractor-view').style.display = v==='contractor'?'block':'none';
+  var btns = ['view-list-btn','view-kanban-btn','view-contractor-btn'];
+  var views = ['list','kanban','contractor'];
+  btns.forEach(function(b,i){
+    var el=document.getElementById(b);
+    if(!el) return;
+    if(views[i]===v){ el.style.background='var(--navy)'; el.style.color='#fff'; el.style.border='none'; }
+    else { el.style.background='#fff'; el.style.color='var(--text)'; el.style.border='0.5px solid var(--border2)'; }
+  });
+  renderMaintenancePage();
+}
+
+// ─── POPULATE CONTRACTOR DROPDOWNS ───────────────────────────────────────────
+function populateContractorDropdowns(){
+  ['aj-contractor','ej-contractor','maint-contractor-filter'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(!el) return;
+    var isFilter = id==='maint-contractor-filter';
+    el.innerHTML = isFilter ? '<option value="">All contractors</option>' : '<option value="">No contractor yet</option>';
+    CONTRACTORS.forEach(function(c){
+      var opt=document.createElement('option');
+      opt.value=c.id; opt.textContent=c.name;
+      el.appendChild(opt);
+    });
+  });
+}
+
+// ─── POPULATE PROPERTY DATALISTS ─────────────────────────────────────────────
+function populatePropDatalist(){
+  ['aj-prop-list','ej-prop-list'].forEach(function(id){
+    var dl=document.getElementById(id);
+    if(!dl) return;
+    dl.innerHTML='';
+    properties.forEach(function(p){
+      var opt=document.createElement('option');
+      opt.value=p.address||p.prop||'';
+      dl.appendChild(opt);
+    });
+  });
+}
+
+// ─── AUTO-FILL TENANT ─────────────────────────────────────────────────────────
+function autoFillTenant(){
+  var addr=document.getElementById('aj-prop').value.trim().toLowerCase();
+  var match=properties.find(function(p){ return (p.address||'').toLowerCase()===addr; });
+  if(match){
+    document.getElementById('aj-tenant').value=match.tenant||'';
+    document.getElementById('aj-phone').value=match.tenantPhone||'';
+  }
+}
+
+// ─── FILTER JOBS ─────────────────────────────────────────────────────────────
+function getFilteredJobs(){
+  var search=(document.getElementById('maint-search')||{}).value||'';
+  var status=(document.getElementById('maint-status-filter')||{}).value||'';
+  var contractor=(document.getElementById('maint-contractor-filter')||{}).value||'';
+  // Check pending filter from dashboard nav
+  if(window._pendingFilter){
+    if(window._pendingFilter==='overdue') status='Overdue';
+    else if(window._pendingFilter==='awaiting-contractor') status='Awaiting contractor';
+    else if(window._pendingFilter==='awaiting-approval') status='Awaiting approval';
+    else if(window._pendingFilter==='chase') status='chase';
+    var sf=document.getElementById('maint-status-filter');
+    if(sf) sf.value=status;
+    window._pendingFilter=null;
+  }
+  search=search.toLowerCase();
+  return jobs.filter(function(j){
+    if(status==='chase') return needsChase(j);
+    if(status&&j.status!==status) return false;
+    if(contractor&&j.contractorId!==contractor) return false;
+    if(search){
+      var hay=(j.prop||'')+' '+(j.tenant||'')+' '+(j.issue||'')+' '+(j.contractorId||'')+' '+(j.category||'');
+      if(!hay.toLowerCase().includes(search)) return false;
+    }
+    return true;
+  });
+}
+
+function filterJobs(){ renderMaintenancePage(); }
+
+// ─── RENDER LIST VIEW ─────────────────────────────────────────────────────────
+function renderJobsList(){
+  var filtered=getFilteredJobs();
+  var tbody=document.getElementById('jobs-tbody');
+  var count=document.getElementById('maint-count');
+  if(count) count.textContent=filtered.length+' job'+(filtered.length!==1?'s':'');
+  if(!tbody) return;
+  if(!filtered.length){
+    tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text3)">No jobs found</td></tr>';
+    return;
+  }
+  var html='';
+  filtered.forEach(function(job,i){
+    var chase=needsChase(job);
+    var days=chase?daysSince(job.lastActionDate||job.dateLogged):0;
+    var c=getContractor(job.contractorId);
+    var pillClass=statusPillClass(job.status);
+    var rowStyle=chase?'background:#FFF8F6;':' ';
+    html+='<tr style="'+rowStyle+'" ondblclick="openJobDetail(this.dataset.key)" data-key='+job.fbKey+'>'
+      +'<td><input type="checkbox" class="job-checkbox" data-key="'+job.fbKey+'" onchange="updateBulkBar()"></td>'
+      +'<td style="color:var(--text3);font-size:11px">'+(i+1)+'</td>'
+      +'<td><div style="font-size:12px;font-weight:500;color:var(--text)">'+(job.prop||'—')+(chase?' <span style="color:var(--red-text);font-size:10px">⚠'+days+'d</span>':'')+'</div><div style="font-size:10px;color:var(--text2)">'+(job.tenant||'—')+'</div></td>'
+      +'<td style="font-size:11px">'+(c.name||'—')+'</td>'
+      +'<td style="font-size:11px">'+(job.category||'—')+'</td>'
+      +'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(job.issue||'—')+'</td>'
+      +'<td><span class="badge '+pillClass+'">'+(job.status||'—')+'</span></td>'
+      +'<td style="font-size:11px;white-space:nowrap">'+(job.quote?'<span style="color:var(--amber-text)">Q: '+fmtCurrency(job.quote)+'</span>':'')+(job.invoice?'<br><span style="color:var(--green-text)">I: '+fmtCurrency(job.invoice)+'</span>':'')+'</td>'
+      +'<td style="font-size:10px;color:var(--text3);white-space:nowrap">'+(job.dateLogged||'—')+'</td>'
+      +'<td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openJobDetail(this.dataset.key)" data-key='+job.fbKey+'>View</button></td>'
+      +'</tr>';
+  });
+  tbody.innerHTML=html;
+}
+
+// ─── RENDER KANBAN ────────────────────────────────────────────────────────────
+function renderKanban(){
+  var filtered=getFilteredJobs();
+  var cols={
+    'Awaiting contractor':{id:'k-awaiting-contractor',label:'Awaiting contractor',color:'var(--amber-text)'},
+    'Quote received':{id:'k-quote-received',label:'Quote received',color:'var(--purple-text)'},
+    'Awaiting approval':{id:'k-awaiting-approval',label:'Awaiting approval',color:'var(--amber-text)'},
+    'In progress':{id:'k-in-progress',label:'In progress',color:'var(--blue-text)'},
+    'Complete':{id:'k-complete',label:'Complete',color:'var(--green-text)'}
+  };
+  Object.keys(cols).forEach(function(status){
+    var col=cols[status];
+    var el=document.getElementById(col.id);
+    if(!el) return;
+    var colJobs=filtered.filter(function(j){ return j.status===status; });
+    var html='<div style="font-size:11px;font-weight:500;color:'+col.color+';margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid var(--border)">'+col.label+' <span style="font-size:10px;color:var(--text3)">('+colJobs.length+')</span></div>';
+    colJobs.forEach(function(job){
+      var chase=needsChase(job);
+      var days=chase?daysSince(job.lastActionDate||job.dateLogged):0;
+      html+='<div style="background:#fff;border:0.5px solid var(--border);border-radius:8px;padding:9px;margin-bottom:6px;cursor:pointer'+(chase?';border-left:3px solid var(--red-text)':'')+'" onclick="openJobDetail(this.dataset.key)" data-key='+job.fbKey+'>'
+        +'<div style="font-size:11px;font-weight:500;color:var(--text)">'+(job.prop||'—')+(chase?' <span style="color:var(--red-text)">⚠'+days+'d</span>':'')+'</div>'
+        +'<div style="font-size:10px;color:var(--text2);margin-top:2px">'+(job.issue||'—')+'</div>'
+        +'<div style="font-size:10px;color:var(--text3);margin-top:4px">'+(getContractor(job.contractorId).name||'No contractor')+(job.quote?' · '+fmtCurrency(job.quote):'')+'</div>'
+        +'</div>';
+    });
+    if(!colJobs.length) html+='<div style="font-size:11px;color:var(--text3);text-align:center;padding:16px 0">No jobs</div>';
+    el.innerHTML=html;
+  });
+}
+
+// ─── RENDER BY CONTRACTOR ────────────────────────────────────────────────────
+function renderByContractor(){
+  var filtered=getFilteredJobs().filter(function(j){ return j.status!=='Complete'; });
+  var container=document.getElementById('contractor-groups');
+  if(!container) return;
+  var groups={};
+  filtered.forEach(function(job){
+    var cid=job.contractorId||'none';
+    if(!groups[cid]) groups[cid]=[];
+    groups[cid].push(job);
+  });
+  var html='';
+  Object.keys(groups).forEach(function(cid){
+    var c=getContractor(cid);
+    var jobList=groups[cid];
+    var chaseCount=jobList.filter(needsChase).length;
+    var totalQ=jobList.reduce(function(s,j){ return s+(parseFloat(j.quote)||0); },0);
+    html+='<div class="card" style="margin-bottom:10px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+      +'<div><div style="font-size:13px;font-weight:500;color:var(--text)">'+c.name+'</div>'
+      +'<div style="font-size:10px;color:var(--text2);margin-top:1px">'+c.trade+(c.phone?' · '+c.phone:'')+'</div></div>'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+      +(chaseCount?'<span class="badge badge-red">'+chaseCount+' chase'+( chaseCount>1?'s':'')+'</span>':'')
+      +'<span class="badge badge-grey">'+jobList.length+' job'+(jobList.length!==1?'s':'')+'</span>'
+      +(totalQ?'<span class="badge badge-amber">'+fmtCurrency(totalQ)+' quoted</span>':'')
+      +(c.phone?'<a href="https://wa.me/44'+c.phone.replace(/^0/,'').replace(/\s/g,'')+'" target="_blank" class="btn btn-sm" style="background:#25D366;color:#fff">WhatsApp</a>':'')
+      +'</div></div>';
+    jobList.forEach(function(job){
+      var chase=needsChase(job);
+      var days=chase?daysSince(job.lastActionDate||job.dateLogged):0;
+      html+='<div style="padding:8px 10px;background:var(--bg);border-radius:6px;margin-bottom:4px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="openJobDetail(this.dataset.key)" data-key='+job.fbKey+'>'
+        +'<div style="flex:1"><div style="font-size:11px;font-weight:500;color:var(--text)">'+(job.prop||'—')+(chase?' <span style="color:var(--red-text)">⚠'+days+'d</span>':'')+'</div>'
+        +'<div style="font-size:10px;color:var(--text2)">'+(job.issue||'—')+'</div></div>'
+        +'<span class="badge '+statusPillClass(job.status)+'">'+(job.status||'—')+'</span>'
+        +(job.quote?'<span style="font-size:10px;color:var(--amber-text)">'+fmtCurrency(job.quote)+'</span>':'')
+        +'</div>';
+    });
+    html+='</div>';
+  });
+  if(!html) html='<div style="text-align:center;padding:40px;color:var(--text3)">No open jobs</div>';
+  container.innerHTML=html;
+}
+
+// ─── RENDER MAINTENANCE PAGE ──────────────────────────────────────────────────
+function renderMaintenancePage(){
+  populateContractorDropdowns();
+  populatePropDatalist();
+  if(currentView==='list') renderJobsList();
+  else if(currentView==='kanban') renderKanban();
+  else renderByContractor();
+}
+
+// ─── JOB DETAIL ──────────────────────────────────────────────────────────────
+function openJobDetail(fbKey){
+  var job=jobs.find(function(j){ return j.fbKey===fbKey; });
+  if(!job) return;
+  currentJobIdx=fbKey;
+  var c=getContractor(job.contractorId);
+  // Build WA message
+  var waMsg='Hi '+c.name+', could you please attend to the following:%0A%0AProperty: '+(job.prop||'—')+'%0AIssue: '+(job.issue||'—')+'%0ATenant: '+(job.tenant||'—')+'%0AAccess: '+(job.access||'—')+'%0A%0AThank you — Pickwick Estates';
+  var waLink=c.phone?'https://wa.me/44'+c.phone.replace(/^0/,'').replace(/\s/g,'')+'?text='+waMsg:'#';
+
+  document.getElementById('jd-title').textContent=job.prop||'Job detail';
+  document.getElementById('jd-wo').textContent='Logged: '+(job.dateLogged||'—')+(job.woRef?' · '+job.woRef:'');
+
+  // Details tab
+  document.getElementById('jd-details').innerHTML=
+    '<div class="grid-2" style="gap:8px;margin-bottom:14px">'
+    +'<div><div style="font-size:10px;color:var(--text2)">Status</div><span class="badge '+statusPillClass(job.status)+'">'+(job.status||'—')+'</span></div>'
+    +'<div><div style="font-size:10px;color:var(--text2)">Category</div><div style="font-size:12px">'+(job.category||'—')+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--text2)">Tenant</div><div style="font-size:12px">'+(job.tenant||'—')+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--text2)">Tenant phone</div><div style="font-size:12px">'+(job.tenantPhone||'—')+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--text2)">Quote</div><div style="font-size:12px;color:var(--amber-text)">'+(job.quote?fmtCurrency(job.quote):'—')+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--text2)">Invoice</div><div style="font-size:12px;color:var(--green-text)">'+(job.invoice?fmtCurrency(job.invoice):'—')+'</div></div>'
+    +'</div>'
+    +'<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Issue</div><div style="font-size:12px;padding:8px;background:var(--bg);border-radius:6px">'+(job.issue||'—')+'</div></div>'
+    +(job.access?'<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Access</div><div style="font-size:12px;padding:8px;background:var(--bg);border-radius:6px">'+job.access+'</div></div>':'')
+    +(job.notes?'<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Notes</div><div style="font-size:12px;padding:8px;background:var(--bg);border-radius:6px">'+job.notes+'</div></div>':'')
+    +(job.photoLink?'<div style="margin-bottom:14px"><a href="'+job.photoLink+'" target="_blank" class="btn btn-outline btn-sm">View photo / Drive link</a></div>':'')
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+    +(c.phone?'<a href="'+waLink+'" target="_blank" class="btn btn-sm" style="background:#25D366;color:#fff">WhatsApp '+c.name+'</a>':'')
+    +(c.phone?'<a href="tel:'+c.phone+'" class="btn btn-outline btn-sm">Call '+c.phone+'</a>':'')
+    +(c.email?'<a href="mailto:'+c.email+'?subject=Job at '+(job.prop||'property')+'" class="btn btn-outline btn-sm">Email</a>':'')
+    +'<button class="btn btn-outline btn-sm" onclick="copyJobMsg()">Copy message</button>'
+    +'</div>';
+
+  // Chase log tab
+  var log=job.chaseLog||[];
+  var logHtml=log.length?'':'<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">No chase entries yet</div>';
+  log.slice().reverse().forEach(function(entry){
+    logHtml+='<div style="padding:8px 10px;background:var(--bg);border-radius:6px;margin-bottom:6px">'
+      +'<div style="font-size:10px;color:var(--text3)">'+(entry.date||'—')+'</div>'
+      +'<div style="font-size:12px;margin-top:3px">'+(entry.note||'—')+'</div>'
+      +'</div>';
+  });
+  document.getElementById('jd-log').innerHTML=logHtml;
+
+  // Contractor tab
+  document.getElementById('jd-contractor-tab').innerHTML=
+    '<div style="padding:12px;background:var(--bg);border-radius:8px">'
+    +'<div style="font-size:14px;font-weight:500;margin-bottom:6px">'+c.name+'</div>'
+    +'<div style="font-size:12px;color:var(--text2);margin-bottom:8px">'+c.trade+'</div>'
+    +(c.phone?'<div style="font-size:12px;margin-bottom:4px">📞 '+c.phone+(c.phone2?' / '+c.phone2:'')+'</div>':'')
+    +(c.email?'<div style="font-size:12px;margin-bottom:12px">✉ '+c.email+'</div>':'')
+    +(c.phone?'<a href="https://wa.me/44'+c.phone.replace(/^0/,'').replace(/\s/g,'')+'" target="_blank" class="btn btn-sm" style="background:#25D366;color:#fff;margin-right:6px">WhatsApp</a>':'')
+    +(c.phone?'<a href="tel:'+c.phone+'" class="btn btn-outline btn-sm">Call</a>':'')
+    +'</div>';
+
+  switchJdTab('details', document.querySelector('#jd-tabs .jd-tab'));
+  openModal('job-detail-modal');
+}
+
+function switchJdTab(tab, btn){
+  document.getElementById('jd-details').style.display=tab==='details'?'block':'none';
+  document.getElementById('jd-log').style.display=tab==='log'?'block':'none';
+  document.getElementById('jd-contractor-tab').style.display=tab==='contractor'?'block':'none';
+  document.querySelectorAll('.jd-tab').forEach(function(b){
+    b.style.borderBottom=b===btn?'2px solid var(--navy)':'2px solid transparent';
+    b.style.color=b===btn?'var(--navy)':'var(--text2)';
+    b.style.fontWeight=b===btn?'500':'400';
+  });
+}
+
+function copyJobMsg(){
+  var job=jobs.find(function(j){ return j.fbKey===currentJobIdx; });
+  if(!job) return;
+  var c=getContractor(job.contractorId);
+  var msg='Hi '+c.name+', could you please attend to the following:\n\nProperty: '+(job.prop||'—')+'\nIssue: '+(job.issue||'—')+'\nTenant: '+(job.tenant||'—')+'\nAccess: '+(job.access||'—')+'\n\nThank you — Pickwick Estates';
+  navigator.clipboard.writeText(msg).then(function(){ showToast('Message copied'); });
+}
+
+function openEditFromDetail(){
+  closeModal('job-detail-modal');
+  openEditJobModal(currentJobIdx);
+}
+
+// ─── ADD JOB ─────────────────────────────────────────────────────────────────
+function openAddJobModal(){
+  populatePropDatalist();
+  populateContractorDropdowns();
+  ['aj-prop','aj-tenant','aj-phone','aj-issue','aj-access','aj-notes','aj-photo'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  ['aj-quote','aj-invoice'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  openModal('add-job-modal');
+}
+
+function saveNewJob(){
+  var prop=document.getElementById('aj-prop').value.trim();
+  var issue=document.getElementById('aj-issue').value.trim();
+  if(!prop||!issue){ showToast('Property and issue are required'); return; }
+  var now=new Date();
+  var dateStr=('0'+now.getDate()).slice(-2)+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+now.getFullYear();
+  var job={
+    prop:prop, issue:issue,
+    tenant:document.getElementById('aj-tenant').value,
+    tenantPhone:document.getElementById('aj-phone').value,
+    contractorId:document.getElementById('aj-contractor').value,
+    category:document.getElementById('aj-category').value,
+    status:document.getElementById('aj-status').value,
+    access:document.getElementById('aj-access').value,
+    notes:document.getElementById('aj-notes').value,
+    quote:document.getElementById('aj-quote').value||null,
+    invoice:document.getElementById('aj-invoice').value||null,
+    photoLink:document.getElementById('aj-photo').value,
+    dateLogged:dateStr, lastActionDate:dateStr, chaseLog:[]
+  };
+  fbPush('jobs', job, function(key){
+    job.fbKey=key;
+    jobs.push(job);
+    closeModal('add-job-modal');
+    renderMaintenancePage();
+    renderDashJobs();
+    renderChaseStrip();
+    renderStatCards();
+    showToast('Job saved');
+  });
+}
+
+// ─── EDIT JOB ────────────────────────────────────────────────────────────────
+function openEditJobModal(fbKey){
+  var key=fbKey||currentJobIdx;
+  var job=jobs.find(function(j){ return j.fbKey===key; });
+  if(!job) return;
+  currentJobIdx=key;
+  populatePropDatalist();
+  populateContractorDropdowns();
+  function setVal(id,val){ var el=document.getElementById(id); if(el) el.value=val||''; }
+  setVal('ej-prop',job.prop); setVal('ej-tenant',job.tenant); setVal('ej-phone',job.tenantPhone);
+  setVal('ej-issue',job.issue); setVal('ej-access',job.access); setVal('ej-notes',job.notes);
+  setVal('ej-quote',job.quote); setVal('ej-invoice',job.invoice); setVal('ej-photo',job.photoLink);
+  var statusEl=document.getElementById('ej-status'); if(statusEl) statusEl.value=job.status||'';
+  var catEl=document.getElementById('ej-category'); if(catEl) catEl.value=job.category||'';
+  var cEl=document.getElementById('ej-contractor'); if(cEl) cEl.value=job.contractorId||'';
+  document.getElementById('ej-sub').textContent=job.prop||'';
+  openModal('edit-job-modal');
+}
+
+function saveEditJob(){
+  var job=jobs.find(function(j){ return j.fbKey===currentJobIdx; });
+  if(!job) return;
+  job.prop=document.getElementById('ej-prop').value;
+  job.tenant=document.getElementById('ej-tenant').value;
+  job.tenantPhone=document.getElementById('ej-phone').value;
+  job.contractorId=document.getElementById('ej-contractor').value;
+  job.category=document.getElementById('ej-category').value;
+  job.status=document.getElementById('ej-status').value;
+  job.issue=document.getElementById('ej-issue').value;
+  job.access=document.getElementById('ej-access').value;
+  job.notes=document.getElementById('ej-notes').value;
+  job.quote=document.getElementById('ej-quote').value||null;
+  job.invoice=document.getElementById('ej-invoice').value||null;
+  job.photoLink=document.getElementById('ej-photo').value;
+  var now=new Date();
+  job.lastActionDate=('0'+now.getDate()).slice(-2)+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+now.getFullYear();
+  fbSet('jobs/'+currentJobIdx, job, function(){
+    closeModal('edit-job-modal');
+    renderMaintenancePage();
+    renderDashJobs();
+    renderStatCards();
+    showToast('Job updated');
+  });
+}
+
+function deleteJob(){
+  if(!confirm('Delete this job? This cannot be undone.')) return;
+  fbDelete('jobs/'+currentJobIdx, function(){
+    jobs=jobs.filter(function(j){ return j.fbKey!==currentJobIdx; });
+    closeModal('edit-job-modal');
+    closeModal('job-detail-modal');
+    renderMaintenancePage();
+    renderDashJobs();
+    renderStatCards();
+    showToast('Job deleted');
+  });
+}
+
+// ─── CHASE ───────────────────────────────────────────────────────────────────
+function openChaseModal(){
+  var job=jobs.find(function(j){ return j.fbKey===currentJobIdx; });
+  document.getElementById('chase-sub').textContent=job?job.prop:'';
+  document.getElementById('chase-note').value='';
+  openModal('chase-modal');
+}
+
+function saveChase(){
+  var note=document.getElementById('chase-note').value.trim();
+  if(!note){ showToast('Please enter a chase note'); return; }
+  var job=jobs.find(function(j){ return j.fbKey===currentJobIdx; });
+  if(!job) return;
+  var now=new Date();
+  var dateStr=('0'+now.getDate()).slice(-2)+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+now.getFullYear()+' '+('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);
+  if(!job.chaseLog) job.chaseLog=[];
+  job.chaseLog.push({date:dateStr,note:note});
+  job.lastActionDate=('0'+now.getDate()).slice(-2)+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+now.getFullYear();
+  job.lastChased=dateStr;
+  fbSet('jobs/'+currentJobIdx, job, function(){
+    closeModal('chase-modal');
+    renderChaseStrip();
+    renderMaintenancePage();
+    showToast('Chase logged');
+  });
+}
+
+// ─── BULK ACTIONS ─────────────────────────────────────────────────────────────
+function getSelectedKeys(){
+  return Array.from(document.querySelectorAll('.job-checkbox:checked')).map(function(cb){ return cb.dataset.key; });
+}
+function updateBulkBar(){
+  var sel=getSelectedKeys();
+  var bar=document.getElementById('bulk-bar');
+  var count=document.getElementById('bulk-count');
+  if(sel.length>0){
+    if(bar){ bar.style.display='flex'; }
+    if(count) count.textContent=sel.length+' job'+(sel.length!==1?'s':'')+' selected';
+  } else {
+    if(bar) bar.style.display='none';
+  }
+}
+function clearBulkSelect(){
+  document.querySelectorAll('.job-checkbox').forEach(function(cb){ cb.checked=false; });
+  var all=document.getElementById('job-select-all'); if(all) all.checked=false;
+  updateBulkBar();
+}
+function toggleSelectAll(checked){
+  document.querySelectorAll('.job-checkbox').forEach(function(cb){ cb.checked=checked; });
+  updateBulkBar();
+}
+function bulkMarkComplete(){
+  var keys=getSelectedKeys();
+  if(!keys.length) return;
+  var now=new Date();
+  var dateStr=('0'+now.getDate()).slice(-2)+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+now.getFullYear();
+  keys.forEach(function(key){
+    var job=jobs.find(function(j){ return j.fbKey===key; });
+    if(job){ job.status='Complete'; job.lastActionDate=dateStr; fbSet('jobs/'+key,job); }
+  });
+  clearBulkSelect();
+  renderMaintenancePage();
+  renderStatCards();
+  showToast(keys.length+' job'+(keys.length!==1?'s':'')+' marked complete');
+}
+function bulkDelete(){
+  var keys=getSelectedKeys();
+  if(!keys.length) return;
+  if(!confirm('Delete '+keys.length+' job'+(keys.length!==1?'s':'')+' ? This cannot be undone.')) return;
+  keys.forEach(function(key){
+    fbDelete('jobs/'+key);
+    jobs=jobs.filter(function(j){ return j.fbKey!==key; });
+  });
+  clearBulkSelect();
+  renderMaintenancePage();
+  renderStatCards();
+  showToast(keys.length+' job'+(keys.length!==1?'s':'')+' deleted');
+}
+function bulkWhatsApp(){ showToast('Select individual jobs to WhatsApp contractors'); }
+
+// ─── WIRE UP showPage FOR MAINTENANCE ────────────────────────────────────────
+var _origShowPage=showPage;
+showPage=function(id,btn){
+  _origShowPage(id,btn);
+  if(id==='maintenance'){
+    populateContractorDropdowns();
+    populatePropDatalist();
+    // Apply any pending filter from dashboard
+    if(window._pendingFilter){
+      var sf=document.getElementById('maint-status-filter');
+      var pf=window._pendingFilter;
+      if(sf){
+        if(pf==='overdue') sf.value='Overdue';
+        else if(pf==='awaiting-contractor') sf.value='Awaiting contractor';
+        else if(pf==='awaiting-approval') sf.value='Awaiting approval';
+        else if(pf==='chase') sf.value='chase';
+        else sf.value='';
+      }
+      window._pendingFilter=null;
+    }
+    renderMaintenancePage();
+  }
+};
+
 </script>
 </body>
 </html>
