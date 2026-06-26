@@ -565,23 +565,149 @@ select.field-input{cursor:pointer}
     </div>
 
     <div id="page-contractors" class="page">
-      <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);font-size:13px">Contractors loading...</div>
+      <!-- Summary strip -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px" id="cont-summary-strip">
+        <div class="card"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Total contractors</div><div style="font-size:20px;font-weight:500;color:var(--navy)" id="cs-total">—</div></div>
+        <div class="card"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Total jobs logged</div><div style="font-size:20px;font-weight:500;color:var(--navy)" id="cs-jobs">—</div></div>
+        <div class="card"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Total quoted</div><div style="font-size:20px;font-weight:500;color:var(--amber-text)" id="cs-quoted">—</div></div>
+        <div class="card"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Total invoiced</div><div style="font-size:20px;font-weight:500;color:var(--green-text)" id="cs-invoiced">—</div></div>
+      </div>
+      <div class="ops-bar">
+        <input class="search-bar" id="cont-search" placeholder="Search by name, trade, phone or email..." oninput="filterContractors()">
+        <button class="btn btn-navy" onclick="openAddContractorModal()">+ Add contractor</button>
+      </div>
+      <div id="contractor-cards"></div>
     </div>
 
     <div id="page-pasttenants" class="page">
-      <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);font-size:13px">Past tenants loading...</div>
+      <div class="ops-bar">
+        <input class="search-bar" id="pt-search" placeholder="Search address, tenant, landlord..." oninput="filterPastTenants()">
+        <button class="btn btn-navy" onclick="openAddPastTenantModal()">+ Add record</button>
+      </div>
+      <div class="filter-pills" id="pt-filter-pills">
+        <div class="filter-pill active" onclick="setPtFilter('all',this)">All</div>
+        <div class="filter-pill" onclick="setPtFilter('dispute',this)">Deposit disputes</div>
+        <div class="filter-pill" onclick="setPtFilter('utility',this)">Utility disputes</div>
+        <div class="filter-pill" onclick="setPtFilter('eviction',this)">Evictions</div>
+      </div>
+      <div class="two-col-wide">
+        <div>
+          <div id="pt-cards"></div>
+          <div id="pt-count" style="font-size:11px;color:var(--text3);margin-top:6px;text-align:right"></div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:10px">
+            <div class="card-title">Summary</div>
+            <div id="pt-summary"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Recent departures</div>
+            <div id="pt-recent"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="page-reports" class="page">
-      <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);font-size:13px">Reports loading...</div>
+      <div class="two-col-wide" style="grid-template-columns:280px 1fr">
+        <div>
+          <div class="card" style="margin-bottom:10px">
+            <div class="card-title">Reports</div>
+            <div id="report-cards"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Import / Export</div>
+            <div id="import-export-panel"></div>
+          </div>
+        </div>
+        <div>
+          <div class="card" id="report-preview-card" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div class="card-title" id="rp-title" style="margin-bottom:0">Report</div>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-outline btn-sm" onclick="exportReportCSV()">Export CSV</button>
+                <button class="btn btn-outline btn-sm" onclick="closeReport()">Close</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+              <input class="search-bar" id="rp-search" placeholder="Filter results..." oninput="filterReportTable()" style="flex:1">
+            </div>
+            <div style="overflow-x:auto;max-height:520px;overflow-y:auto">
+              <table class="tbl" id="rp-table"><thead id="rp-thead"></thead><tbody id="rp-tbody"></tbody></table>
+            </div>
+            <div id="rp-count" style="font-size:11px;color:var(--text3);margin-top:6px"></div>
+          </div>
+          <div id="report-placeholder" style="display:flex;align-items:center;justify-content:center;height:300px;color:var(--text3);font-size:12px">
+            Select a report to preview
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="page-activity" class="page">
-      <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);font-size:13px">Activity log loading...</div>
+      <div class="ops-bar">
+        <input class="search-bar" id="act-search" placeholder="Search activity log..." oninput="filterActivity()">
+        <button class="btn btn-outline btn-sm" onclick="exportActivity()">Export CSV</button>
+        <button class="btn btn-red btn-sm" onclick="clearActivity()">Clear log</button>
+      </div>
+      <div class="two-col-wide">
+        <div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <table class="tbl">
+              <thead><tr><th>Time</th><th>Action</th><th>Detail</th><th>Property / Contact</th></tr></thead>
+              <tbody id="act-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-title">Activity summary</div>
+            <div id="act-summary"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="page-settings" class="page">
-      <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);font-size:13px">Settings loading...</div>
+      <div class="grid-2" style="gap:12px">
+        <div>
+          <div class="card" style="margin-bottom:12px">
+            <div class="card-title">Agency settings</div>
+            <div class="field-group"><label class="field-label">Agency name</label><input class="field-input" id="s-agency" value="Pickwick Estates"></div>
+            <div class="field-group"><label class="field-label">Phone</label><input class="field-input" id="s-phone" value="020 3397 1144 / 020 3397 1166"></div>
+            <div class="field-group"><label class="field-label">Email</label><input class="field-input" id="s-email" value="maintenance@pickwickestates.com"></div>
+            <button class="btn btn-navy btn-sm" onclick="saveAgencySettings()">Save settings</button>
+          </div>
+          <div class="card">
+            <div class="card-title">Single job WhatsApp / Email template</div>
+            <div style="font-size:10px;color:var(--text2);margin-bottom:8px">Tokens: {agency} {property} {issue} {tenant} {access} {notes} {tenantPhone}</div>
+            <textarea class="field-input" id="t-single" rows="8" style="font-size:11px;font-family:monospace"></textarea>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <button class="btn btn-navy btn-sm" onclick="saveTemplate('single')">Save</button>
+              <button class="btn btn-outline btn-sm" onclick="resetTemplate('single')">Reset to default</button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:12px">
+            <div class="card-title">Bulk jobs template</div>
+            <div style="font-size:10px;color:var(--text2);margin-bottom:8px">Per-job tokens: {n} {property} {issue} {status} {tenant} {tenantPhone} {access} {notes}</div>
+            <textarea class="field-input" id="t-bulk" rows="8" style="font-size:11px;font-family:monospace"></textarea>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <button class="btn btn-navy btn-sm" onclick="saveTemplate('bulk')">Save</button>
+              <button class="btn btn-outline btn-sm" onclick="resetTemplate('bulk')">Reset to default</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Contractor job log template</div>
+            <textarea class="field-input" id="t-contlog" rows="8" style="font-size:11px;font-family:monospace"></textarea>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <button class="btn btn-navy btn-sm" onclick="saveTemplate('contlog')">Save</button>
+              <button class="btn btn-outline btn-sm" onclick="resetTemplate('contlog')">Reset to default</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -634,6 +760,68 @@ select.field-input{cursor:pointer}
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('add-prop-modal')">Cancel</button>
       <button class="btn btn-navy" onclick="saveNewProp()">Add property</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTRACTOR JOB LOG MODAL -->
+<div class="modal-overlay" id="cont-jobs-modal">
+  <div class="modal modal-lg">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div><div class="modal-title" id="cj-title"></div><div style="font-size:11px;color:var(--text3)" id="cj-sub"></div></div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-outline btn-sm" onclick="exportContractorJobs()">Export CSV</button>
+        <button class="btn btn-outline btn-sm" onclick="copyContractorLog()">Copy log</button>
+        <button class="btn btn-outline btn-sm" onclick="closeModal('cont-jobs-modal')">Close</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
+      <table class="tbl"><thead><tr><th>Property</th><th>Issue</th><th>Category</th><th>Status</th><th>Quote</th><th>Invoice</th><th>Date</th></tr></thead>
+      <tbody id="cj-tbody"></tbody></table>
+    </div>
+    <div id="cj-totals" style="margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border);display:flex;gap:16px"></div>
+  </div>
+</div>
+
+<!-- ADD/EDIT CONTRACTOR MODAL -->
+<div class="modal-overlay" id="edit-cont-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title" id="ec-title">Add contractor</div>
+    <div class="field-group"><label class="field-label">Name *</label><input class="field-input" id="ec-name"></div>
+    <div class="field-group"><label class="field-label">Trade / Speciality</label><input class="field-input" id="ec-trade"></div>
+    <div class="field-group"><label class="field-label">Phone</label><input class="field-input" id="ec-phone"></div>
+    <div class="field-group"><label class="field-label">Phone 2</label><input class="field-input" id="ec-phone2"></div>
+    <div class="field-group"><label class="field-label">Email</label><input class="field-input" id="ec-email" type="email"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('edit-cont-modal')">Cancel</button>
+      <button class="btn btn-navy" onclick="saveContractor()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAST TENANT MODAL -->
+<div class="modal-overlay" id="past-tenant-modal">
+  <div class="modal modal-lg">
+    <div class="modal-title" id="pt-modal-title">Past tenant record</div>
+    <div class="modal-sub" id="pt-modal-sub"></div>
+    <div class="grid-2">
+      <div class="field-group"><label class="field-label">Address</label><input class="field-input" id="ptm-address"></div>
+      <div class="field-group"><label class="field-label">Tenant name</label><input class="field-input" id="ptm-tenant"></div>
+      <div class="field-group"><label class="field-label">Tenancy start</label><input class="field-input" id="ptm-start" placeholder="dd/mm/yyyy"></div>
+      <div class="field-group"><label class="field-label">Tenancy end</label><input class="field-input" id="ptm-end" placeholder="dd/mm/yyyy"></div>
+      <div class="field-group"><label class="field-label">Reason for leaving</label><select class="field-input" id="ptm-reason"><option>Tenancy ended</option><option>Mutual agreement</option><option>Eviction</option><option>Abandoned</option><option>Other</option></select></div>
+      <div class="field-group"><label class="field-label">Deposit return status</label><select class="field-input" id="ptm-depstatus"><option>Returned in full</option><option>Deductions made</option><option>Dispute raised</option><option>Pending</option></select></div>
+      <div class="field-group"><label class="field-label">Deductions (£)</label><input class="field-input" id="ptm-deductions" type="number" placeholder="0"></div>
+      <div class="field-group"><label class="field-label">Landlord</label><input class="field-input" id="ptm-landlord"></div>
+      <div class="field-group"><label class="field-label">Monthly rent</label><input class="field-input" id="ptm-rent" type="number"></div>
+      <div class="field-group"><label class="field-label">Utility handover date</label><input class="field-input" id="ptm-utility" placeholder="dd/mm/yyyy"></div>
+      <div class="field-group" style="grid-column:1/-1"><label class="field-label">Notes</label><textarea class="field-input" id="ptm-notes" rows="2"></textarea></div>
+      <div class="field-group" style="grid-column:1/-1"><label class="field-label">Utility dispute notes</label><textarea class="field-input" id="ptm-utilitynotes" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-red btn-sm" id="ptm-delete-btn" onclick="deletePastTenant()" style="display:none">Delete</button>
+      <button class="btn btn-outline" onclick="closeModal('past-tenant-modal')">Cancel</button>
+      <button class="btn btn-navy" onclick="savePastTenant()">Save record</button>
     </div>
   </div>
 </div>
@@ -2618,6 +2806,664 @@ var _spDep = showPage;
 showPage = function(id, btn){
   _spDep(id, btn);
   if(id === 'deposits') renderDepTable();
+};
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONTRACTORS
+// ═══════════════════════════════════════════════════════════════════════════════
+var editingContractorId = null;
+var viewingContractorId = null;
+var customContractors = []; // additional contractors from Firebase
+
+function getAllContractors(){
+  // Merge base CONTRACTORS with any added via Firebase
+  var all = CONTRACTORS.slice();
+  customContractors.forEach(function(c){
+    if(!all.find(function(a){ return a.id===c.id; })) all.push(c);
+  });
+  return all;
+}
+
+function filterContractors(){ renderContractors(); }
+
+function renderContractors(){
+  var search = (document.getElementById('cont-search')||{}).value||''.toLowerCase();
+  var all = getAllContractors();
+  var filtered = all.filter(function(c){
+    if(!search) return true;
+    return (c.name+c.trade+c.phone+c.email).toLowerCase().includes(search);
+  });
+
+  // Summary strip
+  var totalQ=0, totalI=0, totalJ=0;
+  all.forEach(function(c){
+    var cJobs = jobs.filter(function(j){ return j.contractorId===c.id; });
+    totalJ += cJobs.length;
+    totalQ += cJobs.reduce(function(s,j){ return s+(parseFloat(j.quote)||0); },0);
+    totalI += cJobs.reduce(function(s,j){ return s+(parseFloat(j.invoice)||0); },0);
+  });
+  function set(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; }
+  set('cs-total', all.length);
+  set('cs-jobs', totalJ);
+  set('cs-quoted', '£'+totalQ.toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:0}));
+  set('cs-invoiced', '£'+totalI.toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:0}));
+
+  var avatarColors = ['#EEF3FA','#FFF0F0','#F0FFF4','#F5F0FF','#FFF8F0','#F0F8FF','#FFF0F8','#F0FFF8','#FFFFF0'];
+  var textColors   = ['#1E3A5F','#993C1D','#3B6D11','#534AB7','#854F0B','#185FA5','#993C1D','#1E3A5F','#854F0B'];
+
+  var container = document.getElementById('contractor-cards');
+  if(!container) return;
+  if(!filtered.length){ container.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3)">No contractors found</div>'; return; }
+
+  var html = '';
+  filtered.forEach(function(c, ci){
+    var cJobs = jobs.filter(function(j){ return j.contractorId===c.id; });
+    var quoted  = cJobs.reduce(function(s,j){ return s+(parseFloat(j.quote)||0); },0);
+    var invoiced= cJobs.reduce(function(s,j){ return s+(parseFloat(j.invoice)||0); },0);
+    var outstanding = Math.max(0, quoted - invoiced);
+    var initials = c.name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+    var bg = avatarColors[ci % avatarColors.length];
+    var tc = textColors[ci % textColors.length];
+    var phoneClean = c.phone?c.phone.replace(/^0/,'').replace(/ /g,''):'';
+
+    html += '<div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:14px">'
+      +'<div style="width:40px;height:40px;border-radius:50%;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:'+tc+';flex-shrink:0">'+initials+'</div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+      +'<div style="font-size:13px;font-weight:500;color:var(--text)">'+c.name+'</div>'
+      +'<span class="badge badge-grey">'+cJobs.length+' jobs</span>'
+      +'</div>'
+      +'<div style="font-size:10px;color:var(--text2);margin-top:2px">'+c.trade+'</div>'
+      +'<div style="font-size:10px;color:var(--text3);margin-top:1px">'+(c.phone||'')+(c.phone&&c.email?' · ':'')+( c.email||'')+'</div>'
+      +'<div style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap">'
+      +(quoted?'<span style="background:var(--amber-bg);color:var(--amber-text);font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px"><span style="opacity:0.7;font-size:9px">Quoted </span>'+fmtCurrency(quoted)+'</span>':'')
+      +(invoiced?'<span style="background:var(--green-bg);color:var(--green-text);font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px"><span style="opacity:0.7;font-size:9px">Invoiced </span>'+fmtCurrency(invoiced)+'</span>':'')
+      +(outstanding?'<span style="background:var(--red-bg);color:var(--red-text);font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px"><span style="opacity:0.7;font-size:9px">Outstanding </span>'+fmtCurrency(outstanding)+'</span>':'')
+      +'</div>'
+      +'</div>'
+      +'<div style="display:flex;gap:5px;flex-shrink:0;align-items:center">'
+      +(phoneClean?'<a href="https://wa.me/44'+phoneClean+'" target="_blank" style="width:28px;height:28px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:14px">💬</a>':'')
+      +(c.phone?'<a href="tel:'+c.phone+'" style="width:28px;height:28px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:13px">📞</a>':'')
+      +(c.email?'<a href="mailto:'+c.email+'" style="width:28px;height:28px;border-radius:50%;background:var(--bg);border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:13px">✉</a>':'')
+      +'<div style="width:0.5px;height:24px;background:var(--border);margin:0 2px"></div>'
+      +'<button class="btn btn-navy btn-sm" onclick="openContractorJobs(\'' + c.id + '\')">View jobs</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="openEditContractor(\'' + c.id + '\')">Edit</button>'
+      +'<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red-text)" onclick="deleteContractor(\'' + c.id + '\')">Delete</button>'
+      +'</div>'
+      +'</div>';
+  });
+  container.innerHTML = html;
+}
+
+function openContractorJobs(cid){
+  viewingContractorId = cid;
+  var c = getContractor(cid);
+  var cJobs = jobs.filter(function(j){ return j.contractorId===cid; });
+  document.getElementById('cj-title').textContent = c.name;
+  var q=cJobs.reduce(function(s,j){return s+(parseFloat(j.quote)||0);},0);
+  var i=cJobs.reduce(function(s,j){return s+(parseFloat(j.invoice)||0);},0);
+  document.getElementById('cj-sub').textContent = cJobs.length+' jobs · Quoted: '+fmtCurrency(q)+' · Invoiced: '+fmtCurrency(i);
+  var html='';
+  cJobs.forEach(function(job){
+    html+='<tr><td style="font-size:11px">'+(job.prop||'—')+'</td>'
+      +'<td style="font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(job.issue||'—')+'</td>'
+      +'<td style="font-size:11px">'+(job.category||'—')+'</td>'
+      +'<td><span class="badge '+statusPillClass(job.status)+'">'+(job.status||'—')+'</span></td>'
+      +'<td style="font-size:11px;color:var(--amber-text)">'+(job.quote?fmtCurrency(job.quote):'—')+'</td>'
+      +'<td style="font-size:11px;color:var(--green-text)">'+(job.invoice?fmtCurrency(job.invoice):'—')+'</td>'
+      +'<td style="font-size:10px;color:var(--text3)">'+(job.dateLogged||'—')+'</td>'
+      +'</tr>';
+  });
+  document.getElementById('cj-tbody').innerHTML = html||'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">No jobs logged</td></tr>';
+  document.getElementById('cj-totals').innerHTML =
+    '<span style="font-size:12px;color:var(--text2)">Jobs: <strong>'+cJobs.length+'</strong></span>'
+    +'<span style="font-size:12px;color:var(--amber-text)">Quoted: <strong>'+fmtCurrency(q)+'</strong></span>'
+    +'<span style="font-size:12px;color:var(--green-text)">Invoiced: <strong>'+fmtCurrency(i)+'</strong></span>'
+    +(q>i?'<span style="font-size:12px;color:var(--red-text)">Outstanding: <strong>'+fmtCurrency(q-i)+'</strong></span>':'');
+  openModal('cont-jobs-modal');
+}
+
+function exportContractorJobs(){
+  var c = getContractor(viewingContractorId);
+  var cJobs = jobs.filter(function(j){ return j.contractorId===viewingContractorId; });
+  var rows = [['Property','Issue','Category','Status','Quote','Invoice','Date']];
+  cJobs.forEach(function(j){ rows.push([j.prop||'',j.issue||'',j.category||'',j.status||'',j.quote||'',j.invoice||'',j.dateLogged||'']); });
+  downloadCSV(rows, c.name.replace(/[^a-z0-9]/gi,'_')+'_jobs.csv');
+}
+
+function copyContractorLog(){
+  var c = getContractor(viewingContractorId);
+  var cJobs = jobs.filter(function(j){ return j.contractorId===viewingContractorId; });
+  var q=cJobs.reduce(function(s,j){return s+(parseFloat(j.quote)||0);},0);
+  var i=cJobs.reduce(function(s,j){return s+(parseFloat(j.invoice)||0);},0);
+  var lines=[c.name+' - Job Log','='.repeat(40),''];
+  cJobs.forEach(function(job,n){
+    lines.push((n+1)+'. '+(job.prop||''));
+    lines.push('   '+(job.issue||''));
+    lines.push('   Status: '+(job.status||'')+(job.quote?' | Quote: '+fmtCurrency(job.quote):'')+(job.invoice?' | Invoice: '+fmtCurrency(job.invoice):''));
+    lines.push('   Date: '+(job.dateLogged||''));
+    lines.push('');
+  });
+  lines.push('TOTALS: Jobs: '+cJobs.length+' | Quoted: '+fmtCurrency(q)+' | Invoiced: '+fmtCurrency(i));
+  var text=lines.join('\n');
+  navigator.clipboard.writeText(text).then(function(){ showToast('Log copied'); });
+}
+
+function openAddContractorModal(){
+  editingContractorId = null;
+  document.getElementById('ec-title').textContent = 'Add contractor';
+  ['ec-name','ec-trade','ec-phone','ec-phone2','ec-email'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  openModal('edit-cont-modal');
+}
+
+function openEditContractor(cid){
+  editingContractorId = cid;
+  var c = getContractor(cid);
+  document.getElementById('ec-title').textContent = 'Edit — '+c.name;
+  document.getElementById('ec-name').value = c.name||'';
+  document.getElementById('ec-trade').value = c.trade||'';
+  document.getElementById('ec-phone').value = c.phone||'';
+  document.getElementById('ec-phone2').value = c.phone2||'';
+  document.getElementById('ec-email').value = c.email||'';
+  openModal('edit-cont-modal');
+}
+
+function saveContractor(){
+  var name = document.getElementById('ec-name').value.trim();
+  if(!name){ showToast('Name is required'); return; }
+  var data = {
+    id: editingContractorId || name.toLowerCase().replace(/[^a-z0-9]/g,'_')+'_'+Date.now(),
+    name: name,
+    trade: document.getElementById('ec-trade').value,
+    phone: document.getElementById('ec-phone').value,
+    phone2: document.getElementById('ec-phone2').value,
+    email: document.getElementById('ec-email').value
+  };
+  if(editingContractorId){
+    var idx = CONTRACTORS.findIndex(function(c){ return c.id===editingContractorId; });
+    if(idx>-1) CONTRACTORS[idx]=data; else { var ci=customContractors.findIndex(function(c){return c.id===editingContractorId;}); if(ci>-1) customContractors[ci]=data; }
+  } else {
+    customContractors.push(data);
+  }
+  fbSet('contractors/'+data.id, data, function(){
+    closeModal('edit-cont-modal');
+    renderContractors();
+    populateContractorDropdowns();
+    showToast(editingContractorId?'Contractor updated':'Contractor added');
+  });
+}
+
+function deleteContractor(cid){
+  if(!confirm('Delete this contractor?')) return;
+  var idx=CONTRACTORS.findIndex(function(c){return c.id===cid;});
+  if(idx>-1) CONTRACTORS.splice(idx,1);
+  var ci=customContractors.findIndex(function(c){return c.id===cid;});
+  if(ci>-1) customContractors.splice(ci,1);
+  fbDelete('contractors/'+cid, function(){ renderContractors(); showToast('Contractor deleted'); });
+}
+
+// Wire showPage for contractors
+var _spCont = showPage;
+showPage = function(id, btn){
+  _spCont(id, btn);
+  if(id==='contractors'){ renderContractors(); }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PAST TENANTS
+// ═══════════════════════════════════════════════════════════════════════════════
+var ptFilter = 'all';
+var editingPtKey = null;
+
+function setPtFilter(f, btn){
+  ptFilter = f;
+  document.querySelectorAll('#pt-filter-pills .filter-pill').forEach(function(p){ p.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  renderPastTenants();
+}
+
+function filterPastTenants(){ renderPastTenants(); }
+
+function renderPastTenants(){
+  var search = (document.getElementById('pt-search')||{}).value||'';
+  search = search.toLowerCase();
+  var filtered = pastTenants.filter(function(p){
+    if(search){
+      var hay=(p.address||'')+' '+(p.tenant||'')+' '+(p.landlord||'');
+      if(!hay.toLowerCase().includes(search)) return false;
+    }
+    if(ptFilter==='all') return true;
+    var r=(p.reason||'').toLowerCase(); var ds=(p.depositStatus||'').toLowerCase(); var un=(p.utilityNotes||'').toLowerCase();
+    if(ptFilter==='dispute') return ds.includes('dispute');
+    if(ptFilter==='utility') return un.length>0;
+    if(ptFilter==='eviction') return r.includes('eviction');
+    return true;
+  });
+
+  var container = document.getElementById('pt-cards');
+  var count = document.getElementById('pt-count');
+  if(count) count.textContent = filtered.length+' record'+(filtered.length!==1?'s':'');
+  if(!container) return;
+
+  if(!filtered.length){
+    container.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3);font-size:12px">No past tenant records found</div>';
+    renderPtSidebar();
+    return;
+  }
+
+  var html='';
+  filtered.forEach(function(p){
+    var ds=(p.depositStatus||'').toLowerCase();
+    var dpill=ds.includes('dispute')?'badge-red':ds.includes('deduction')?'badge-amber':'badge-green';
+    html+='<div class="card" style="margin-bottom:8px">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">'
+      +'<div><div style="font-size:13px;font-weight:500;color:var(--text)">'+(p.address||'—')+'</div>'
+      +'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+(p.tenant||'—')+(p.landlord?' · LL: '+p.landlord:'')+'</div>'
+      +'<div style="font-size:10px;color:var(--text3);margin-top:1px">'+(p.startDate||'—')+' → '+(p.endDate||'—')+(p.rent?' · £'+parseFloat(p.rent).toLocaleString('en-GB')+'/mo':'')+'</div>'
+      +'</div>'
+      +'<div style="display:flex;gap:6px;flex-shrink:0">'
+      +'<span class="badge '+dpill+'">'+(p.depositStatus||'—')+'</span>'
+      +(p.reason==='Eviction'?'<span class="badge badge-red">Eviction</span>':'')
+      +'</div></div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      +(p.deductions?'<span style="font-size:10px;color:var(--amber-text)">Deductions: £'+parseFloat(p.deductions).toLocaleString('en-GB')+'</span>':'')
+      +(p.notes?'<span style="font-size:10px;color:var(--text2)">'+p.notes+'</span>':'')
+      +'</div>'
+      +'<div style="display:flex;gap:6px;margin-top:8px">'
+      +'<button class="btn btn-outline btn-sm" onclick="openEditPastTenant(\'' + p.fbKey + '\')">Edit</button>'
+      +'</div></div>';
+  });
+  container.innerHTML = html;
+  renderPtSidebar();
+}
+
+function renderPtSidebar(){
+  var sumEl=document.getElementById('pt-summary');
+  if(sumEl){
+    var total=pastTenants.length;
+    var disputes=pastTenants.filter(function(p){ return (p.depositStatus||'').toLowerCase().includes('dispute'); }).length;
+    var evictions=pastTenants.filter(function(p){ return (p.reason||'').toLowerCase().includes('eviction'); }).length;
+    sumEl.innerHTML='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border)"><span style="font-size:11px">Total records</span><span class="badge badge-grey">'+total+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border)"><span style="font-size:11px">Deposit disputes</span><span class="badge badge-red">'+disputes+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;padding:5px 0"><span style="font-size:11px">Evictions</span><span class="badge badge-red">'+evictions+'</span></div>';
+  }
+  var recEl=document.getElementById('pt-recent');
+  if(recEl){
+    var recent=pastTenants.slice().sort(function(a,b){ return new Date(b.archivedDate||0)-new Date(a.archivedDate||0); }).slice(0,5);
+    recEl.innerHTML=recent.length?recent.map(function(p){
+      return '<div style="padding:5px 0;border-bottom:0.5px solid var(--border)">'
+        +'<div style="font-size:11px;font-weight:500;color:var(--text)">'+(p.address||'—')+'</div>'
+        +'<div style="font-size:10px;color:var(--text2)">'+(p.tenant||'—')+' · '+(p.endDate||'—')+'</div></div>';
+    }).join(''):'<div style="font-size:11px;color:var(--text3);text-align:center;padding:10px">No records</div>';
+  }
+}
+
+function openAddPastTenantModal(){
+  editingPtKey=null;
+  document.getElementById('pt-modal-title').textContent='Add past tenant record';
+  document.getElementById('ptm-delete-btn').style.display='none';
+  ['ptm-address','ptm-tenant','ptm-start','ptm-end','ptm-deductions','ptm-landlord','ptm-rent','ptm-utility','ptm-notes','ptm-utilitynotes'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  openModal('past-tenant-modal');
+}
+
+function openEditPastTenant(fbKey){
+  var p=pastTenants.find(function(x){ return x.fbKey===fbKey; });
+  if(!p) return;
+  editingPtKey=fbKey;
+  document.getElementById('pt-modal-title').textContent='Edit — '+(p.address||'record');
+  document.getElementById('ptm-delete-btn').style.display='inline-block';
+  document.getElementById('ptm-address').value=p.address||'';
+  document.getElementById('ptm-tenant').value=p.tenant||'';
+  document.getElementById('ptm-start').value=p.startDate||'';
+  document.getElementById('ptm-end').value=p.endDate||'';
+  document.getElementById('ptm-reason').value=p.reason||'Tenancy ended';
+  document.getElementById('ptm-depstatus').value=p.depositStatus||'Returned in full';
+  document.getElementById('ptm-deductions').value=p.deductions||'';
+  document.getElementById('ptm-landlord').value=p.landlord||'';
+  document.getElementById('ptm-rent').value=p.rent||'';
+  document.getElementById('ptm-utility').value=p.utilityHandover||'';
+  document.getElementById('ptm-notes').value=p.notes||'';
+  document.getElementById('ptm-utilitynotes').value=p.utilityNotes||'';
+  openModal('past-tenant-modal');
+}
+
+function savePastTenant(){
+  var now=new Date();
+  var data={
+    address:document.getElementById('ptm-address').value,
+    tenant:document.getElementById('ptm-tenant').value,
+    startDate:document.getElementById('ptm-start').value,
+    endDate:document.getElementById('ptm-end').value,
+    reason:document.getElementById('ptm-reason').value,
+    depositStatus:document.getElementById('ptm-depstatus').value,
+    deductions:document.getElementById('ptm-deductions').value,
+    landlord:document.getElementById('ptm-landlord').value,
+    rent:document.getElementById('ptm-rent').value,
+    utilityHandover:document.getElementById('ptm-utility').value,
+    notes:document.getElementById('ptm-notes').value,
+    utilityNotes:document.getElementById('ptm-utilitynotes').value,
+    archivedDate:now.toISOString()
+  };
+  if(editingPtKey){
+    data.fbKey=editingPtKey;
+    fbSet('pasttenants/'+editingPtKey, data, function(){
+      var idx=pastTenants.findIndex(function(p){return p.fbKey===editingPtKey;});
+      if(idx>-1) pastTenants[idx]=data;
+      closeModal('past-tenant-modal'); renderPastTenants(); showToast('Record updated');
+    });
+  } else {
+    fbPush('pasttenants', data, function(key){
+      data.fbKey=key; pastTenants.push(data);
+      closeModal('past-tenant-modal'); renderPastTenants(); showToast('Record saved');
+    });
+  }
+}
+
+function deletePastTenant(){
+  if(!confirm('Delete this record?')) return;
+  fbDelete('pasttenants/'+editingPtKey, function(){
+    pastTenants=pastTenants.filter(function(p){return p.fbKey!==editingPtKey;});
+    closeModal('past-tenant-modal'); renderPastTenants(); showToast('Record deleted');
+  });
+}
+
+// Wire showPage for past tenants
+var _spPt=showPage;
+showPage=function(id,btn){
+  _spPt(id,btn);
+  if(id==='pasttenants'){
+    fbGet('pasttenants',function(data){
+      pastTenants=[];
+      if(data) Object.keys(data).forEach(function(k){ var p=data[k]; p.fbKey=k; pastTenants.push(p); });
+      renderPastTenants();
+    });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// REPORTS
+// ═══════════════════════════════════════════════════════════════════════════════
+var currentReportData=[], currentReportHeaders=[];
+
+var REPORTS=[
+  {id:'rent_roll',label:'Properties & Rent Roll',color:'#3B6D11',
+   headers:['Address','Tenant','Rent/mo','Start date','Landlord','Deposit','Deposit ID','Deposit status'],
+   rows:function(){ return properties.map(function(p){ return [p.address||'',p.tenant||'',p.rent?'£'+parseFloat(p.rent).toLocaleString('en-GB'):'',p.startDate||'',p.llName||'',p.deposit?'£'+parseFloat(p.deposit).toLocaleString('en-GB'):'',p.depositId||'',p.depositStatus||'']; }); }},
+  {id:'landlords',label:'Landlords — Rent & Fees',color:'#185FA5',
+   headers:['Address','Landlord','LL email','Tenant','Rent/mo','Fee %','Deposit','Deposit ID','Deposit status','Start date'],
+   rows:function(){ return properties.map(function(p){ return [p.address||'',p.llName||'',p.llEmail||'',p.tenant||'',p.rent?'£'+parseFloat(p.rent).toLocaleString('en-GB'):'',p.mgmtFee?p.mgmtFee+'%':'',p.deposit?'£'+parseFloat(p.deposit).toLocaleString('en-GB'):'',p.depositId||'',p.depositStatus||'',p.startDate||'']; }); }},
+  {id:'deposits',label:'Deposit Register',color:'#854F0B',
+   headers:['Address','Tenant','Deposit ID','Amount','Start date','Status'],
+   rows:function(){ return properties.map(function(p){ return [p.address||'',p.tenant||'',p.depositId||'',p.deposit?'£'+parseFloat(p.deposit).toLocaleString('en-GB'):'',p.startDate||'',p.depositStatus||'']; }); }},
+  {id:'gsc',label:'Gas Safety (GSC)',color:'#A32D2D',
+   headers:['Address','Tenant','Landlord','GSC expiry','Days remaining','Status'],
+   rows:function(){ return properties.map(function(p){ var d=p.gsc?daysUntil(p.gsc):null; return [p.address||'',p.tenant||'',p.llName||'',p.gsc||'Not recorded',d!==null?d+'d':'',d===null?'Not recorded':d<0?'OVERDUE':d<=30?'Due soon':'Valid']; }); }},
+  {id:'eicr',label:'Electrical (EICR)',color:'#534AB7',
+   headers:['Address','Tenant','Landlord','EICR expiry','Days remaining','Status'],
+   rows:function(){ return properties.map(function(p){ var d=p.eicr?daysUntil(p.eicr):null; return [p.address||'',p.tenant||'',p.llName||'',p.eicr||'Not recorded',d!==null?d+'d':'',d===null?'Not recorded':d<0?'OVERDUE':d<=30?'Due soon':'Valid']; }); }},
+  {id:'epc',label:'EPC Report',color:'#3B6D11',
+   headers:['Address','Tenant','Landlord','EPC expiry','Days remaining','Status'],
+   rows:function(){ return properties.map(function(p){ var d=p.epc?daysUntil(p.epc):null; return [p.address||'',p.tenant||'',p.llName||'',p.epc||'Not recorded',d!==null?d+'d':'',d===null?'Not recorded':d<0?'OVERDUE':d<=30?'Due soon':'Valid']; }); }},
+  {id:'licences',label:'Property Licences',color:'#534AB7',
+   headers:['Address','Tenant','Licence expiry','Days remaining','Status'],
+   rows:function(){ return properties.map(function(p){ var d=p.propLicence?daysUntil(p.propLicence):null; return [p.address||'',p.tenant||'',p.propLicence||'Not recorded',d!==null?d+'d':'',d===null?'Not recorded':d<0?'OVERDUE':d<=30?'Due soon':'Valid']; }); }},
+  {id:'anniversaries',label:'APT Anniversaries',color:'#534AB7',
+   headers:['Address','Tenant','Monthly rent','Tenancy start','APT anniversary','Days remaining'],
+   rows:function(){ return properties.filter(function(p){return p.aptAnniversary;}).sort(function(a,b){return daysUntil(a.aptAnniversary)-daysUntil(b.aptAnniversary);}).map(function(p){ var d=daysUntil(p.aptAnniversary); return [p.address||'',p.tenant||'',p.rent?'£'+parseFloat(p.rent).toLocaleString('en-GB'):'',p.startDate||'',p.aptAnniversary||'',d+'d']; }); }},
+  {id:'smoke',label:'Smoke & CO Alarms',color:'#A32D2D',
+   headers:['Address','Tenant','Smoke alarm date','CO detector date','Smoke status','CO status'],
+   rows:function(){ return properties.map(function(p){ var sd=p.smokeAlarm?daysUntil(p.smokeAlarm):null; var cd=p.coDetector?daysUntil(p.coDetector):null; return [p.address||'',p.tenant||'',p.smokeAlarm||'Not recorded',p.coDetector||'Not recorded',sd===null?'Not recorded':sd<0?'OVERDUE':'Valid',cd===null?'Not recorded':cd<0?'OVERDUE':'Valid']; }); }},
+  {id:'rtr',label:'Right to Rent',color:'#854F0B',
+   headers:['Address','Tenant','RTR check date','RTR expiry','Status'],
+   rows:function(){ return properties.map(function(p){ var d=p.rtrExpiry?daysUntil(p.rtrExpiry):null; return [p.address||'',p.tenant||'',p.rtrCheck||'—',p.rtrExpiry||'—',d===null?'Not recorded':d<0?'OVERDUE':d<=30?'Due soon':'Valid']; }); }},
+  {id:'contractor_earnings',label:'Contractor Earnings',color:'#3B6D11',
+   headers:['Contractor','Trade','Jobs','Total quoted','Total invoiced','Outstanding'],
+   rows:function(){ return getAllContractors().map(function(c){ var cj=jobs.filter(function(j){return j.contractorId===c.id;}); var q=cj.reduce(function(s,j){return s+(parseFloat(j.quote)||0);},0); var i=cj.reduce(function(s,j){return s+(parseFloat(j.invoice)||0);},0); return [c.name,c.trade,cj.length,q?fmtCurrency(q):'£0',i?fmtCurrency(i):'£0',q>i?fmtCurrency(q-i):'£0']; }); }},
+  {id:'maintenance_log',label:'Maintenance Log',color:'#854F0B',
+   headers:['Property','Tenant','Contractor','Category','Issue','Status','Quote','Invoice','Date logged'],
+   rows:function(){ return jobs.map(function(j){ var c=getContractor(j.contractorId); return [j.prop||'',j.tenant||'',c.name,j.category||'',j.issue||'',j.status||'',j.quote?fmtCurrency(j.quote):'',j.invoice?fmtCurrency(j.invoice):'',j.dateLogged||'']; }); }},
+  {id:'landlord_fees',label:'Landlord Fees',color:'#3B6D11',
+   headers:['Address','Landlord','Rent/mo','Fee %','Net fee/mo','VAT','Gross fee/mo'],
+   rows:function(){ return properties.filter(function(p){return p.mgmtFee;}).map(function(p){ var r=parseFloat(p.rent)||0; var f=parseFloat(p.mgmtFee)||0; var net=r*f/100; var vat=net*0.2; return [p.address||'',p.llName||'','£'+r.toLocaleString('en-GB'),f+'%','£'+net.toFixed(2),'£'+vat.toFixed(2),'£'+(net+vat).toFixed(2)]; }); }},
+  {id:'beneficiaries',label:'Beneficiaries / Landlords',color:'#185FA5',
+   headers:['Landlord','Email','Mobile','Properties managed','Total rent managed'],
+   rows:function(){ var lls={}; properties.forEach(function(p){ var k=p.llName||'Unknown'; if(!lls[k]) lls[k]={name:k,email:p.llEmail||'',mobile:p.llMobile||'',props:[],rent:0}; lls[k].props.push(p.address); lls[k].rent+=parseFloat(p.rent)||0; }); return Object.values(lls).map(function(l){ return [l.name,l.email,l.mobile,l.props.length,'£'+l.rent.toLocaleString('en-GB')]; }); }}
+];
+
+function buildReportCards(){
+  var container=document.getElementById('report-cards');
+  if(!container) return;
+  container.innerHTML='';
+  REPORTS.forEach(function(r){
+    var card=document.createElement('div');
+    card.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-left:3px solid '+r.color+';border-radius:var(--radius-md);margin-bottom:5px;cursor:pointer;background:var(--white);border-top:0.5px solid var(--border);border-right:0.5px solid var(--border);border-bottom:0.5px solid var(--border)';
+    card.innerHTML='<div style="font-size:12px;font-weight:500;color:var(--text)">'+r.label+'</div><span style="font-size:12px;color:var(--text3)">→</span>';
+    card.onclick=function(){ loadReport(r.id); };
+    container.appendChild(card);
+  });
+  buildImportExportPanel();
+}
+
+function buildImportExportPanel(){
+  var container=document.getElementById('import-export-panel');
+  if(!container) return;
+  var sections=[
+    {label:'Maintenance jobs',exportFn:'exportJobsCSV'},
+    {label:'Properties',exportFn:'exportPropertiesCSV'},
+    {label:'Contractors',exportFn:'exportContractorsCSV'},
+    {label:'Past tenants',exportFn:'exportPastTenantsCSV'}
+  ];
+  container.innerHTML=sections.map(function(s){
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid var(--border)">'
+      +'<span style="font-size:11px;color:var(--text)">'+s.label+'</span>'
+      +'<button class="btn btn-outline btn-sm" onclick="'+s.exportFn+'()">Export CSV</button>'
+      +'</div>';
+  }).join('');
+}
+
+function loadReport(id){
+  var r=REPORTS.find(function(x){ return x.id===id; });
+  if(!r) return;
+  currentReportHeaders=r.headers;
+  currentReportData=r.rows();
+  document.getElementById('rp-title').textContent=r.label;
+  document.getElementById('rp-search').value='';
+  document.getElementById('report-preview-card').style.display='block';
+  document.getElementById('report-placeholder').style.display='none';
+  renderReportTable(currentReportData);
+}
+
+function renderReportTable(data){
+  var thead=document.getElementById('rp-thead');
+  var tbody=document.getElementById('rp-tbody');
+  var count=document.getElementById('rp-count');
+  if(thead) thead.innerHTML='<tr>'+currentReportHeaders.map(function(h){ return '<th>'+h+'</th>'; }).join('')+'</tr>';
+  if(tbody) tbody.innerHTML=data.map(function(row){ return '<tr>'+row.map(function(cell){ return '<td style="font-size:11px">'+(cell||'—')+'</td>'; }).join('')+'</tr>'; }).join('');
+  if(count) count.textContent=data.length+' records';
+}
+
+function filterReportTable(){
+  var search=(document.getElementById('rp-search')||{}).value||''.toLowerCase();
+  if(!search){ renderReportTable(currentReportData); return; }
+  var filtered=currentReportData.filter(function(row){ return row.some(function(cell){ return String(cell).toLowerCase().includes(search); }); });
+  renderReportTable(filtered);
+}
+
+function closeReport(){
+  document.getElementById('report-preview-card').style.display='none';
+  document.getElementById('report-placeholder').style.display='flex';
+}
+
+function exportReportCSV(){
+  downloadCSV([currentReportHeaders].concat(currentReportData), 'report.csv');
+}
+
+function downloadCSV(rows, filename){
+  var csv=rows.map(function(row){
+    return row.map(function(cell){
+      var s=String(cell||'');
+      var needsQuote=s.indexOf(',')>-1||s.indexOf('"')>-1||s.indexOf('\n')>-1;
+      return needsQuote?'"'+s.replace(/"/g,'""')+'"':s;
+    }).join(',');
+  }).join('\n');
+  var blob=new Blob([csv],{type:'text/csv'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click();
+}
+
+function exportJobsCSV(){ downloadCSV([['Property','Tenant','Contractor','Category','Issue','Status','Quote','Invoice','Date']].concat(jobs.map(function(j){ var c=getContractor(j.contractorId); return [j.prop||'',j.tenant||'',c.name,j.category||'',j.issue||'',j.status||'',j.quote||'',j.invoice||'',j.dateLogged||'']; })), 'maintenance_jobs.csv'); }
+function exportPropertiesCSV(){ downloadCSV([['Address','Tenant','Phone','Email','Landlord','LL Email','Rent','Fee%','Deposit','Deposit ID','Status','Start date']].concat(properties.map(function(p){ return [p.address||'',p.tenant||'',p.tenantPhone||'',p.tenantEmail||'',p.llName||'',p.llEmail||'',p.rent||'',p.mgmtFee||'',p.deposit||'',p.depositId||'',p.depositStatus||'',p.startDate||'']; })), 'properties.csv'); }
+function exportContractorsCSV(){ downloadCSV([['Name','Trade','Phone','Phone2','Email']].concat(getAllContractors().map(function(c){ return [c.name,c.trade||'',c.phone||'',c.phone2||'',c.email||'']; })), 'contractors.csv'); }
+function exportPastTenantsCSV(){ downloadCSV([['Address','Tenant','Start','End','Reason','Deposit status','Deductions','Landlord','Rent']].concat(pastTenants.map(function(p){ return [p.address||'',p.tenant||'',p.startDate||'',p.endDate||'',p.reason||'',p.depositStatus||'',p.deductions||'',p.landlord||'',p.rent||'']; })), 'past_tenants.csv'); }
+
+// Wire showPage for reports
+var _spRep=showPage;
+showPage=function(id,btn){
+  _spRep(id,btn);
+  if(id==='reports'){ buildReportCards(); if(window._pendingFilter==='rent-roll'){ window._pendingFilter=null; loadReport('rent_roll'); } }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ACTIVITY LOG
+// ═══════════════════════════════════════════════════════════════════════════════
+var activityLog=[];
+
+function logActivity(action, detail, prop){
+  var now=new Date();
+  var entry={time:now.toLocaleString('en-GB'),action:action,detail:detail||'',prop:prop||'',ts:now.getTime()};
+  activityLog.unshift(entry);
+  fbPush('activitylog', entry);
+}
+
+function filterActivity(){ renderActivity(); }
+
+function renderActivity(){
+  var search=(document.getElementById('act-search')||{}).value||'';
+  search=search.toLowerCase();
+  var filtered=activityLog.filter(function(e){
+    if(!search) return true;
+    return (e.action+e.detail+e.prop).toLowerCase().includes(search);
+  });
+  var tbody=document.getElementById('act-tbody');
+  if(!tbody) return;
+  if(!filtered.length){ tbody.innerHTML='<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text3)">No activity logged</td></tr>'; renderActSummary(); return; }
+  tbody.innerHTML=filtered.slice(0,100).map(function(e){
+    var c=e.action==='email'?'var(--blue-text)':e.action==='job'?'var(--amber-text)':e.action==='contractor'?'var(--purple-text)':'var(--green-text)';
+    return '<tr><td style="font-size:10px;color:var(--text3);white-space:nowrap">'+(e.time||'—')+'</td>'
+      +'<td><span style="font-size:10px;font-weight:500;color:'+c+'">'+( e.action||'—')+'</span></td>'
+      +'<td style="font-size:11px">'+(e.detail||'—')+'</td>'
+      +'<td style="font-size:11px;color:var(--text2)">'+(e.prop||'—')+'</td></tr>';
+  }).join('');
+  renderActSummary();
+}
+
+function renderActSummary(){
+  var el=document.getElementById('act-summary');
+  if(!el) return;
+  var counts={};
+  activityLog.forEach(function(e){ counts[e.action]=(counts[e.action]||0)+1; });
+  el.innerHTML=Object.keys(counts).map(function(k){
+    return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border)">'
+      +'<span style="font-size:11px;color:var(--text)">'+k+'</span>'
+      +'<span class="badge badge-grey">'+counts[k]+'</span></div>';
+  }).join('')||'<div style="font-size:11px;color:var(--text3);text-align:center;padding:10px">No activity</div>';
+}
+
+function exportActivity(){
+  downloadCSV([['Time','Action','Detail','Property/Contact']].concat(activityLog.map(function(e){ return [e.time||'',e.action||'',e.detail||'',e.prop||'']; })), 'activity_log.csv');
+}
+
+function clearActivity(){
+  if(!confirm('Clear the entire activity log? This cannot be undone.')) return;
+  fbSet('activitylog', null, function(){ activityLog=[]; renderActivity(); showToast('Activity log cleared'); });
+}
+
+// Wire showPage for activity
+var _spAct=showPage;
+showPage=function(id,btn){
+  _spAct(id,btn);
+  if(id==='activity'){
+    fbGet('activitylog',function(data){
+      activityLog=[];
+      if(data) Object.keys(data).forEach(function(k){ var e=data[k]; e.fbKey=k; activityLog.push(e); });
+      activityLog.sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+      renderActivity();
+    });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════════════════════════
+var DEFAULT_TEMPLATES={
+  single:'Hi {agency},\n\nCould you please attend to the following job:\n\nProperty: {property}\nIssue: {issue}\nTenant: {tenant} ({tenantPhone})\nAccess: {access}\nNotes: {notes}\n\nThank you\nPickwick Estates\n020 3397 1144 / 020 3397 1166',
+  bulk:'Hi {agency},\n\nCould you please attend to the following jobs:\n\n{jobs}\n\nThank you\nPickwick Estates\n020 3397 1144 / 020 3397 1166',
+  contlog:'Contractor Job Log - {name}\n\n{jobs}\n\nTotal jobs: {count}\nTotal quoted: {quoted}\nTotal invoiced: {invoiced}'
+};
+
+function loadSettings(){
+  fbGet('templates', function(data){
+    if(data){
+      if(data.single) document.getElementById('t-single').value=data.single;
+      if(data.bulk) document.getElementById('t-bulk').value=data.bulk;
+      if(data.contlog) document.getElementById('t-contlog').value=data.contlog;
+    } else {
+      resetTemplate('single'); resetTemplate('bulk'); resetTemplate('contlog');
+    }
+  });
+  fbGet('agencySettings', function(data){
+    if(data){
+      if(data.name && document.getElementById('s-agency')) document.getElementById('s-agency').value=data.name;
+      if(data.phone && document.getElementById('s-phone')) document.getElementById('s-phone').value=data.phone;
+      if(data.email && document.getElementById('s-email')) document.getElementById('s-email').value=data.email;
+    }
+  });
+}
+
+function saveTemplate(key){
+  var val=document.getElementById('t-'+key).value;
+  fbSet('templates/'+key, val, function(){ showToast('Template saved'); });
+}
+
+function resetTemplate(key){
+  var el=document.getElementById('t-'+key);
+  if(el) el.value=DEFAULT_TEMPLATES[key]||'';
+}
+
+function saveAgencySettings(){
+  var data={
+    name:document.getElementById('s-agency').value,
+    phone:document.getElementById('s-phone').value,
+    email:document.getElementById('s-email').value
+  };
+  fbSet('agencySettings', data, function(){ showToast('Settings saved'); });
+}
+
+// Wire showPage for settings
+var _spSet=showPage;
+showPage=function(id,btn){
+  _spSet(id,btn);
+  if(id==='settings') loadSettings();
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LOAD REMAINING DATA ON LOGIN
+// ═══════════════════════════════════════════════════════════════════════════════
+var _origShowApp2=showApp;
+showApp=function(user){
+  _origShowApp2(user);
+  // Load contractors from Firebase (custom ones)
+  fbGet('contractors', function(data){
+    if(data) Object.keys(data).forEach(function(k){
+      var c=data[k];
+      if(!CONTRACTORS.find(function(x){ return x.id===c.id; })) customContractors.push(c);
+    });
+  });
+  // Load past tenants
+  fbGet('pasttenants', function(data){
+    pastTenants=[];
+    if(data) Object.keys(data).forEach(function(k){ var p=data[k]; p.fbKey=k; pastTenants.push(p); });
+  });
 };
 
 </script>
