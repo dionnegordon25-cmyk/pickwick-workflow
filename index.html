@@ -214,7 +214,148 @@ select.field-input{cursor:pointer}
   <div class="content">
 
     <div id="page-dashboard" class="page active">
-      <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);font-size:13px">Dashboard loading...</div>
+      <!-- Chase strip -->
+      <div id="chase-strip" style="display:none;background:var(--red-bg);border:0.5px solid var(--red-border);border-radius:var(--radius-md);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;cursor:pointer" onclick="showPage('maintenance',document.querySelectorAll('.nav-btn')[1]);setMaintenanceFilter('chase')">
+        <div><span id="chase-count" style="font-size:12px;font-weight:500;color:var(--red-text)"></span><span style="font-size:11px;color:#D85A30"> — no action logged for 3+ days</span></div>
+        <span style="font-size:11px;color:var(--red-text);font-weight:500">View jobs →</span>
+      </div>
+      <div id="chase-clear" style="display:none;background:var(--green-bg);border:0.5px solid var(--green-border);border-radius:var(--radius-md);padding:8px 14px;margin-bottom:10px">
+        <span style="font-size:12px;font-weight:500;color:var(--green-text)">✓ All jobs up to date — no chases outstanding</span>
+      </div>
+
+      <!-- Stat cards row 1 -->
+      <div class="stats-row" style="margin-bottom:8px">
+        <div class="stat-card" onclick="navTo('maintenance','overdue')" title="View overdue jobs">
+          <div class="stat-arrow">→</div>
+          <div class="stat-label">Urgent maintenance</div>
+          <div class="stat-val red" id="s-urgent">—</div>
+          <div class="stat-sub">overdue jobs</div>
+        </div>
+        <div class="stat-card" onclick="navTo('maintenance','awaiting-contractor')" title="View jobs awaiting contractor">
+          <div class="stat-arrow">→</div>
+          <div class="stat-label">Awaiting contractor</div>
+          <div class="stat-val amber" id="s-awaiting">—</div>
+          <div class="stat-sub">no response yet</div>
+        </div>
+        <div class="stat-card" onclick="navTo('maintenance','awaiting-approval')" title="View jobs awaiting landlord approval">
+          <div class="stat-arrow">→</div>
+          <div class="stat-label">Landlord approvals</div>
+          <div class="stat-val amber" id="s-approvals">—</div>
+          <div class="stat-sub">outstanding</div>
+        </div>
+        <div class="stat-card" onclick="navTo('compliance','expiring')" title="View compliance expiring soon">
+          <div class="stat-arrow">→</div>
+          <div class="stat-label">Compliance expiring</div>
+          <div class="stat-val purple" id="s-compliance">—</div>
+          <div class="stat-sub">within 60 days</div>
+        </div>
+        <div class="stat-card" onclick="navTo('moveins','active')" title="View active move-ins">
+          <div class="stat-arrow">→</div>
+          <div class="stat-label">Move-ins pending</div>
+          <div class="stat-val blue" id="s-moveins">—</div>
+          <div class="stat-sub">in progress</div>
+        </div>
+        <div class="stat-card" onclick="navTo('properties','all')" title="View all properties">
+          <div class="stat-arrow">→</div>
+          <div class="stat-label">Total properties</div>
+          <div class="stat-val navy" id="s-properties">—</div>
+          <div class="stat-sub">live tenancies</div>
+        </div>
+      </div>
+
+      <!-- Stat cards row 2 -->
+      <div class="stats-row" style="margin-bottom:10px">
+        <div class="stat-card" onclick="navTo('deposits','disputes')" title="View deposit disputes">
+          <div class="stat-arrow">→</div>
+          <div class="stat-label">Deposit disputes</div>
+          <div class="stat-val red" id="s-disputes">—</div>
+          <div class="stat-sub">require action</div>
+        </div>
+        <div class="stat-card" onclick="navTo('deposits','available')" title="View deposits available">
+          <div class="stat-arrow">→</div>
+          <div class="stat-label">Deposits ready</div>
+          <div class="stat-val amber" id="s-deposits-ready">—</div>
+          <div class="stat-sub">for repayment</div>
+        </div>
+        <div class="stat-card" onclick="navTo('compliance','gsc')" title="View GSC outstanding">
+          <div class="stat-arrow">→</div>
+          <div class="stat-label">GSC outstanding</div>
+          <div class="stat-val purple" id="s-gsc">—</div>
+          <div class="stat-sub">due within 60d</div>
+        </div>
+        <div class="stat-card" onclick="navTo('compliance','eicr')" title="View EICR outstanding">
+          <div class="stat-arrow">→</div>
+          <div class="stat-label">EICR outstanding</div>
+          <div class="stat-val purple" id="s-eicr">—</div>
+          <div class="stat-sub">due within 60d</div>
+        </div>
+        <div class="stat-card" onclick="navTo('reports','rent-roll')" title="View rent roll report">
+          <div class="stat-arrow">→</div>
+          <div class="stat-label">Avg monthly rent</div>
+          <div class="stat-val green" id="s-avgrent">—</div>
+          <div class="stat-sub">across portfolio</div>
+        </div>
+        <div class="stat-card" onclick="navTo('compliance','licence')" title="View licence expiries">
+          <div class="stat-arrow">→</div>
+          <div class="stat-label">Licences expiring</div>
+          <div class="stat-val purple" id="s-licences">—</div>
+          <div class="stat-sub">within 60 days</div>
+        </div>
+      </div>
+
+      <!-- Automation strip -->
+      <div id="auto-strip" style="background:var(--white);border:0.5px solid var(--border);border-radius:var(--radius-md);padding:9px 14px;display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div id="auto-dot" style="width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0"></div>
+        <div id="auto-label" style="font-size:12px;font-weight:500;color:var(--text)">Email automation — checking...</div>
+        <div style="margin-left:auto;display:flex;gap:20px">
+          <div style="text-align:center"><div id="auto-drafts" style="font-size:14px;font-weight:500;color:var(--text)">—</div><div style="font-size:10px;color:var(--text3)">Drafts today</div></div>
+          <div style="text-align:center"><div id="auto-processed" style="font-size:14px;font-weight:500;color:var(--text)">—</div><div style="font-size:10px;color:var(--text3)">Processed</div></div>
+          <div style="text-align:center"><div id="auto-last" style="font-size:11px;color:var(--text2)">—</div><div style="font-size:10px;color:var(--text3)">Last activity</div></div>
+          <div style="text-align:center"><div id="auto-webhook" style="font-size:11px;color:var(--text2)">—</div><div style="font-size:10px;color:var(--text3)">Webhook</div></div>
+        </div>
+      </div>
+
+      <!-- Two col layout -->
+      <div class="two-col">
+
+        <!-- LEFT: checklist + action required + compliance alerts -->
+        <div>
+
+          <!-- Daily checklist -->
+          <div class="card" style="margin-bottom:10px">
+            <div class="card-title">Today's checklist <span id="checklist-date" style="font-size:10px;color:var(--text3)"></span></div>
+            <div id="checklist-items"></div>
+          </div>
+
+          <!-- Action required -->
+          <div class="card" style="margin-bottom:10px">
+            <div class="card-title">Action required <span style="font-size:10px;color:var(--text3);font-weight:400" onclick="navTo('compliance','expiring')" style="cursor:pointer">View all →</span></div>
+            <div id="dash-actions"></div>
+          </div>
+
+          <!-- Follow-ups -->
+          <div class="card">
+            <div class="card-title">Follow-ups outstanding</div>
+            <div id="dash-followups"></div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT: open maintenance jobs -->
+        <div>
+          <div class="card">
+            <div class="card-title">
+              Open maintenance jobs
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-outline btn-sm" onclick="openAddJobModal()">+ Add job</button>
+                <button class="btn btn-navy btn-sm" onclick="showPage('maintenance',document.querySelectorAll('.nav-btn')[1])">View all</button>
+              </div>
+            </div>
+            <div id="dash-jobs"></div>
+          </div>
+        </div>
+
+      </div>
     </div>
 
     <div id="page-maintenance" class="page">
@@ -472,6 +613,321 @@ function fbDelete(path, cb){
     .then(function(){ if(cb) cb(); })
     .catch(function(e){ console.error('FB DELETE error:',path,e); });
 }
+
+// ─── DATA STORES ──────────────────────────────────────────────────────────────
+var jobs=[], properties=[], contractors=[], deposits=[], moveins=[], pastTenants=[], offers=[];
+
+// ─── NAV WITH FILTER ─────────────────────────────────────────────────────────
+function navTo(page, filter){
+  var btns=document.querySelectorAll('.nav-btn');
+  var pageMap={dashboard:0,maintenance:1,offeraccepted:2,moveins:3,properties:4,compliance:5,deposits:6,contractors:7,pasttenants:8,reports:9,activity:10,settings:11};
+  var idx=pageMap[page];
+  if(idx!==undefined) showPage(page, btns[idx]);
+  if(filter) window._pendingFilter=filter;
+}
+
+function setMaintenanceFilter(f){ window._pendingFilter=f; }
+
+// ─── CHECKLIST ────────────────────────────────────────────────────────────────
+var CHECKLIST_ITEMS=['Check PayProp AM','Check PayProp PM'];
+
+function renderChecklist(){
+  var d=new Date();
+  var key='checklist_'+d.getFullYear()+'_'+(d.getMonth()+1)+'_'+d.getDate();
+  var days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var el=document.getElementById('checklist-date');
+  if(el) el.textContent=days[d.getDay()]+' '+d.getDate()+' '+months[d.getMonth()];
+  var saved=JSON.parse(localStorage.getItem(key)||'{}');
+  var container=document.getElementById('checklist-items');
+  if(!container) return;
+  container.innerHTML='';
+  CHECKLIST_ITEMS.forEach(function(item,i){
+    var done=saved[i]||false;
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 8px;border:0.5px solid var(--border);border-radius:7px;margin-bottom:5px;cursor:pointer';
+    row.innerHTML='<div style="width:15px;height:15px;border-radius:3px;border:0.5px solid '+(done?'var(--navy)':'var(--border2)')+';background:'+(done?'var(--navy)':'#fff')+';flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="color:#fff;font-size:9px;font-weight:600">'+(done?'✓':'')+'</span></div>'
+      +'<span style="font-size:11px;color:'+(done?'var(--text3)':'var(--text)')+(done?';text-decoration:line-through':'')+'">' +item+'</span>';
+    row.onclick=function(){
+      saved[i]=!saved[i];
+      localStorage.setItem(key,JSON.stringify(saved));
+      renderChecklist();
+    };
+    container.appendChild(row);
+  });
+}
+
+// ─── DASHBOARD JOBS ───────────────────────────────────────────────────────────
+function needsChase(job){
+  if(job.status==='Complete') return false;
+  var d=job.lastActionDate||job.dateLogged;
+  return daysSince(d)>=3;
+}
+
+function statusPillClass(status){
+  if(!status) return 'badge-grey';
+  var s=status.toLowerCase();
+  if(s.includes('overdue')||s.includes('urgent')) return 'badge-red';
+  if(s.includes('awaiting contractor')) return 'badge-amber';
+  if(s.includes('awaiting approval')) return 'badge-amber';
+  if(s.includes('quote received')) return 'badge-purple';
+  if(s.includes('in progress')) return 'badge-blue';
+  if(s.includes('complete')) return 'badge-green';
+  return 'badge-grey';
+}
+
+function renderDashJobs(){
+  var container=document.getElementById('dash-jobs');
+  if(!container) return;
+  var open=jobs.filter(function(j){ return j.status!=='Complete'; });
+  if(!open.length){
+    container.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">No open jobs</div>';
+    return;
+  }
+  // Sort: chase first, then by date
+  open.sort(function(a,b){
+    var ac=needsChase(a)?1:0, bc=needsChase(b)?1:0;
+    if(bc!==ac) return bc-ac;
+    return new Date(b.dateLogged||0)-new Date(a.dateLogged||0);
+  });
+  var show=open.slice(0,8);
+  var html='';
+  show.forEach(function(job){
+    var chase=needsChase(job);
+    var days=chase?daysSince(job.lastActionDate||job.dateLogged):0;
+    var pillClass=statusPillClass(job.status);
+    var dotColor=chase?'var(--red-text)':(job.status==='In progress'?'var(--blue-text)':(job.status==='Complete'?'var(--green-text)':'var(--amber-text)'));
+    html+='<div style="padding:9px 0;border-bottom:0.5px solid var(--border);display:flex;align-items:flex-start;gap:8px">'
+      +'<div style="width:7px;height:7px;border-radius:50%;background:'+dotColor+';margin-top:5px;flex-shrink:0"></div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:12px;font-weight:500;color:var(--text)">'+(job.prop||'Unknown property')+(chase?' <span style="color:var(--red-text);font-size:10px">⚠ '+days+'d</span>':'')+'</div>'
+      +'<div style="font-size:10px;color:var(--text2);margin-top:1px">'+(job.category||'General')+' · '+(job.contractorName||job.contractorId||'No contractor')+' · '+(job.tenant||'—')+'</div>'
+      +'<div style="font-size:10px;color:var(--text);margin-top:2px">'+(job.issue||'—')+'</div>'
+      +'</div>'
+      +'<div style="flex-shrink:0;text-align:right">'
+      +'<span class="badge '+pillClass+'">'+(job.status||'—')+'</span>'
+      +(job.quote?'<div style="font-size:10px;color:var(--green-text);margin-top:3px">'+fmtCurrency(job.quote)+'</div>':'')
+      +'</div>'
+      +'</div>';
+  });
+  if(open.length>8){
+    html+='<div style="text-align:center;padding:8px 0;font-size:11px;color:var(--text2);cursor:pointer;border-top:0.5px solid var(--border);margin-top:4px" onclick="showPage(\'maintenance\',document.querySelectorAll(\'.nav-btn\')[1])">+ '+(open.length-8)+' more open jobs — View all</div>';
+  }
+  container.innerHTML=html;
+}
+
+// ─── DASHBOARD ACTION REQUIRED ────────────────────────────────────────────────
+function renderDashActions(){
+  var container=document.getElementById('dash-actions');
+  if(!container) return;
+  var items=[];
+  var now=new Date();
+
+  // Compliance expiring within 60 days
+  properties.forEach(function(p){
+    var certs=[
+      {type:'GSC',date:p.gsc},{type:'EICR',date:p.eicr},{type:'EPC',date:p.epc},
+      {type:'Licence',date:p.propLicence},{type:'RTR',date:p.rtrExpiry}
+    ];
+    certs.forEach(function(c){
+      if(!c.date) return;
+      var d=daysUntil(c.date);
+      if(d<=60){
+        items.push({type:'compliance',prop:p.address,detail:c.type+(d<0?' OVERDUE':' due in '+d+'d'),days:d,color:d<0?'red':'amber'});
+      }
+    });
+  });
+
+  // Deposit disputes
+  deposits.forEach(function(d){
+    if(d.status&&d.status.toLowerCase().includes('dispute')){
+      items.push({type:'deposit',prop:d.address||'Unknown',detail:'Deposit dispute · '+d.status,days:-1,color:'red'});
+    }
+  });
+
+  // APT anniversaries within 60 days
+  properties.forEach(function(p){
+    if(!p.aptAnniversary) return;
+    var d=daysUntil(p.aptAnniversary);
+    if(d>=0&&d<=60){
+      items.push({type:'anniversary',prop:p.address,detail:'APT anniversary · '+fmtCurrency(p.rent)+'/mo',days:d,color:'blue'});
+    }
+  });
+
+  items.sort(function(a,b){ return a.days-b.days; });
+  var show=items.slice(0,6);
+
+  if(!show.length){
+    container.innerHTML='<div style="font-size:11px;color:var(--text3);text-align:center;padding:10px">No urgent actions</div>';
+    return;
+  }
+  var html='';
+  show.forEach(function(item){
+    var bg=item.color==='red'?'var(--red-bg)':item.color==='amber'?'var(--amber-bg)':'var(--blue-bg)';
+    var border=item.color==='red'?'var(--red-text)':item.color==='amber'?'var(--amber-text)':'var(--blue-text)';
+    var badge=item.days<0?'OVERDUE':item.days===0?'TODAY':item.days+'d';
+    html+='<div style="padding:6px 8px;margin-bottom:4px;background:'+bg+';border-left:3px solid '+border+'">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between">'
+      +'<div style="font-size:11px;font-weight:500;color:var(--text)">'+item.prop+'</div>'
+      +'<span style="font-size:9px;font-weight:500;color:'+border+'">'+badge+'</span>'
+      +'</div>'
+      +'<div style="font-size:10px;color:var(--text2);margin-top:1px">'+item.detail+'</div>'
+      +'</div>';
+  });
+  container.innerHTML=html;
+}
+
+// ─── FOLLOW-UPS ───────────────────────────────────────────────────────────────
+function renderDashFollowups(){
+  var container=document.getElementById('dash-followups');
+  if(!container) return;
+  var chaseJobs=jobs.filter(function(j){ return needsChase(j); });
+  chaseJobs.sort(function(a,b){ return daysSince(b.lastActionDate||b.dateLogged)-daysSince(a.lastActionDate||a.dateLogged); });
+  var show=chaseJobs.slice(0,5);
+  if(!show.length){
+    container.innerHTML='<div style="font-size:11px;color:var(--text3);text-align:center;padding:10px">No follow-ups needed</div>';
+    return;
+  }
+  var html='';
+  show.forEach(function(job){
+    var days=daysSince(job.lastActionDate||job.dateLogged);
+    html+='<div style="padding:6px 8px;margin-bottom:4px;background:var(--red-bg);border-left:3px solid var(--red-text)">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between">'
+      +'<div style="font-size:11px;font-weight:500;color:var(--text)">'+(job.contractorName||job.contractorId||'No contractor')+'</div>'
+      +'<span style="font-size:9px;font-weight:500;color:var(--red-text)">'+days+'d</span>'
+      +'</div>'
+      +'<div style="font-size:10px;color:var(--text2);margin-top:1px">'+(job.prop||'—')+' — '+(job.issue||'—')+'</div>'
+      +'</div>';
+  });
+  container.innerHTML=html;
+}
+
+// ─── STAT CARDS ───────────────────────────────────────────────────────────────
+function renderStatCards(){
+  // Row 1
+  var overdue=jobs.filter(function(j){ return j.status&&j.status.toLowerCase().includes('overdue'); }).length;
+  var awaitingC=jobs.filter(function(j){ return j.status&&j.status.toLowerCase().includes('awaiting contractor'); }).length;
+  var awaitingA=jobs.filter(function(j){ return j.status&&j.status.toLowerCase().includes('awaiting approval'); }).length;
+
+  var compExp=0;
+  properties.forEach(function(p){
+    var certs=[p.gsc,p.eicr,p.epc,p.propLicence,p.rtrExpiry];
+    certs.forEach(function(d){ if(d&&daysUntil(d)<=60) compExp++; });
+  });
+
+  var activeMove=moveins.filter(function(m){ return m.status!=='Complete'; }).length;
+  var totalProps=properties.length||86;
+
+  // Row 2
+  var depDisputes=deposits.filter(function(d){ return d.status&&d.status.toLowerCase().includes('dispute'); }).length;
+  var depReady=deposits.filter(function(d){ return d.status&&d.status.toLowerCase().includes('available'); }).length;
+
+  var gscDue=properties.filter(function(p){ return p.gsc&&daysUntil(p.gsc)<=60; }).length;
+  var eicrDue=properties.filter(function(p){ return p.eicr&&daysUntil(p.eicr)<=60; }).length;
+
+  var rents=properties.map(function(p){ return parseFloat(p.rent)||0; }).filter(Boolean);
+  var avgRent=rents.length?Math.round(rents.reduce(function(a,b){return a+b;},0)/rents.length):0;
+
+  var licDue=properties.filter(function(p){ return p.propLicence&&daysUntil(p.propLicence)<=60; }).length;
+
+  function set(id,val){ var el=document.getElementById(id); if(el) el.textContent=val; }
+  set('s-urgent',overdue);
+  set('s-awaiting',awaitingC);
+  set('s-approvals',awaitingA);
+  set('s-compliance',compExp);
+  set('s-moveins',activeMove);
+  set('s-properties',totalProps);
+  set('s-disputes',depDisputes);
+  set('s-deposits-ready',depReady);
+  set('s-gsc',gscDue);
+  set('s-eicr',eicrDue);
+  set('s-avgrent',avgRent?'£'+avgRent.toLocaleString('en-GB'):'—');
+  set('s-licences',licDue);
+}
+
+// ─── CHASE STRIP ──────────────────────────────────────────────────────────────
+function renderChaseStrip(){
+  var chaseJobs=jobs.filter(function(j){ return needsChase(j); });
+  var strip=document.getElementById('chase-strip');
+  var clear=document.getElementById('chase-clear');
+  var count=document.getElementById('chase-count');
+  if(chaseJobs.length>0){
+    if(count) count.textContent='⚠ '+chaseJobs.length+' job'+(chaseJobs.length>1?'s':'')+' need'+(chaseJobs.length===1?'s':'')+' chasing';
+    if(strip) strip.style.display='flex';
+    if(clear) clear.style.display='none';
+  } else {
+    if(strip) strip.style.display='none';
+    if(clear) clear.style.display='block';
+  }
+}
+
+// ─── AUTOMATION STRIP ────────────────────────────────────────────────────────
+function renderAutoStrip(){
+  fbGet('automationStats', function(data){
+    var dot=document.getElementById('auto-dot');
+    var label=document.getElementById('auto-label');
+    if(!data){
+      if(dot) dot.style.background='var(--text3)';
+      if(label) label.textContent='Email automation — no data';
+      return;
+    }
+    var status=data.webhookStatus||'unknown';
+    var color=status==='active'?'var(--green-text)':status==='warning'?'var(--amber-text)':'var(--red-text)';
+    if(dot) dot.style.background=color;
+    if(label) label.textContent='Email automation — '+(status==='active'?'live':status);
+    function set(id,val){ var el=document.getElementById(id); if(el) el.textContent=val||'—'; }
+    set('auto-drafts', data.draftsToday||0);
+    set('auto-processed', data.emailsProcessed||0);
+    set('auto-last', data.lastActivity||'—');
+    set('auto-webhook', status==='active'?'Connected':'Disconnected');
+    var wh=document.getElementById('auto-webhook');
+    if(wh) wh.style.color=status==='active'?'var(--green-text)':'var(--red-text)';
+  });
+}
+
+// ─── LOAD ALL DATA + RENDER DASHBOARD ────────────────────────────────────────
+function loadDashboard(){
+  renderChecklist();
+  renderAutoStrip();
+  // Load jobs
+  fbGet('jobs', function(data){
+    jobs=[];
+    if(data) Object.keys(data).forEach(function(k){ var j=data[k]; j.fbKey=k; jobs.push(j); });
+    renderChaseStrip();
+    renderStatCards();
+    renderDashJobs();
+    renderDashFollowups();
+  });
+  // Load properties
+  fbGet('properties', function(data){
+    if(data&&Array.isArray(data)) properties=data;
+    else if(data&&typeof data==='object') properties=Object.values(data);
+    renderStatCards();
+    renderDashActions();
+  });
+  // Load deposits
+  fbGet('deposits', function(data){
+    deposits=[];
+    if(data) Object.keys(data).forEach(function(k){ var d=data[k]; d.fbKey=k; deposits.push(d); });
+    renderStatCards();
+  });
+  // Load move-ins
+  fbGet('moveins', function(data){
+    moveins=[];
+    if(data) Object.keys(data).forEach(function(k){ var m=data[k]; m.fbKey=k; moveins.push(m); });
+    renderStatCards();
+  });
+}
+
+// ─── PLACEHOLDER FUNCTIONS (stubs until pages built) ─────────────────────────
+function openAddJobModal(){ showToast('Add job — coming in next chunk'); }
+
+// ─── INIT ON APP SHOW ────────────────────────────────────────────────────────
+var _origShowApp=showApp;
+showApp=function(user){
+  _origShowApp(user);
+  loadDashboard();
+};
 </script>
 </body>
 </html>
