@@ -426,11 +426,37 @@ select.field-input{cursor:pointer}
     </div>
 
     <div id="page-offeraccepted" class="page">
-      <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);font-size:13px">Offer Accepted loading...</div>
+      <div class="ops-bar">
+        <input class="search-bar" id="oa-search" placeholder="Search property, tenant..." oninput="filterOffers()">
+        <button class="btn btn-navy" onclick="openNewOfferModal()">+ New offer</button>
+      </div>
+      <div id="oa-cards"></div>
+      <div id="oa-empty" style="text-align:center;padding:60px;color:var(--text3);font-size:12px;display:none">No offers recorded yet — click + New offer to add one</div>
     </div>
 
     <div id="page-moveins" class="page">
-      <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);font-size:13px">Move-ins loading...</div>
+      <div class="ops-bar">
+        <input class="search-bar" id="mi-search" placeholder="Search address, tenant..." oninput="filterMoveIns()">
+      </div>
+      <div class="filter-pills" id="mi-filter-pills">
+        <div class="filter-pill active" onclick="setMiFilter('all',this)">All</div>
+        <div class="filter-pill" onclick="setMiFilter('not-started',this)">Not started</div>
+        <div class="filter-pill" onclick="setMiFilter('in-progress',this)">In progress</div>
+        <div class="filter-pill" onclick="setMiFilter('complete',this)">Complete</div>
+      </div>
+      <div class="two-col-wide">
+        <div id="mi-cards"></div>
+        <div>
+          <div class="card" style="margin-bottom:10px">
+            <div class="card-title">Move-in summary</div>
+            <div id="mi-summary"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Pending actions</div>
+            <div id="mi-pending"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="page-properties" class="page">
@@ -822,6 +848,64 @@ select.field-input{cursor:pointer}
       <button class="btn btn-red btn-sm" id="ptm-delete-btn" onclick="deletePastTenant()" style="display:none">Delete</button>
       <button class="btn btn-outline" onclick="closeModal('past-tenant-modal')">Cancel</button>
       <button class="btn btn-navy" onclick="savePastTenant()">Save record</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW OFFER MODAL -->
+<div class="modal-overlay" id="new-offer-modal">
+  <div class="modal modal-lg">
+    <div class="modal-title">New offer accepted</div>
+    <div class="modal-sub">Record a new tenancy offer and generate documents</div>
+    <div class="grid-2">
+      <div class="field-group"><label class="field-label">Property address *</label><input class="field-input" id="no-prop" list="no-prop-list" placeholder="Start typing..."><datalist id="no-prop-list"></datalist></div>
+      <div class="field-group"><label class="field-label">Monthly rent (£) *</label><input class="field-input" id="no-rent" type="number" placeholder="2500"></div>
+      <div class="field-group"><label class="field-label">Proposed start date</label><input class="field-input" id="no-start" type="date"></div>
+      <div class="field-group"><label class="field-label">Management service</label><select class="field-input" id="no-tier" onchange="updateOfferFee()">
+        <option value="6">Let Only — 6%</option>
+        <option value="10">Let &amp; Rent Collection — 10%</option>
+        <option value="12" selected>Fully Managed — 12%</option>
+        <option value="custom">Custom</option>
+      </select></div>
+      <div class="field-group"><label class="field-label">Fee %</label><input class="field-input" id="no-fee" type="number" value="12" placeholder="12"></div>
+      <div class="field-group"><label class="field-label">Deposit (£) <span style="font-size:10px;color:var(--text3)">(auto = 5 weeks)</span></label><input class="field-input" id="no-deposit" type="number"></div>
+      <div class="field-group"><label class="field-label">Holding deposit (£) <span style="font-size:10px;color:var(--text3)">(auto = 1 week)</span></label><input class="field-input" id="no-holding" type="number"></div>
+    </div>
+    <div style="margin-bottom:12px">
+      <div class="field-label" style="margin-bottom:6px">Tenants</div>
+      <div id="no-tenants"></div>
+      <button class="btn btn-outline btn-sm" onclick="addOfferTenant()" style="margin-top:6px">+ Add tenant</button>
+    </div>
+    <div class="field-group"><label class="field-label">Internal notes</label><textarea class="field-input" id="no-notes" rows="2" placeholder="Any notes for the file..."></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('new-offer-modal')">Cancel</button>
+      <button class="btn btn-navy" onclick="saveNewOffer()">Save offer</button>
+    </div>
+  </div>
+</div>
+
+<!-- OFFER DETAIL MODAL -->
+<div class="modal-overlay" id="offer-detail-modal">
+  <div class="modal modal-lg">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px">
+      <div><div class="modal-title" id="od-title"></div><div style="font-size:11px;color:var(--text3);margin-top:2px" id="od-sub"></div></div>
+      <button class="btn btn-outline btn-sm" onclick="closeModal('offer-detail-modal')">Close</button>
+    </div>
+    <div id="od-body"></div>
+  </div>
+</div>
+
+<!-- MOVE-IN CHECKLIST MODAL -->
+<div class="modal-overlay" id="mi-modal">
+  <div class="modal modal-lg">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px">
+      <div><div class="modal-title" id="mi-modal-title"></div><div style="font-size:11px;color:var(--text3);margin-top:2px" id="mi-modal-sub"></div></div>
+      <button class="btn btn-outline btn-sm" onclick="closeModal('mi-modal')">Close</button>
+    </div>
+    <div id="mi-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" id="mi-lock-btn" onclick="saveMiChecklist()">Save &amp; lock</button>
+      <button class="btn btn-navy btn-sm" onclick="closeModal('mi-modal')">Done</button>
     </div>
   </div>
 </div>
@@ -3464,6 +3548,396 @@ showApp=function(user){
     pastTenants=[];
     if(data) Object.keys(data).forEach(function(k){ var p=data[k]; p.fbKey=k; pastTenants.push(p); });
   });
+};
+
+
+// =============================================================================
+// OFFER ACCEPTED
+// =============================================================================
+var currentOfferKey = null;
+var offerTenantCount = 0;
+
+function filterOffers(){ renderOffers(); }
+
+function renderOffers(){
+  var search = (document.getElementById('oa-search')||{}).value||'';
+  search = search.toLowerCase();
+  var filtered = offers.filter(function(o){
+    if(!search) return true;
+    return ((o.prop||'')+' '+(o.tenants||[]).map(function(t){return t.name;}).join(' ')).toLowerCase().includes(search);
+  });
+  var container = document.getElementById('oa-cards');
+  var empty = document.getElementById('oa-empty');
+  if(!container) return;
+  if(!filtered.length){ container.innerHTML=''; if(empty) empty.style.display='block'; return; }
+  if(empty) empty.style.display='none';
+
+  var html='';
+  filtered.forEach(function(o){
+    var tenantNames=(o.tenants||[]).map(function(t){return t.name;}).join(', ')||'No tenants';
+    html+='<div class="card" style="margin-bottom:10px">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">'
+      +'<div><div style="font-size:13px;font-weight:500;color:var(--text)">'+(o.prop||'—')+'</div>'
+      +'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+tenantNames+'</div>'
+      +'<div style="font-size:10px;color:var(--text3);margin-top:1px">'+(o.startDate||'—')+' · '+( o.tier||'Fully Managed')+' · '+( o.fee||12)+'%'+'</div></div>'
+      +'<div style="display:flex;gap:6px;align-items:center">'
+      +'<span class="badge badge-green">'+(o.rent?'£'+parseFloat(o.rent).toLocaleString('en-GB')+'/mo':'—')+'</span>'
+      +'<button class="btn btn-outline btn-sm" onclick="openOfferDetail(\''+o.fbKey+'\')">View</button>'
+      +'<button class="btn btn-red btn-sm" onclick="deleteOffer(\''+o.fbKey+'\')">Delete</button>'
+      +'</div></div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'pre-tenancy\',\''+o.fbKey+'\')">Pre-tenancy pack</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'gdpr\',\''+o.fbKey+'\')">GDPR consent</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'fees\',\''+o.fbKey+'\')">Tenant fees</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'rtr\',\''+o.fbKey+'\')">RTR request</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'ll-tcs\',\''+o.fbKey+'\')">LL T&amp;Cs</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'ll-confirm\',\''+o.fbKey+'\')">LL confirmation</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'ll-compliance\',\''+o.fbKey+'\')">LL compliance</button>'
+      +'</div></div>';
+  });
+  container.innerHTML=html;
+}
+
+function openOfferDetail(fbKey){
+  var o=offers.find(function(x){return x.fbKey===fbKey;});
+  if(!o) return;
+  currentOfferKey=fbKey;
+  document.getElementById('od-title').textContent=o.prop||'Offer';
+  document.getElementById('od-sub').textContent='Created: '+(o.createdDate||'—');
+  var tenantList=(o.tenants||[]).map(function(t,i){
+    return '<div style="padding:6px;background:var(--bg);border-radius:6px;margin-bottom:4px">'
+      +'<div style="font-size:12px;font-weight:500">'+(t.name||'Tenant '+(i+1))+'</div>'
+      +(t.email?'<div style="font-size:10px;color:var(--text2)">'+t.email+'</div>':'')
+      +(t.phone?'<div style="font-size:10px;color:var(--text2)">'+t.phone+'</div>':'')
+      +'</div>';
+  }).join('');
+  document.getElementById('od-body').innerHTML=
+    '<div class="grid-2" style="gap:10px;margin-bottom:14px">'
+    +'<div><div style="font-size:10px;color:var(--text2)">Monthly rent</div><div style="font-size:18px;font-weight:500;color:var(--navy)">'+(o.rent?'£'+parseFloat(o.rent).toLocaleString('en-GB'):'—')+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--text2)">Start date</div><div style="font-size:13px;font-weight:500">'+(o.startDate||'—')+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--text2)">Deposit</div><div style="font-size:13px">'+(o.deposit?'£'+parseFloat(o.deposit).toLocaleString('en-GB'):'—')+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--text2)">Holding deposit</div><div style="font-size:13px">'+(o.holding?'£'+parseFloat(o.holding).toLocaleString('en-GB'):'—')+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--text2)">Service / Fee</div><div style="font-size:13px">'+(o.tier||'Fully Managed')+' · '+(o.fee||12)+'%</div></div>'
+    +'</div>'
+    +'<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:500;margin-bottom:6px">Tenants</div>'+tenantList+'</div>'
+    +(o.notes?'<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Notes</div><div style="font-size:12px;padding:8px;background:var(--bg);border-radius:6px">'+o.notes+'</div></div>':'');
+  openModal('offer-detail-modal');
+}
+
+function deleteOffer(fbKey){
+  if(!confirm('Delete this offer record?')) return;
+  fbDelete('offers/'+fbKey, function(){
+    offers=offers.filter(function(o){return o.fbKey!==fbKey;});
+    renderOffers(); showToast('Offer deleted');
+  });
+}
+
+function genDoc(type, fbKey){
+  var o=offers.find(function(x){return x.fbKey===fbKey;});
+  if(!o){ showToast('Offer not found'); return; }
+  var tenantNames=(o.tenants||[]).map(function(t){return t.name;}).join(' and ')||'The Tenant';
+  var tenantEmails=(o.tenants||[]).map(function(t){return t.email;}).filter(Boolean).join(', ');
+  var prop=o.prop||'the property';
+  var rent=o.rent?'£'+parseFloat(o.rent).toLocaleString('en-GB')+' per calendar month':'as agreed';
+  var deposit=o.deposit?'£'+parseFloat(o.deposit).toLocaleString('en-GB'):'5 weeks rent';
+  var start=o.startDate||'as agreed';
+  var fee=(o.fee||12)+'%';
+  var docs={
+    'pre-tenancy':{ title:'Pre-Tenancy Pack', content:'PRE-TENANCY INFORMATION PACK\n\nProperty: '+prop+'\nTenant(s): '+tenantNames+'\nMonthly rent: '+rent+'\nDeposit: '+deposit+'\nProposed start: '+start+'\n\nThis pack contains important information about your upcoming tenancy. Please read all documents carefully and return signed copies to Pickwick Estates.\n\nPickwick Estates\n020 3397 1144 / 020 3397 1166\nmaintenance@pickwickestates.com' },
+    'gdpr':{ title:'GDPR Consent', content:'GDPR DATA CONSENT FORM\n\nProperty: '+prop+'\nTenant(s): '+tenantNames+'\n\nPickwick Estates (Alps Estates Ltd) requires your consent to hold and process your personal data for the purpose of managing your tenancy under the UK GDPR and Data Protection Act 2018.\n\nData held: name, address, contact details, financial information, identification documents.\nPurpose: tenancy management, legal compliance, maintenance.\nRetention: 7 years post-tenancy.\n\nSigned: _____________________ Date: _____________\n\nPickwick Estates · 020 3397 1144 / 020 3397 1166' },
+    'fees':{ title:'Tenant Fees Schedule', content:'TENANT FEES SCHEDULE\n\nProperty: '+prop+'\n\nIn accordance with the Tenant Fees Act 2019 and the Renters Rights Act 2025, the following fees are applicable:\n\nPERMITTED PAYMENTS:\n- Rent: '+rent+'\n- Security deposit: '+deposit+' (max 5 weeks)\n- Holding deposit: up to 1 weeks rent\n- Variation of tenancy (if requested by tenant): £50 inc VAT\n- Default fees: unpaid rent interest at 3% above Bank of England base rate (after 14 days)\n- Lost key replacement: reasonable costs\n- Early termination (if requested): landlord costs only\n\nAll other fees are prohibited under the Tenant Fees Act 2019.\n\nPickwick Estates · 020 3397 1144 / 020 3397 1166' },
+    'rtr':{ title:'Right to Rent Request', content:'RIGHT TO RENT CHECK REQUEST\n\nProperty: '+prop+'\nTenant(s): '+tenantNames+'\nProposed start: '+start+'\n\nUnder the Immigration Act 2014, we are required to check your Right to Rent in England before the tenancy commences.\n\nPlease bring the following original documents to our office or provide certified copies:\n\n- Valid passport (preferred), OR\n- UK/EU driving licence + birth certificate, OR\n- Biometric Residence Permit\n\nPlease contact us to arrange an appointment.\n\nPickwick Estates · 020 3397 1144 / 020 3397 1166' },
+    'll-tcs':{ title:'Landlord T&Cs & Instruction', content:'LANDLORD INSTRUCTION & TERMS OF BUSINESS\n\nProperty: '+prop+'\nService: '+(o.tier||'Fully Managed')+'\nManagement fee: '+fee+' of monthly rent (exc VAT)\n\nWithdrawal fee: £700 + VAT (£840 inc VAT) if landlord withdrawes after offer accepted\n\nPickwick Estates (Alps Estates Ltd) is a member of a Client Money Protection scheme and subscribes to a redress scheme.\n\nBy instructing Pickwick Estates you agree to these terms.\n\nSigned: _____________________ Date: _____________\n\nPickwick Estates · 020 3397 1144 / 020 3397 1166' },
+    'll-confirm':{ title:'Landlord Offer Confirmation', content:'OFFER ACCEPTED CONFIRMATION\n\nDear Landlord,\n\nWe are pleased to confirm we have accepted an offer for:\n\nProperty: '+prop+'\nTenant(s): '+tenantNames+'\nMonthly rent: '+rent+'\nProposed start: '+start+'\nDeposit: '+deposit+'\nManagement fee: '+fee+'\n\nWe will now progress the tenancy and keep you updated. Please ensure all compliance certificates are in date prior to move-in.\n\nKind regards\nPickwick Estates\n020 3397 1144 / 020 3397 1166' },
+    'll-compliance':{ title:'Landlord Compliance Request', content:'COMPLIANCE REQUIREMENTS — ACTION REQUIRED\n\nDear Landlord,\n\nProperty: '+prop+'\n\nBefore the tenancy can commence, please confirm the following are in place and in date:\n\n[ ] Gas Safety Certificate (GSC) — annual requirement\n[ ] Electrical Installation Condition Report (EICR) — required every 5 years\n[ ] Energy Performance Certificate (EPC) — minimum E rating required\n[ ] Working smoke alarms on every floor\n[ ] Working CO detector in any room with solid fuel appliance\n[ ] Property licence (if applicable in this borough)\n\nPlease provide copies of all certificates to Pickwick Estates urgently.\n\nPickwick Estates · 020 3397 1144 / 020 3397 1166' }
+  };
+  var doc=docs[type];
+  if(!doc){ showToast('Document type not found'); return; }
+  // Show in a simple print window
+  var win=window.open('','_blank','width=700,height=800');
+  win.document.write('<html><head><title>'+doc.title+'</title><style>body{font-family:Arial,sans-serif;padding:40px;font-size:13px;line-height:1.6;white-space:pre-wrap}h2{margin-bottom:20px}button{position:fixed;top:10px;right:10px;padding:8px 16px;background:#1E3A5F;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px}</style></head><body>');
+  win.document.write('<button onclick="window.print()">Print / Save PDF</button>');
+  win.document.write('<h2>'+doc.title+'</h2>');
+  win.document.write(doc.content.replace(/\n/g,'<br>'));
+  win.document.write('</body></html>');
+  win.document.close();
+}
+
+function openNewOfferModal(){
+  offerTenantCount=0;
+  document.getElementById('no-tenants').innerHTML='';
+  ['no-prop','no-notes'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  ['no-rent','no-deposit','no-holding'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('no-fee').value='12';
+  document.getElementById('no-tier').value='12';
+  // Populate datalist
+  var dl=document.getElementById('no-prop-list');
+  if(dl){ dl.innerHTML=''; properties.forEach(function(p){ var o=document.createElement('option'); o.value=p.address||''; dl.appendChild(o); }); }
+  addOfferTenant();
+  openModal('new-offer-modal');
+}
+
+function updateOfferFee(){
+  var tier=document.getElementById('no-tier').value;
+  var feeEl=document.getElementById('no-fee');
+  if(tier!=='custom' && feeEl) feeEl.value=tier;
+}
+
+function addOfferTenant(){
+  offerTenantCount++;
+  var container=document.getElementById('no-tenants');
+  var row=document.createElement('div');
+  row.style.cssText='display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-bottom:6px';
+  row.id='ot-row-'+offerTenantCount;
+  row.innerHTML='<input class="field-input" id="ot-name-'+offerTenantCount+'" placeholder="Full name">'
+    +'<input class="field-input" id="ot-email-'+offerTenantCount+'" placeholder="Email" type="email">'
+    +'<input class="field-input" id="ot-phone-'+offerTenantCount+'" placeholder="Phone">'
+    +'<button class="btn btn-outline btn-sm" onclick="document.getElementById(\'ot-row-'+offerTenantCount+'\').remove()">✕</button>';
+  container.appendChild(row);
+}
+
+function saveNewOffer(){
+  var prop=document.getElementById('no-prop').value.trim();
+  var rent=document.getElementById('no-rent').value;
+  if(!prop||!rent){ showToast('Property and rent are required'); return; }
+  var tenants=[];
+  for(var i=1;i<=offerTenantCount;i++){
+    var nameEl=document.getElementById('ot-name-'+i);
+    if(nameEl&&nameEl.value.trim()) tenants.push({name:nameEl.value.trim(),email:(document.getElementById('ot-email-'+i)||{}).value||'',phone:(document.getElementById('ot-phone-'+i)||{}).value||''});
+  }
+  var rentNum=parseFloat(rent)||0;
+  var tier=document.getElementById('no-tier').value;
+  var now=new Date();
+  var offer={
+    prop:prop, rent:rent, tenants:tenants,
+    tier:tier==='custom'?'Custom':tier==='6'?'Let Only':tier==='10'?'Let & Rent Collection':'Fully Managed',
+    fee:document.getElementById('no-fee').value||12,
+    deposit:document.getElementById('no-deposit').value||(rentNum*5/52*4).toFixed(0),
+    holding:document.getElementById('no-holding').value||(rentNum/52).toFixed(0),
+    startDate:document.getElementById('no-start').value,
+    notes:document.getElementById('no-notes').value,
+    createdDate:('0'+now.getDate()).slice(-2)+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+now.getFullYear(),
+    status:'Active'
+  };
+  fbPush('offers', offer, function(key){
+    offer.fbKey=key;
+    offers.push(offer);
+    // Create move-in checklist
+    var mi={ prop:prop, tenants:tenants, startDate:offer.startDate, status:'Not started', tenant:tenants.map(function(t){return t.name;}).join(', '), tenantChecklist:{}, landlordChecklist:{}, createdDate:offer.createdDate };
+    fbPush('moveins', mi, function(miKey){ mi.fbKey=miKey; moveins.push(mi); });
+    closeModal('new-offer-modal');
+    renderOffers();
+    showToast('Offer saved — move-in checklist created');
+  });
+}
+
+// Wire showPage for offer accepted
+var _spOa=showPage;
+showPage=function(id,btn){
+  _spOa(id,btn);
+  if(id==='offeraccepted'){
+    fbGet('offers',function(data){
+      offers=[];
+      if(data) Object.keys(data).forEach(function(k){var o=data[k];o.fbKey=k;offers.push(o);});
+      renderOffers();
+    });
+  }
+};
+
+// =============================================================================
+// MOVE-INS
+// =============================================================================
+var miFilter='all';
+var currentMiKey=null;
+
+var TENANT_CHECKLIST=[
+  'Referencing instructed',
+  'ID / Right to Rent checked',
+  'Tenancy agreement sent',
+  'Tenancy agreement signed',
+  'Deposit received and protected',
+  'First months rent received',
+  'Prescribed Information (PI) served',
+  'Keys released to tenant',
+  'Inventory booked',
+  'Move-in confirmed'
+];
+
+var LANDLORD_CHECKLIST=[
+  'Offer accepted confirmation sent to landlord',
+  'Permission to let received',
+  'T&Cs / management agreement signed',
+  'Management fee agreed and recorded',
+  'Any maintenance / works prior to move-in noted',
+  'GSC in date confirmed',
+  'EICR in date confirmed',
+  'EPC in date confirmed',
+  'Smoke & CO alarms confirmed',
+  'Property licence confirmed',
+  'Keys received at office'
+];
+
+function setMiFilter(f,btn){
+  miFilter=f;
+  document.querySelectorAll('#mi-filter-pills .filter-pill').forEach(function(p){p.classList.remove('active');});
+  if(btn) btn.classList.add('active');
+  renderMoveIns();
+}
+
+function filterMoveIns(){ renderMoveIns(); }
+
+function getMiProgress(mi){
+  var tc=mi.tenantChecklist||{}, lc=mi.landlordChecklist||{};
+  var total=TENANT_CHECKLIST.length+LANDLORD_CHECKLIST.length;
+  var done=0;
+  TENANT_CHECKLIST.forEach(function(item,i){if(tc[i]) done++;});
+  LANDLORD_CHECKLIST.forEach(function(item,i){if(lc[i]) done++;});
+  return Math.round(done/total*100);
+}
+
+function getMiStatus(pct){
+  if(pct===100) return 'Complete';
+  if(pct===0) return 'Not started';
+  return 'In progress';
+}
+
+function renderMoveIns(){
+  var search=(document.getElementById('mi-search')||{}).value||'';
+  search=search.toLowerCase();
+
+  // Handle pending filter from dashboard
+  if(window._pendingFilter==='active'){ miFilter='in-progress'; window._pendingFilter=null; document.querySelectorAll('#mi-filter-pills .filter-pill').forEach(function(p,i){p.classList.toggle('active',i===2);}); }
+
+  var filtered=moveins.filter(function(m){
+    if(search){ if(!((m.prop||'')+' '+(m.tenant||'')).toLowerCase().includes(search)) return false; }
+    var pct=getMiProgress(m);
+    var status=getMiStatus(pct);
+    if(miFilter==='all') return true;
+    if(miFilter==='not-started') return status==='Not started';
+    if(miFilter==='in-progress') return status==='In progress';
+    if(miFilter==='complete') return status==='Complete';
+    return true;
+  });
+
+  var container=document.getElementById('mi-cards');
+  if(!container) return;
+  if(!filtered.length){ container.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3);font-size:12px">No move-ins match this filter</div>'; renderMiSidebar(); return; }
+
+  var html='';
+  filtered.forEach(function(m){
+    var pct=getMiProgress(m);
+    var status=getMiStatus(pct);
+    var barColor=pct===100?'var(--green-text)':pct>0?'var(--amber-text)':'var(--red-text)';
+    var pillClass=pct===100?'badge-green':pct>0?'badge-amber':'badge-grey';
+    html+='<div class="card" style="margin-bottom:8px;cursor:pointer" onclick="openMiModal(\''+m.fbKey+'\')">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">'
+      +'<div><div style="font-size:13px;font-weight:500;color:var(--text)">'+(m.prop||'—')+'</div>'
+      +'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+(m.tenant||'—')+'</div>'
+      +'<div style="font-size:10px;color:var(--text3);margin-top:1px">Start: '+(m.startDate||'—')+'</div></div>'
+      +'<span class="badge '+pillClass+'">'+status+'</span></div>'
+      +'<div style="background:var(--bg);border-radius:20px;height:6px;margin-bottom:4px">'
+      +'<div style="background:'+barColor+';height:6px;border-radius:20px;width:'+pct+'%;transition:width 0.3s"></div></div>'
+      +'<div style="font-size:10px;color:var(--text3)">'+pct+'% complete</div>'
+      +'</div>';
+  });
+  container.innerHTML=html;
+  renderMiSidebar();
+}
+
+function renderMiSidebar(){
+  var counts={total:moveins.length,complete:0,inProgress:0,notStarted:0};
+  moveins.forEach(function(m){ var p=getMiProgress(m); var s=getMiStatus(p); if(s==='Complete')counts.complete++;else if(s==='In progress')counts.inProgress++;else counts.notStarted++; });
+  var sumEl=document.getElementById('mi-summary');
+  if(sumEl) sumEl.innerHTML='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border)"><span style="font-size:11px">Total</span><span class="badge badge-grey">'+counts.total+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border)"><span style="font-size:11px">Complete</span><span class="badge badge-green">'+counts.complete+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border)"><span style="font-size:11px">In progress</span><span class="badge badge-amber">'+counts.inProgress+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:5px 0"><span style="font-size:11px">Not started</span><span class="badge badge-grey">'+counts.notStarted+'</span></div>';
+
+  // Pending actions - incomplete items across all active move-ins
+  var pending=[];
+  moveins.filter(function(m){return getMiStatus(getMiProgress(m))!=='Complete';}).forEach(function(m){
+    TENANT_CHECKLIST.forEach(function(item,i){ if(!(m.tenantChecklist||{})[i]) pending.push({prop:m.prop,item:item,key:m.fbKey}); });
+    LANDLORD_CHECKLIST.forEach(function(item,i){ if(!(m.landlordChecklist||{})[i]) pending.push({prop:m.prop,item:item,key:m.fbKey}); });
+  });
+  var pendEl=document.getElementById('mi-pending');
+  if(pendEl){
+    if(!pending.length){ pendEl.innerHTML='<div style="font-size:11px;color:var(--green-text);text-align:center;padding:10px">All move-ins complete</div>'; }
+    else {
+      pendEl.innerHTML=pending.slice(0,8).map(function(p){
+        return '<div style="padding:5px 8px;margin-bottom:3px;background:var(--bg);border-radius:6px;cursor:pointer" onclick="openMiModal(\''+p.key+'\')">'
+          +'<div style="font-size:10px;font-weight:500;color:var(--text)">'+(p.prop||'—')+'</div>'
+          +'<div style="font-size:10px;color:var(--text2)">'+p.item+'</div></div>';
+      }).join('')+(pending.length>8?'<div style="font-size:10px;color:var(--text3);text-align:center;padding:6px">+'+(pending.length-8)+' more pending</div>':'');
+    }
+  }
+}
+
+function openMiModal(fbKey){
+  var m=moveins.find(function(x){return x.fbKey===fbKey;});
+  if(!m) return;
+  currentMiKey=fbKey;
+  var pct=getMiProgress(m);
+  document.getElementById('mi-modal-title').textContent=m.prop||'Move-in checklist';
+  document.getElementById('mi-modal-sub').textContent=(m.tenant||'')+(m.startDate?' · Start: '+m.startDate:'')+' · '+pct+'% complete';
+
+  var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">';
+  // Tenant side
+  html+='<div><div style="font-size:11px;font-weight:500;color:var(--navy);margin-bottom:8px;padding-bottom:4px;border-bottom:0.5px solid var(--border)">Tenant side</div>';
+  TENANT_CHECKLIST.forEach(function(item,i){
+    var done=(m.tenantChecklist||{})[i]||false;
+    html+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--border);cursor:pointer" onclick="toggleMiItem(\'tenant\','+i+')">'
+      +'<div style="width:16px;height:16px;border-radius:3px;border:0.5px solid '+(done?'var(--navy)':'var(--border2)')+';background:'+(done?'var(--navy)':'#fff')+';flex-shrink:0;display:flex;align-items:center;justify-content:center">'
+      +(done?'<span style="color:#fff;font-size:10px;font-weight:700">&#10003;</span>':'')+'</div>'
+      +'<span style="font-size:11px;color:'+(done?'var(--text3)':'var(--text)')+(done?';text-decoration:line-through':'')+'">'+(i+1)+'. '+item+'</span></div>';
+  });
+  html+='</div>';
+  // Landlord side
+  html+='<div><div style="font-size:11px;font-weight:500;color:var(--navy);margin-bottom:8px;padding-bottom:4px;border-bottom:0.5px solid var(--border)">Landlord side</div>';
+  LANDLORD_CHECKLIST.forEach(function(item,i){
+    var done=(m.landlordChecklist||{})[i]||false;
+    html+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--border);cursor:pointer" onclick="toggleMiItem(\'landlord\','+i+')">'
+      +'<div style="width:16px;height:16px;border-radius:3px;border:0.5px solid '+(done?'var(--navy)':'var(--border2)')+';background:'+(done?'var(--navy)':'#fff')+';flex-shrink:0;display:flex;align-items:center;justify-content:center">'
+      +(done?'<span style="color:#fff;font-size:10px;font-weight:700">&#10003;</span>':'')+'</div>'
+      +'<span style="font-size:11px;color:'+(done?'var(--text3)':'var(--text)')+(done?';text-decoration:line-through':'')+'">'+(i+1)+'. '+item+'</span></div>';
+  });
+  html+='</div></div>';
+  document.getElementById('mi-modal-body').innerHTML=html;
+  openModal('mi-modal');
+}
+
+function toggleMiItem(side, idx){
+  var m=moveins.find(function(x){return x.fbKey===currentMiKey;});
+  if(!m) return;
+  if(side==='tenant'){ if(!m.tenantChecklist) m.tenantChecklist={}; m.tenantChecklist[idx]=!m.tenantChecklist[idx]; }
+  else { if(!m.landlordChecklist) m.landlordChecklist={}; m.landlordChecklist[idx]=!m.landlordChecklist[idx]; }
+  var pct=getMiProgress(m);
+  m.status=getMiStatus(pct);
+  fbSet('moveins/'+currentMiKey, m, function(){
+    openMiModal(currentMiKey);
+    renderMoveIns();
+    renderStatCards();
+  });
+}
+
+function saveMiChecklist(){
+  var m=moveins.find(function(x){return x.fbKey===currentMiKey;});
+  if(!m) return;
+  var pct=getMiProgress(m);
+  m.status=getMiStatus(pct);
+  fbSet('moveins/'+currentMiKey, m, function(){ closeModal('mi-modal'); renderMoveIns(); showToast('Checklist saved'); });
+}
+
+// Wire showPage for move-ins
+var _spMi=showPage;
+showPage=function(id,btn){
+  _spMi(id,btn);
+  if(id==='moveins'){
+    fbGet('moveins',function(data){
+      moveins=[];
+      if(data) Object.keys(data).forEach(function(k){var m=data[k];m.fbKey=k;moveins.push(m);});
+      renderMoveIns();
+    });
+  }
 };
 
 </script>
