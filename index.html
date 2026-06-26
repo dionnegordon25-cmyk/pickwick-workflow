@@ -469,7 +469,59 @@ select.field-input{cursor:pointer}
     </div>
 
     <div id="page-compliance" class="page">
-      <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);font-size:13px">Compliance loading...</div>
+      <div class="ops-bar">
+        <input class="search-bar" id="comp-search" placeholder="Search address, tenant, landlord..." oninput="filterComp()">
+        <select class="field-input" id="comp-cert-filter" onchange="filterComp()" style="width:160px">
+          <option value="">All certificates</option>
+          <option value="gsc">GSC</option>
+          <option value="eicr">EICR</option>
+          <option value="epc">EPC</option>
+          <option value="smokeAlarm">Smoke alarm</option>
+          <option value="coDetector">CO detector</option>
+          <option value="propLicence">Property licence</option>
+          <option value="rtrExpiry">Right to Rent</option>
+          <option value="aptAnniversary">APT anniversary</option>
+        </select>
+      </div>
+      <div class="filter-pills" id="comp-filter-pills">
+        <div class="filter-pill active" onclick="setCompFilter('all',this)">All</div>
+        <div class="filter-pill" onclick="setCompFilter('overdue',this)">Overdue</div>
+        <div class="filter-pill" onclick="setCompFilter('30',this)">Due 30 days</div>
+        <div class="filter-pill" onclick="setCompFilter('60',this)">Due 60 days</div>
+        <div class="filter-pill" onclick="setCompFilter('missing',this)">Not recorded</div>
+      </div>
+      <div class="two-col-wide">
+        <div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>Address / Tenant</th>
+                  <th>GSC</th><th>EICR</th><th>EPC</th>
+                  <th>Smoke</th><th>CO</th><th>Licence</th>
+                  <th>RTR</th><th>APT due</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="comp-tbody"></tbody>
+            </table>
+          </div>
+          <div id="comp-count" style="font-size:11px;color:var(--text3);margin-top:6px;text-align:right"></div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:10px">
+            <div class="card-title">Compliance summary</div>
+            <div id="comp-summary"></div>
+          </div>
+          <div class="card" style="margin-bottom:10px">
+            <div class="card-title">Action required <span style="font-size:10px;color:var(--text3);font-weight:400">top 8 urgent</span></div>
+            <div id="comp-actions"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">APT anniversaries <span style="font-size:10px;color:var(--text3);font-weight:400">within 60 days</span></div>
+            <div id="comp-anniversaries"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="page-deposits" class="page">
@@ -2011,7 +2063,7 @@ function renderPdCompliance(p){
 }
 
 var EMAIL_TYPES=[
-  {id:'gsc',label:'GSC reminder',subject:'Gas Safety Certificate — Action Required',body:function(p){ return 'Dear '+(p.llName||'Landlord')+',\n\nI hope you are well. I am writing to advise that the Gas Safety Certificate (GSC) for the above property is due for renewal'+(p.gsc?' on '+p.gsc:' shortly')+'\n\nUnder the Gas Safety (Installation and Use) Regulations 1998, a valid GSC is a legal requirement for all rented properties. Failure to renew may result in a fine of up to £6,000.\n\nWe have arranged for our approved contractor to carry out the annual gas safety inspection. Please confirm if there are any access issues.\n\nKind regards\nPickwick Estates\n020 8699 8000'; }},
+  {id:'gsc',label:'GSC reminder',subject:'Gas Safety Certificate — Action Required',body:function(p){ return 'Dear '+(p.llName||'Landlord')+',\n\nI hope you are well. I am writing to advise that the Gas Safety Certificate (GSC) for the above property is due for renewal'+(p.gsc?' on '+p.gsc:' shortly')+'\n\nUnder the Gas Safety (Installation and Use) Regulations 1998, a valid GSC is a legal requirement for all rented properties. Failure to renew may result in a fine of up to £6,000.\n\nWe have arranged for our approved contractor to carry out the annual gas safety inspection. Please confirm if there are any access issues.\n\nKind regards\nPickwick Estates\n020 3397 1144 / 020 3397 1166'; }},
   {id:'eicr',label:'EICR reminder',subject:'Electrical Installation Condition Report — Action Required',body:function(p){ return 'Dear '+(p.llName||'Landlord')+',\n\nI am writing to advise that the Electrical Installation Condition Report (EICR) for your property at '+(p.address||'the above address')+' is due for renewal'+(p.eicr?' on '+p.eicr:' shortly')+'\n\nUnder the Electrical Safety Standards in the Private Rented Sector (England) Regulations 2020, a valid EICR is a legal requirement.\n\nWe will arrange access with the tenant and instruct our approved electrician. Please confirm you are happy for us to proceed.\n\nKind regards\nPickwick Estates'; }},
   {id:'epc',label:'EPC reminder',subject:'Energy Performance Certificate — Renewal Required',body:function(p){ return 'Dear '+(p.llName||'Landlord')+',\n\nThe Energy Performance Certificate (EPC) for '+(p.address||'your property')+' is due to expire'+(p.epc?' on '+p.epc:' shortly')+'. A valid EPC with a minimum E rating is required under MEES regulations.\n\nPlease advise if you would like us to arrange an assessor.\n\nKind regards\nPickwick Estates'; }},
   {id:'rent',label:'Rent review',subject:'Annual Rent Review — '+(new Date().getFullYear()),body:function(p){ return 'Dear '+(p.llName||'Landlord')+',\n\nI am writing in connection with the annual rent review for your property at '+(p.address||'the above address')+'. The current monthly rent is '+(p.rent?'£'+parseFloat(p.rent).toLocaleString('en-GB'):'as agreed')+'\n\nFollowing a review of current market rents in the area, we propose to discuss an adjustment in line with market conditions. Please contact us to discuss.\n\nKind regards\nPickwick Estates'; }},
@@ -2164,6 +2216,198 @@ var _spPrev2=showPage;
 showPage=function(id,btn){
   _spPrev2(id,btn);
   if(id==='properties') renderPropsTable();
+};
+
+
+// ─── COMPLIANCE PAGE ──────────────────────────────────────────────────────────
+var compStatusFilter = 'all';
+var compCertFilter = '';
+
+function setCompFilter(f, btn){
+  compStatusFilter = f;
+  document.querySelectorAll('#comp-filter-pills .filter-pill').forEach(function(p){ p.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  renderCompTable();
+}
+
+function filterComp(){
+  compCertFilter = (document.getElementById('comp-cert-filter')||{}).value||'';
+  renderCompTable();
+}
+
+var CERT_FIELDS = [
+  {key:'gsc',label:'GSC'},
+  {key:'eicr',label:'EICR'},
+  {key:'epc',label:'EPC'},
+  {key:'smokeAlarm',label:'Smoke'},
+  {key:'coDetector',label:'CO'},
+  {key:'propLicence',label:'Licence'},
+  {key:'rtrExpiry',label:'RTR'},
+  {key:'aptAnniversary',label:'APT due'}
+];
+
+function certPill(dateStr){
+  if(!dateStr) return '<span class="badge badge-grey">—</span>';
+  var d = daysUntil(dateStr);
+  if(d < 0)  return '<span class="badge badge-red">OVERDUE</span>';
+  if(d <= 30) return '<span class="badge badge-red">'+d+'d</span>';
+  if(d <= 60) return '<span class="badge badge-amber">'+d+'d</span>';
+  return '<span class="badge badge-green">✓</span>';
+}
+
+function propNeedsAttention(p, statusFilter, certFilter){
+  var certs = certFilter ? [p[certFilter]] : CERT_FIELDS.map(function(c){ return p[c.key]; });
+  if(statusFilter === 'all') return true;
+  return certs.some(function(dateStr){
+    if(statusFilter === 'missing') return !dateStr;
+    if(!dateStr) return false;
+    var d = daysUntil(dateStr);
+    if(statusFilter === 'overdue') return d < 0;
+    if(statusFilter === '30') return d >= 0 && d <= 30;
+    if(statusFilter === '60') return d >= 0 && d <= 60;
+    return false;
+  });
+}
+
+function renderCompTable(){
+  var search = (document.getElementById('comp-search')||{}).value||'';
+  search = search.toLowerCase();
+  certFilter = (document.getElementById('comp-cert-filter')||{}).value||'';
+
+  // Handle pending filter from dashboard nav
+  if(window._pendingFilter){
+    var pf = window._pendingFilter;
+    var certEl = document.getElementById('comp-cert-filter');
+    if(pf === 'gsc' && certEl){ certEl.value='gsc'; certFilter='gsc'; }
+    else if(pf === 'eicr' && certEl){ certEl.value='eicr'; certFilter='eicr'; }
+    else if(pf === 'licence' && certEl){ certEl.value='propLicence'; certFilter='propLicence'; }
+    else if(pf === 'expiring'){
+      compStatusFilter='60';
+      document.querySelectorAll('#comp-filter-pills .filter-pill').forEach(function(p,i){ p.classList.toggle('active', i===3); });
+    }
+    window._pendingFilter = null;
+  }
+
+  var filtered = properties.filter(function(p){
+    if(search){
+      var hay = (p.address||'')+' '+(p.tenant||'')+' '+(p.llName||'');
+      if(!hay.toLowerCase().includes(search)) return false;
+    }
+    return propNeedsAttention(p, compStatusFilter, certFilter);
+  });
+
+  var tbody = document.getElementById('comp-tbody');
+  var count = document.getElementById('comp-count');
+  if(count) count.textContent = filtered.length+' properties shown';
+  if(!tbody) return;
+
+  if(!filtered.length){
+    tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text3)">No properties match this filter</td></tr>';
+    renderCompSidebar();
+    return;
+  }
+
+  var html='';
+  filtered.forEach(function(p, i){
+    var idx = properties.indexOf(p);
+    html += '<tr onclick="openPropDetail('+idx+')" style="cursor:pointer">'
+      +'<td><div style="font-size:12px;font-weight:500;color:var(--text)">'+(p.address||'—')+'</div>'
+      +'<div style="font-size:10px;color:var(--text2)">'+(p.tenant||'—')+'</div></td>'
+      +CERT_FIELDS.map(function(c){ return '<td>'+certPill(p[c.key])+'</td>'; }).join('')
+      +'<td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openPropDetail('+idx+')">Open</button></td>'
+      +'</tr>';
+  });
+  tbody.innerHTML = html;
+  renderCompSidebar();
+}
+
+function renderCompSidebar(){
+  // Summary counts
+  var summary = {};
+  CERT_FIELDS.forEach(function(c){
+    var overdue=0, soon30=0, soon60=0, missing=0, ok=0;
+    properties.forEach(function(p){
+      var d = p[c.key];
+      if(!d){ missing++; return; }
+      var days = daysUntil(d);
+      if(days<0) overdue++;
+      else if(days<=30) soon30++;
+      else if(days<=60) soon60++;
+      else ok++;
+    });
+    summary[c.key] = {overdue:overdue, soon30:soon30, soon60:soon60, missing:missing, ok:ok};
+  });
+
+  var sumEl = document.getElementById('comp-summary');
+  if(sumEl){
+    var html='';
+    CERT_FIELDS.forEach(function(c){
+      var s=summary[c.key];
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border)">'
+        +'<div style="font-size:11px;font-weight:500;color:var(--text)">'+c.label+'</div>'
+        +'<div style="display:flex;gap:4px">'
+        +(s.overdue?'<span class="badge badge-red">'+s.overdue+' OD</span>':'')
+        +(s.soon30?'<span class="badge badge-red">'+s.soon30+' &lt;30d</span>':'')
+        +(s.soon60?'<span class="badge badge-amber">'+s.soon60+' &lt;60d</span>':'')
+        +(s.missing?'<span class="badge badge-grey">'+s.missing+' missing</span>':'')
+        +(s.ok?'<span class="badge badge-green">'+s.ok+' ok</span>':'')
+        +'</div></div>';
+    });
+    sumEl.innerHTML = html;
+  }
+
+  // Action required - top 8 most urgent
+  var urgent = [];
+  properties.forEach(function(p){
+    CERT_FIELDS.forEach(function(c){
+      if(!p[c.key]) return;
+      var d = daysUntil(p[c.key]);
+      if(d <= 60) urgent.push({prop:p, cert:c.label, days:d, idx:properties.indexOf(p)});
+    });
+  });
+  urgent.sort(function(a,b){ return a.days-b.days; });
+  var actEl = document.getElementById('comp-actions');
+  if(actEl){
+    if(!urgent.length){ actEl.innerHTML='<div style="font-size:11px;color:var(--text3);text-align:center;padding:10px">All compliance up to date</div>'; }
+    else {
+      actEl.innerHTML = urgent.slice(0,8).map(function(u){
+        var bg=u.days<0?'var(--red-bg)':u.days<=30?'var(--red-bg)':'var(--amber-bg)';
+        var border=u.days<0?'var(--red-text)':u.days<=30?'var(--red-text)':'var(--amber-text)';
+        var badge=u.days<0?'OVERDUE':u.days+'d';
+        return '<div style="padding:6px 8px;margin-bottom:4px;background:'+bg+';border-left:3px solid '+border+';cursor:pointer" onclick="openPropDetail('+u.idx+')">'
+          +'<div style="display:flex;justify-content:space-between"><div style="font-size:11px;font-weight:500;color:var(--text)">'+(u.prop.address||'—')+'</div>'
+          +'<span style="font-size:9px;font-weight:500;color:'+border+'">'+badge+'</span></div>'
+          +'<div style="font-size:10px;color:var(--text2)">'+u.cert+'</div></div>';
+      }).join('');
+    }
+  }
+
+  // APT anniversaries within 60 days
+  var annivEl = document.getElementById('comp-anniversaries');
+  if(annivEl){
+    var annivs = properties.filter(function(p){
+      if(!p.aptAnniversary) return false;
+      var d = daysUntil(p.aptAnniversary);
+      return d >= 0 && d <= 60;
+    }).sort(function(a,b){ return daysUntil(a.aptAnniversary)-daysUntil(b.aptAnniversary); });
+    if(!annivs.length){ annivEl.innerHTML='<div style="font-size:11px;color:var(--text3);text-align:center;padding:10px">None in next 60 days</div>'; }
+    else {
+      annivEl.innerHTML = annivs.map(function(p){
+        var d=daysUntil(p.aptAnniversary);
+        return '<div style="padding:6px 8px;margin-bottom:4px;background:var(--blue-bg);border-left:3px solid var(--blue-text);cursor:pointer" onclick="openPropDetail('+properties.indexOf(p)+')">'
+          +'<div style="display:flex;justify-content:space-between"><div style="font-size:11px;font-weight:500;color:var(--text)">'+(p.address||'—')+'</div>'
+          +'<span style="font-size:9px;font-weight:500;color:var(--blue-text)">'+d+'d</span></div>'
+          +'<div style="font-size:10px;color:var(--text2)">'+(p.rent?'£'+parseFloat(p.rent).toLocaleString('en-GB')+'/mo':'—')+' · '+(p.tenant||'—')+'</div></div>';
+      }).join('');
+    }
+  }
+}
+
+// Wire showPage for compliance
+var _spComp = showPage;
+showPage = function(id, btn){
+  _spComp(id, btn);
+  if(id === 'compliance') renderCompTable();
 };
 
 </script>
