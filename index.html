@@ -525,7 +525,43 @@ select.field-input{cursor:pointer}
     </div>
 
     <div id="page-deposits" class="page">
-      <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);font-size:13px">Deposits loading...</div>
+      <div class="ops-bar">
+        <input class="search-bar" id="dep-search" placeholder="Search address, tenant, deposit ID..." oninput="filterDep()">
+      </div>
+      <div class="filter-pills" id="dep-filter-pills">
+        <div class="filter-pill active" onclick="setDepFilter('all',this)">All</div>
+        <div class="filter-pill" onclick="setDepFilter('dispute',this)">Disputes</div>
+        <div class="filter-pill" onclick="setDepFilter('available',this)">Available</div>
+        <div class="filter-pill" onclick="setDepFilter('clearance',this)">Clearance</div>
+        <div class="filter-pill" onclick="setDepFilter('protected',this)">Protected</div>
+      </div>
+      <div class="two-col-wide">
+        <div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>Address</th><th>Tenant</th><th>Rent/mo</th>
+                  <th>Deposit ID</th><th>Amount</th><th>Start date</th>
+                  <th>Status</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="dep-tbody"></tbody>
+            </table>
+          </div>
+          <div id="dep-count" style="font-size:11px;color:var(--text3);margin-top:6px;text-align:right"></div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:10px">
+            <div class="card-title">Deposit summary</div>
+            <div id="dep-summary"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Total deposits held</div>
+            <div id="dep-totals"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="page-contractors" class="page">
@@ -2408,6 +2444,180 @@ var _spComp = showPage;
 showPage = function(id, btn){
   _spComp(id, btn);
   if(id === 'compliance') renderCompTable();
+};
+
+
+// ─── DEPOSITS PAGE ────────────────────────────────────────────────────────────
+var depStatusFilter = 'all';
+
+function setDepFilter(f, btn){
+  depStatusFilter = f;
+  document.querySelectorAll('#dep-filter-pills .filter-pill').forEach(function(p){ p.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  renderDepTable();
+}
+
+function filterDep(){ renderDepTable(); }
+
+function getDepData(){
+  // Build deposit records from properties array (source of truth)
+  // supplemented by any Firebase deposits records
+  var records = [];
+  properties.forEach(function(p){
+    if(!p.deposit && !p.depositId && !p.depositStatus) return;
+    records.push({
+      address: p.address||'—',
+      tenant: p.tenant||'—',
+      rent: p.rent||0,
+      depositId: p.depositId||'—',
+      amount: p.deposit||0,
+      startDate: p.startDate||'—',
+      status: p.depositStatus||'Protected',
+      propIdx: properties.indexOf(p)
+    });
+  });
+  // Also include any standalone deposit records from Firebase
+  deposits.forEach(function(d){
+    // Only add if not already covered by a property
+    var already = records.find(function(r){ return r.depositId===d.depositId && d.depositId; });
+    if(!already && d.address){
+      records.push({
+        address: d.address||'—',
+        tenant: d.tenant||'—',
+        rent: d.rent||0,
+        depositId: d.depositId||'—',
+        amount: d.amount||0,
+        startDate: d.startDate||'—',
+        status: d.status||'—',
+        fbKey: d.fbKey,
+        propIdx: null
+      });
+    }
+  });
+  return records;
+}
+
+function depRowClass(status){
+  if(!status) return 'badge-grey';
+  var s = status.toLowerCase();
+  if(s.includes('dispute') || s.includes('claim')) return 'badge-red';
+  if(s.includes('available')) return 'badge-amber';
+  if(s.includes('clearance')) return 'badge-blue';
+  return 'badge-green';
+}
+
+function renderDepTable(){
+  var search = (document.getElementById('dep-search')||{}).value||'';
+  search = search.toLowerCase();
+
+  // Handle pending filter from dashboard
+  if(window._pendingFilter){
+    var pf = window._pendingFilter;
+    if(pf === 'disputes'){ depStatusFilter='dispute'; document.querySelectorAll('#dep-filter-pills .filter-pill').forEach(function(p,i){ p.classList.toggle('active',i===1); }); }
+    else if(pf === 'available'){ depStatusFilter='available'; document.querySelectorAll('#dep-filter-pills .filter-pill').forEach(function(p,i){ p.classList.toggle('active',i===2); }); }
+    window._pendingFilter = null;
+  }
+
+  var all = getDepData();
+  var filtered = all.filter(function(d){
+    if(search){
+      var hay=(d.address+' '+d.tenant+' '+(d.depositId||'')).toLowerCase();
+      if(!hay.includes(search)) return false;
+    }
+    if(depStatusFilter === 'all') return true;
+    var s=(d.status||'').toLowerCase();
+    if(depStatusFilter === 'dispute') return s.includes('dispute')||s.includes('claim');
+    if(depStatusFilter === 'available') return s.includes('available');
+    if(depStatusFilter === 'clearance') return s.includes('clearance');
+    if(depStatusFilter === 'protected') return s.includes('protected');
+    return true;
+  });
+
+  var tbody = document.getElementById('dep-tbody');
+  var count = document.getElementById('dep-count');
+  if(count) count.textContent = filtered.length+' of '+all.length+' deposits';
+  if(!tbody) return;
+
+  if(!filtered.length){
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text3)">No deposits match this filter</td></tr>';
+    renderDepSidebar(all);
+    return;
+  }
+
+  var html = '';
+  filtered.forEach(function(d){
+    var pillClass = depRowClass(d.status);
+    var rowBg = (d.status||'').toLowerCase().includes('dispute') ? 'background:#FFF8F6;' : '';
+    html += '<tr style="cursor:pointer;'+rowBg+'" '+(d.propIdx!==null?'onclick="openPropDetail('+d.propIdx+')"':'')+'>'
+      +'<td><div style="font-size:12px;font-weight:500;color:var(--text)">'+(d.address||'—')+'</div></td>'
+      +'<td style="font-size:11px">'+(d.tenant||'—')+'</td>'
+      +'<td style="font-size:12px;font-weight:500;color:var(--navy)">'+(d.rent?'£'+parseFloat(d.rent).toLocaleString('en-GB'):'—')+'</td>'
+      +'<td style="font-size:11px;color:var(--text2)">'+(d.depositId||'—')+'</td>'
+      +'<td style="font-size:12px;font-weight:500">'+(d.amount?'£'+parseFloat(d.amount).toLocaleString('en-GB'):'—')+'</td>'
+      +'<td style="font-size:11px">'+(d.startDate||'—')+'</td>'
+      +'<td><span class="badge '+pillClass+'">'+(d.status||'—')+'</span></td>'
+      +'<td>'+(d.propIdx!==null?'<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openPropDetail('+d.propIdx+')">Open</button>':'')+'</td>'
+      +'</tr>';
+  });
+  tbody.innerHTML = html;
+  renderDepSidebar(all);
+}
+
+function quickDepFilter(el, f){
+  setDepFilter(f, null);
+  document.querySelectorAll('#dep-filter-pills .filter-pill').forEach(function(p){ p.classList.remove('active'); });
+}
+
+function renderDepSidebar(all){
+  if(!all) all = getDepData();
+
+  // Summary counts
+  var counts = {dispute:0, available:0, clearance:0, protected:0};
+  all.forEach(function(d){
+    var s=(d.status||'').toLowerCase();
+    if(s.includes('dispute')||s.includes('claim')) counts.dispute++;
+    else if(s.includes('available')) counts.available++;
+    else if(s.includes('clearance')) counts.clearance++;
+    else counts.protected++;
+  });
+
+  var sumEl = document.getElementById('dep-summary');
+  if(sumEl){
+    sumEl.innerHTML = [
+      {label:'Disputes / claims', count:counts.dispute, pill:'badge-red', filter:'dispute'},
+      {label:'Available for repayment', count:counts.available, pill:'badge-amber', filter:'available'},
+      {label:'Clearance pending', count:counts.clearance, pill:'badge-blue', filter:'clearance'},
+      {label:'Protected', count:counts.protected, pill:'badge-green', filter:'protected'}
+    ].map(function(row){
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid var(--border);cursor:pointer" onclick="quickDepFilter(this,\''+row.filter+'\')">'
+        +'<div style="font-size:11px;color:var(--text)">'+row.label+'</div>'
+        +'<span class="badge '+row.pill+'">'+row.count+'</span>'
+        +'</div>';
+    }).join('');
+  }
+
+  // Totals
+  var totalHeld = all.reduce(function(s,d){ return s+(parseFloat(d.amount)||0); }, 0);
+  var disputeVal = all.filter(function(d){ return (d.status||'').toLowerCase().includes('dispute'); })
+                      .reduce(function(s,d){ return s+(parseFloat(d.amount)||0); }, 0);
+  var totEl = document.getElementById('dep-totals');
+  if(totEl){
+    totEl.innerHTML = '<div style="margin-bottom:8px">'
+      +'<div style="font-size:10px;color:var(--text2);margin-bottom:2px">Total held across portfolio</div>'
+      +'<div style="font-size:22px;font-weight:500;color:var(--navy)">£'+totalHeld.toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:0})+'</div>'
+      +'</div>'
+      +(disputeVal?'<div>'
+      +'<div style="font-size:10px;color:var(--text2);margin-bottom:2px">In dispute</div>'
+      +'<div style="font-size:18px;font-weight:500;color:var(--red-text)">£'+disputeVal.toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:0})+'</div>'
+      +'</div>':'<div style="font-size:11px;color:var(--green-text)">✓ No deposits in dispute</div>');
+  }
+}
+
+// Wire showPage for deposits
+var _spDep = showPage;
+showPage = function(id, btn){
+  _spDep(id, btn);
+  if(id === 'deposits') renderDepTable();
 };
 
 </script>
