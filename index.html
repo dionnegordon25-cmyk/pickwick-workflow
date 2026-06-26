@@ -3333,17 +3333,302 @@ function buildImportExportPanel(){
   var container=document.getElementById('import-export-panel');
   if(!container) return;
   var sections=[
-    {label:'Maintenance jobs',exportFn:'exportJobsCSV'},
-    {label:'Properties',exportFn:'exportPropertiesCSV'},
-    {label:'Contractors',exportFn:'exportContractorsCSV'},
-    {label:'Past tenants',exportFn:'exportPastTenantsCSV'}
+    {label:'Properties (address, tenant, rent, deposit status)',exportFn:'exportPropertiesCSV',importFn:'importPropertiesCSV'},
+    {label:'Landlord details (name, email, mobile per property)',exportFn:null,importFn:'importLandlordsCSV'},
+    {label:'Compliance dates (GSC, EICR, EPC etc per property)',exportFn:null,importFn:'importComplianceCSV'},
+    {label:'Maintenance jobs',exportFn:'exportJobsCSV',importFn:'importJobsCSV'},
+    {label:'Contractors',exportFn:'exportContractorsCSV',importFn:null},
+    {label:'Past tenants',exportFn:'exportPastTenantsCSV',importFn:'importPastTenantsCSV'}
   ];
   container.innerHTML=sections.map(function(s){
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid var(--border)">'
-      +'<span style="font-size:11px;color:var(--text)">'+s.label+'</span>'
-      +'<button class="btn btn-outline btn-sm" onclick="'+s.exportFn+'()">Export CSV</button>'
-      +'</div>';
+    return '<div style="padding:8px 0;border-bottom:0.5px solid var(--border)">'
+      +'<div style="font-size:11px;font-weight:500;color:var(--text);margin-bottom:5px">'+s.label+'</div>'
+      +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+      +(s.exportFn?'<button class="btn btn-outline btn-sm" onclick="'+s.exportFn+'()">Export CSV</button>':'')
+      +(s.importFn?'<label class="btn btn-navy btn-sm" style="cursor:pointer;margin:0">&#8593; Import CSV<input type="file" accept=".csv" style="display:none" onchange="'+s.importFn+'(this)"></label>':'')
+      +'</div></div>';
   }).join('');
+}
+
+function importPropertiesCSV(input){
+  var file=input.files[0]; if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split('\n').filter(Boolean);
+    var headers=parseCSVLine(lines[0]);
+    var imported=0, errors=0;
+    var pending=lines.length-1;
+    if(pending===0){showToast('No data rows found');return;}
+    for(var i=1;i<lines.length;i++){
+      if(!lines[i].trim()) continue;
+      var vals=parseCSVLine(lines[i]);
+      var row={};
+      headers.forEach(function(h,idx){row[h.trim()]=vals[idx]||'';});
+      // Map columns - handle both old and new format
+      var prop={
+        address:row['Address']||row['address']||'',
+        tenant:row['Tenant']||row['tenant']||'',
+        tenantPhone:row['Tenant Phone']||row['tenantPhone']||'',
+        tenantEmail:row['Tenant Email']||row['tenantEmail']||'',
+        llName:row['Landlord']||row['llName']||'',
+        llMobile:row['Landlord Phone']||row['llMobile']||'',
+        llEmail:row['Landlord Email']||row['llEmail']||'',
+        rent:row['Rent']||row['rent']||'',
+        gsc:row['GSC Date']||row['gsc']||'',
+        eicr:row['EICR Date']||row['eicr']||'',
+        epc:row['EPC Date']||row['epc']||'',
+        depositStatus:row['Deposit Status']||row['depositStatus']||'',
+        startDate:row['Move-in Date']||row['Start date']||row['startDate']||'',
+        mgmtFee:row['Fee%']||row['mgmtFee']||'',
+        deposit:row['Deposit']||row['deposit']||'',
+        depositId:row['Deposit ID']||row['depositId']||'',
+        smokeAlarm:'',coDetector:'',propLicence:'',rtrCheck:'',rtrExpiry:'',
+        routineInspection:'',aptAnniversary:'',notes:''
+      };
+      if(!prop.address){pending--;continue;}
+      (function(p){
+        fbPush('properties',p,function(key){
+          p.fbKey=key; properties.push(p);
+          imported++;
+          pending--;
+          if(pending<=0){
+            renderStatCards();
+            renderPropsTable();
+            populatePropDatalist();
+            showToast(imported+' properties imported');
+          }
+        });
+      })(prop);
+    }
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+function importJobsCSV(input){
+  var file=input.files[0]; if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split('\n').filter(Boolean);
+    var headers=parseCSVLine(lines[0]);
+    var imported=0;
+    var pending=lines.length-1;
+    if(pending===0){showToast('No data rows found');return;}
+    for(var i=1;i<lines.length;i++){
+      if(!lines[i].trim()) continue;
+      var vals=parseCSVLine(lines[i]);
+      var row={};
+      headers.forEach(function(h,idx){row[h.trim()]=vals[idx]||'';});
+      var job={
+        prop:row['Property']||row['prop']||'',
+        tenant:row['Tenant']||row['tenant']||'',
+        tenantPhone:row['Tenant Phone']||row['tenantPhone']||'',
+        contractorId:row['Contractor ID']||row['contractorId']||'',
+        contractorName:row['Contractor']||'',
+        category:row['Category']||row['category']||'General',
+        issue:row['Issue']||row['issue']||'',
+        status:row['Status']||row['status']||'Awaiting contractor',
+        quote:row['Quote']||row['quote']||'',
+        invoice:row['Invoice']||row['invoice']||'',
+        dateLogged:row['Date']||row['dateLogged']||'',
+        lastActionDate:row['Date']||row['dateLogged']||'',
+        access:row['Access']||'',
+        notes:row['Notes']||'',
+        chaseLog:[]
+      };
+      if(!job.prop){pending--;continue;}
+      (function(j){
+        fbPush('jobs',j,function(key){
+          j.fbKey=key; jobs.push(j);
+          imported++;
+          pending--;
+          if(pending<=0){
+            renderStatCards();
+            renderDashJobs();
+            showToast(imported+' jobs imported');
+          }
+        });
+      })(job);
+    }
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+function importPastTenantsCSV(input){
+  var file=input.files[0]; if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split('\n').filter(Boolean);
+    var headers=parseCSVLine(lines[0]);
+    var imported=0;
+    var pending=lines.length-1;
+    if(pending===0){showToast('No data rows found');return;}
+    for(var i=1;i<lines.length;i++){
+      if(!lines[i].trim()) continue;
+      var vals=parseCSVLine(lines[i]);
+      var row={};
+      headers.forEach(function(h,idx){row[h.trim()]=vals[idx]||'';});
+      var pt={
+        address:row['Address']||row['address']||'',
+        tenant:row['Tenant']||row['tenant']||'',
+        startDate:row['Start']||row['startDate']||'',
+        endDate:row['End']||row['endDate']||'',
+        reason:row['Reason']||row['reason']||'',
+        depositStatus:row['Deposit status']||row['depositStatus']||'',
+        deductions:row['Deductions']||'',
+        landlord:row['Landlord']||'',
+        rent:row['Rent']||'',
+        archivedDate:new Date().toISOString()
+      };
+      if(!pt.address){pending--;continue;}
+      (function(p){
+        fbPush('pasttenants',p,function(key){
+          p.fbKey=key; pastTenants.push(p);
+          imported++;
+          pending--;
+          if(pending<=0) showToast(imported+' past tenant records imported');
+        });
+      })(pt);
+    }
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+
+function importLandlordsCSV(input){
+  // Expected columns: Address, Landlord Name, Landlord Email, Landlord Mobile, Landlord Email 2
+  // Matches to existing properties by address and updates landlord fields
+  var file=input.files[0]; if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split('\n').filter(Boolean);
+    var headers=parseCSVLine(lines[0]);
+    var updated=0, notFound=0;
+    var pending=lines.length-1;
+    if(pending===0){showToast('No data rows found');return;}
+    for(var i=1;i<lines.length;i++){
+      if(!lines[i].trim()){pending--;continue;}
+      var vals=parseCSVLine(lines[i]);
+      var row={};
+      headers.forEach(function(h,idx){row[h.trim()]=vals[idx]||'';});
+      var addr=(row['Address']||row['address']||'').trim().toLowerCase();
+      if(!addr){pending--;continue;}
+      // Find matching property
+      var prop=properties.find(function(p){ return (p.address||'').toLowerCase()===addr; });
+      if(!prop){
+        // Try partial match
+        prop=properties.find(function(p){ return (p.address||'').toLowerCase().includes(addr.split(',')[0]); });
+      }
+      if(!prop){ notFound++; pending--; continue; }
+      // Update landlord fields
+      if(row['Landlord Name']||row['Landlord']||row['llName']) prop.llName=row['Landlord Name']||row['Landlord']||row['llName']||prop.llName;
+      if(row['Landlord Email']||row['llEmail']) prop.llEmail=row['Landlord Email']||row['llEmail']||prop.llEmail;
+      if(row['Landlord Mobile']||row['Landlord Phone']||row['llMobile']) prop.llMobile=row['Landlord Mobile']||row['Landlord Phone']||row['llMobile']||prop.llMobile;
+      if(row['Landlord Email 2']||row['llEmail2']) prop.llEmail2=row['Landlord Email 2']||row['llEmail2']||prop.llEmail2;
+      if(row['Management Fee']||row['Fee%']||row['mgmtFee']) prop.mgmtFee=row['Management Fee']||row['Fee%']||row['mgmtFee']||prop.mgmtFee;
+      // Save to Firebase
+      var path=prop.fbKey?'properties/'+prop.fbKey:'properties/'+properties.indexOf(prop);
+      (function(p,path){
+        fbSet(path,p,function(){
+          updated++;
+          pending--;
+          if(pending<=0){
+            renderPropsTable();
+            renderStatCards();
+            showToast(updated+' properties updated'+(notFound?' ('+notFound+' addresses not matched)':''));
+          }
+        });
+      })(prop,path);
+    }
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+function importComplianceCSV(input){
+  // Expected columns: Address, GSC Date, EICR Date, EPC Date, Smoke Alarm, CO Detector, 
+  //                   Property Licence, RTR Check, RTR Expiry, Routine Inspection, APT Anniversary
+  // Dates in yyyy-mm-dd or dd/mm/yyyy format
+  var file=input.files[0]; if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split('\n').filter(Boolean);
+    var headers=parseCSVLine(lines[0]);
+    var updated=0, notFound=0;
+    var pending=lines.length-1;
+    if(pending===0){showToast('No data rows found');return;}
+    for(var i=1;i<lines.length;i++){
+      if(!lines[i].trim()){pending--;continue;}
+      var vals=parseCSVLine(lines[i]);
+      var row={};
+      headers.forEach(function(h,idx){row[h.trim()]=vals[idx]||'';});
+      var addr=(row['Address']||row['address']||'').trim().toLowerCase();
+      if(!addr){pending--;continue;}
+      var prop=properties.find(function(p){ return (p.address||'').toLowerCase()===addr; });
+      if(!prop){ prop=properties.find(function(p){ return (p.address||'').toLowerCase().includes(addr.split(',')[0]); }); }
+      if(!prop){ notFound++; pending--; continue; }
+      // Map all compliance fields
+      var fieldMap={
+        'GSC Date':'gsc','GSC':'gsc','gsc':'gsc',
+        'EICR Date':'eicr','EICR':'eicr','eicr':'eicr',
+        'EPC Date':'epc','EPC':'epc','epc':'epc',
+        'Smoke Alarm':'smokeAlarm','Smoke':'smokeAlarm','smokeAlarm':'smokeAlarm',
+        'CO Detector':'coDetector','CO':'coDetector','coDetector':'coDetector',
+        'Property Licence':'propLicence','Licence':'propLicence','propLicence':'propLicence',
+        'RTR Check':'rtrCheck','rtrCheck':'rtrCheck',
+        'RTR Expiry':'rtrExpiry','rtrExpiry':'rtrExpiry',
+        'Routine Inspection':'routineInspection','routineInspection':'routineInspection',
+        'APT Anniversary':'aptAnniversary','aptAnniversary':'aptAnniversary',
+        'Deposit':'deposit','deposit':'deposit',
+        'Deposit ID':'depositId','depositId':'depositId',
+        'Start Date':'startDate','Move-in Date':'startDate','startDate':'startDate'
+      };
+      Object.keys(row).forEach(function(col){
+        var field=fieldMap[col];
+        if(field && row[col].trim()) prop[field]=normaliseDate(row[col].trim());
+      });
+      var path=prop.fbKey?'properties/'+prop.fbKey:'properties/'+properties.indexOf(prop);
+      (function(p,path){
+        fbSet(path,p,function(){
+          updated++;
+          pending--;
+          if(pending<=0){
+            renderPropsTable();
+            renderStatCards();
+            showToast(updated+' compliance records updated'+(notFound?' ('+notFound+' not matched)':''));
+          }
+        });
+      })(prop,path);
+    }
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+function normaliseDate(str){
+  // Accepts dd/mm/yyyy, yyyy-mm-dd, or d/m/yyyy — returns yyyy-mm-dd
+  if(!str) return '';
+  if(/^\d{4}-\d{2}-\d{2}$/.test(str)) return str; // already yyyy-mm-dd
+  var p=str.split('/');
+  if(p.length===3){
+    var d=p[0].padStart(2,'0'), m=p[1].padStart(2,'0'), y=p[2];
+    if(y.length===4) return y+'-'+m+'-'+d;
+  }
+  return str;
+}
+
+function parseCSVLine(line){
+  var result=[],cur='',inQuote=false;
+  for(var i=0;i<line.length;i++){
+    var c=line[i];
+    if(c==='"'){ if(inQuote&&line[i+1]==='"'){cur+='"';i++;} else inQuote=!inQuote; }
+    else if(c===','&&!inQuote){result.push(cur);cur='';}
+    else cur+=c;
+  }
+  result.push(cur);
+  return result;
 }
 
 function loadReport(id){
