@@ -403,6 +403,7 @@ select.field-input{cursor:pointer}
         <div id="bulk-bar" style="display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;border-radius:10px;padding:10px 16px;align-items:center;gap:10px;z-index:200;box-shadow:0 4px 20px rgba(0,0,0,0.3)">
           <span id="bulk-count" style="font-size:12px"></span>
           <button class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:#fff" onclick="bulkWhatsApp()">WhatsApp all</button>
+          <button class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:#fff" onclick="bulkEmail()">Email all</button>
           <button class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:#fff" onclick="bulkMarkComplete()">Mark complete</button>
           <button class="btn btn-sm" style="background:var(--red-bg);color:var(--red-text)" onclick="bulkDelete()">Delete</button>
           <button class="btn btn-sm" style="background:rgba(255,255,255,0.1);color:#fff" onclick="clearBulkSelect()">✕</button>
@@ -433,7 +434,38 @@ select.field-input{cursor:pointer}
     </div>
 
     <div id="page-properties" class="page">
-      <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);font-size:13px">All properties loading...</div>
+      <!-- Properties page -->
+      <div class="ops-bar">
+        <input class="search-bar" id="prop-search" placeholder="Search address, tenant, landlord, postcode..." oninput="filterProps()">
+        <button class="btn btn-navy" onclick="openAddPropModal()">+ Add property</button>
+      </div>
+      <div class="two-col-wide">
+        <div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <table class="tbl" id="prop-table">
+              <thead>
+                <tr>
+                  <th>Address</th><th>Tenant</th><th>Landlord</th>
+                  <th>Rent/mo</th><th>Fee %</th><th>Deposit</th>
+                  <th>Start date</th><th>Deposit status</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="prop-tbody"></tbody>
+            </table>
+          </div>
+          <div id="prop-count" style="font-size:11px;color:var(--text3);margin-top:6px;text-align:right"></div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:10px">
+            <div class="card-title">Recent move-ins <span style="font-size:10px;color:var(--text3);font-weight:400">last 6 months</span></div>
+            <div id="prop-recent-moveins"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Longest tenancies</div>
+            <div id="prop-longest"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="page-compliance" class="page">
@@ -464,6 +496,57 @@ select.field-input{cursor:pointer}
       <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);font-size:13px">Settings loading...</div>
     </div>
 
+  </div>
+</div>
+
+<!-- PROPERTY DETAIL MODAL -->
+<div class="modal-overlay" id="prop-detail-modal">
+  <div class="modal" style="max-width:700px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px">
+      <div><div class="modal-title" id="pd-title"></div><div style="font-size:11px;color:var(--text3);margin-top:2px" id="pd-sub"></div></div>
+      <button class="btn btn-outline btn-sm" onclick="closeModal('prop-detail-modal')">Close</button>
+    </div>
+    <div style="display:flex;gap:4px;border-bottom:0.5px solid var(--border);margin-bottom:14px" id="pd-tabs">
+      <button class="pd-tab" onclick="switchPdTab('details',this)" style="padding:5px 12px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--navy);border-bottom:2px solid var(--navy);font-weight:500">Details</button>
+      <button class="pd-tab" onclick="switchPdTab('compliance',this)" style="padding:5px 12px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--text2)">Compliance</button>
+      <button class="pd-tab" onclick="switchPdTab('email',this)" style="padding:5px 12px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--text2)">Draft email</button>
+    </div>
+    <div id="pd-details"></div>
+    <div id="pd-compliance" style="display:none"></div>
+    <div id="pd-email" style="display:none"></div>
+    <div class="modal-footer" id="pd-footer">
+      <button class="btn btn-red btn-sm" onclick="deleteProp()">Delete</button>
+      <button class="btn btn-outline btn-sm" id="pd-edit-btn" onclick="togglePropEdit()">Edit</button>
+      <button class="btn btn-navy btn-sm" id="pd-save-btn" onclick="savePropEdit()" style="display:none">Save changes</button>
+      <button class="btn btn-outline btn-sm" onclick="closeModal('prop-detail-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD PROPERTY MODAL -->
+<div class="modal-overlay" id="add-prop-modal">
+  <div class="modal modal-lg">
+    <div class="modal-title">Add property</div>
+    <div class="grid-2">
+      <div class="field-group" style="grid-column:1/-1"><label class="field-label">Address *</label><input class="field-input" id="ap-address" placeholder="Full address including postcode"></div>
+      <div class="field-group"><label class="field-label">Tenant name</label><input class="field-input" id="ap-tenant"></div>
+      <div class="field-group"><label class="field-label">Tenant phone</label><input class="field-input" id="ap-phone"></div>
+      <div class="field-group"><label class="field-label">Tenant email</label><input class="field-input" id="ap-email" type="email"></div>
+      <div class="field-group"><label class="field-label">Landlord name</label><input class="field-input" id="ap-llname"></div>
+      <div class="field-group"><label class="field-label">Landlord email</label><input class="field-input" id="ap-llemail" type="email"></div>
+      <div class="field-group"><label class="field-label">Landlord mobile</label><input class="field-input" id="ap-llmobile"></div>
+      <div class="field-group"><label class="field-label">Monthly rent (£)</label><input class="field-input" id="ap-rent" type="number"></div>
+      <div class="field-group"><label class="field-label">Management fee (%)</label><input class="field-input" id="ap-fee" type="number" placeholder="12"></div>
+      <div class="field-group"><label class="field-label">Deposit (£)</label><input class="field-input" id="ap-deposit" type="number"></div>
+      <div class="field-group"><label class="field-label">Deposit ID (DPS)</label><input class="field-input" id="ap-depositid"></div>
+      <div class="field-group"><label class="field-label">Deposit status</label><select class="field-input" id="ap-depositstatus"><option>Protected</option><option>Available for repayment</option><option>Dispute raised</option><option>Clearance pending</option></select></div>
+      <div class="field-group"><label class="field-label">Tenancy start date (dd/mm/yyyy)</label><input class="field-input" id="ap-start" placeholder="01/01/2024"></div>
+      <div class="field-group"><label class="field-label">Deposit date (dd/mm/yyyy)</label><input class="field-input" id="ap-depdate" placeholder="01/01/2024"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('add-prop-modal')">Cancel</button>
+      <button class="btn btn-navy" onclick="saveNewProp()">Add property</button>
+    </div>
   </div>
 </div>
 
@@ -1572,7 +1655,171 @@ function bulkDelete(){
   renderStatCards();
   showToast(keys.length+' job'+(keys.length!==1?'s':'')+' deleted');
 }
-function bulkWhatsApp(){ showToast('Select individual jobs to WhatsApp contractors'); }
+function bulkWhatsApp(){
+  var keys=getSelectedKeys();
+  if(!keys.length){ showToast('No jobs selected'); return; }
+  var selectedJobs=jobs.filter(function(j){ return keys.includes(j.fbKey); });
+  var byContractor={};
+  selectedJobs.forEach(function(job){
+    var cid=job.contractorId||'none';
+    if(!byContractor[cid]) byContractor[cid]=[];
+    byContractor[cid].push(job);
+  });
+  var messages=[];
+  Object.keys(byContractor).forEach(function(cid){
+    var c=getContractor(cid);
+    var jobList=byContractor[cid];
+    var msg='Hi '+c.name+',\n\nCould you please attend to the following job'+(jobList.length>1?'s':'')+' at your earliest convenience:\n\n';
+    jobList.forEach(function(job,i){
+      msg+=(i+1)+'. '+(job.prop||'—')+'\n';
+      msg+='   Issue: '+(job.issue||'—')+'\n';
+      if(job.tenant) msg+='   Tenant: '+job.tenant+(job.tenantPhone?' ('+job.tenantPhone+')':'')+'\n';
+      if(job.access) msg+='   Access: '+job.access+'\n';
+      if(job.notes) msg+='   Notes: '+job.notes+'\n';
+      msg+='\n';
+    });
+    msg+='Please confirm receipt and advise on availability.\n\nThank you — Pickwick Estates';
+    messages.push({contractor:c, msg:msg});
+  });
+  if(messages.length===1){
+    navigator.clipboard.writeText(messages[0].msg).then(function(){
+      showToast('WhatsApp message copied for '+messages[0].contractor.name);
+    });
+    return;
+  }
+  openBulkWaModal(messages);
+}
+
+function openBulkWaModal(messages){
+  var html='<div style="padding:16px 20px">'
+    +'<div style="font-size:14px;font-weight:500;margin-bottom:4px">Copy WhatsApp messages</div>'
+    +'<div style="font-size:12px;color:var(--text2);margin-bottom:16px">Jobs span multiple contractors — copy each message separately</div>';
+  messages.forEach(function(m){
+    var preview=m.msg.replace(/\n/g,'<br>');
+    var phoneClean=m.contractor.phone?m.contractor.phone.replace(/^0/,'').replace(/ /g,''):'';
+    var waHref=phoneClean?'https://wa.me/44'+phoneClean+'?text='+encodeURIComponent(m.msg):'';
+    var actionBtn=waHref
+      ?'<a href="'+waHref+'" target="_blank" class="btn btn-sm" style="background:#25D366;color:#fff">Open in WhatsApp</a>'
+      :'<button class="btn btn-sm btn-outline" onclick="copyBulkMsg(this)" data-msg="'+encodeURIComponent(m.msg)+'">Copy message</button>';
+    html+='<div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:10px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+      +'<div style="font-size:12px;font-weight:500;color:var(--text)">'+m.contractor.name+'</div>'
+      +actionBtn
+      +'</div>'
+      +'<div style="font-size:10px;color:var(--text2);line-height:1.5;max-height:120px;overflow-y:auto">'+preview+'</div>'
+      +'</div>';
+  });
+  html+='<div style="text-align:right;padding-top:8px;border-top:0.5px solid var(--border);margin-top:4px">'
+    +'<button class="btn btn-navy btn-sm" onclick="closeModal(\'bulk-wa-modal\')">Done</button></div></div>';
+  var modal=document.getElementById('bulk-wa-modal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='bulk-wa-modal';
+    modal.className='modal-overlay';
+    var inner=document.createElement('div');
+    inner.className='modal';
+    inner.style.maxWidth='520px';
+    inner.style.padding='0';
+    inner.innerHTML=html;
+    modal.appendChild(inner);
+    document.body.appendChild(modal);
+  } else {
+    modal.querySelector('.modal').innerHTML=html;
+  }
+  openModal('bulk-wa-modal');
+}
+
+
+function bulkEmail(){
+  var keys=getSelectedKeys();
+  if(!keys.length){ showToast('No jobs selected'); return; }
+  var selectedJobs=jobs.filter(function(j){ return keys.includes(j.fbKey); });
+  // Group by contractor
+  var byContractor={};
+  selectedJobs.forEach(function(job){
+    var cid=job.contractorId||'none';
+    if(!byContractor[cid]) byContractor[cid]=[];
+    byContractor[cid].push(job);
+  });
+  var contractors=Object.keys(byContractor);
+  // If multiple contractors, show picker
+  if(contractors.length>1){
+    openBulkEmailModal(byContractor);
+    return;
+  }
+  // Single contractor - open mailto directly
+  var cid=contractors[0];
+  var c=getContractor(cid);
+  var jobList=byContractor[cid];
+  openMailto(c, jobList);
+}
+
+function buildEmailBody(c, jobList){
+  var subject='Maintenance job'+(jobList.length>1?'s':'')+' — Pickwick Estates';
+  var body='Dear '+c.name+',\n\nPlease find below the details of the maintenance job'+(jobList.length>1?'s':'')+' we require your assistance with:\n\n';
+  jobList.forEach(function(job,i){
+    body+=(i+1)+'. '+(job.prop||'—')+'\n';
+    body+='   Issue: '+(job.issue||'—')+'\n';
+    if(job.tenant) body+='   Tenant: '+job.tenant+(job.tenantPhone?' ('+job.tenantPhone+')':'')+'\n';
+    if(job.access) body+='   Access: '+job.access+'\n';
+    if(job.notes) body+='   Notes: '+job.notes+'\n';
+    body+='\n';
+  });
+  body+='Please confirm receipt and advise on your earliest available date.\n\nKind regards\nPickwick Estates\nmaintenance@pickwickestates.com';
+  return {subject:subject, body:body};
+}
+
+function openMailto(c, jobList){
+  if(!c.email){ showToast('No email address for '+c.name); return; }
+  var eb=buildEmailBody(c,jobList);
+  var mailto='mailto:'+c.email+'?subject='+encodeURIComponent(eb.subject)+'&body='+encodeURIComponent(eb.body);
+  window.location.href=mailto;
+}
+
+function openBulkEmailModal(byContractor){
+  var html='<div style="padding:16px 20px">'
+    +'<div style="font-size:14px;font-weight:500;margin-bottom:4px">Email contractors</div>'
+    +'<div style="font-size:12px;color:var(--text2);margin-bottom:16px">Jobs span multiple contractors — select who to email</div>';
+  Object.keys(byContractor).forEach(function(cid){
+    var c=getContractor(cid);
+    var jobList=byContractor[cid];
+    var eb=buildEmailBody(c,jobList);
+    html+='<div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:10px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between">'
+      +'<div>'
+      +'<div style="font-size:12px;font-weight:500;color:var(--text)">'+c.name+'</div>'
+      +'<div style="font-size:10px;color:var(--text2);margin-top:1px">'+(c.email||'No email on record')+' · '+jobList.length+' job'+(jobList.length!==1?'s':'')+'</div>'
+      +'</div>'
+      +(c.email
+        ?'<a href="mailto:'+c.email+'?subject='+encodeURIComponent(eb.subject)+'&body='+encodeURIComponent(eb.body)+'" class="btn btn-sm btn-outline">Open email</a>'
+        :'<span style="font-size:11px;color:var(--red-text)">No email</span>')
+      +'</div>'
+      +'</div>';
+  });
+  html+='<div style="text-align:right;padding-top:8px;border-top:0.5px solid var(--border);margin-top:4px">'
+    +'<button class="btn btn-navy btn-sm" onclick="closeModal(\'bulk-email-modal\')">Done</button></div></div>';
+  var modal=document.getElementById('bulk-email-modal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='bulk-email-modal';
+    modal.className='modal-overlay';
+    var inner=document.createElement('div');
+    inner.className='modal';
+    inner.style.maxWidth='480px';
+    inner.style.padding='0';
+    inner.innerHTML=html;
+    modal.appendChild(inner);
+    document.body.appendChild(modal);
+  } else {
+    modal.querySelector('.modal').innerHTML=html;
+  }
+  openModal('bulk-email-modal');
+}
+
+function copyBulkMsg(btn){
+  var msg=decodeURIComponent(btn.dataset.msg);
+  navigator.clipboard.writeText(msg).then(function(){ showToast('Copied'); });
+}
 
 // ─── WIRE UP showPage FOR MAINTENANCE ────────────────────────────────────────
 var _origShowPage=showPage;
@@ -1596,6 +1843,327 @@ showPage=function(id,btn){
     }
     renderMaintenancePage();
   }
+};
+
+
+// ─── PROPERTIES PAGE ─────────────────────────────────────────────────────────
+var currentPropIdx = null;
+var propEditMode = false;
+
+function filterProps(){
+  renderPropsTable();
+}
+
+function renderPropsTable(){
+  var search=(document.getElementById('prop-search')||{}).value||'';
+  search=search.toLowerCase();
+  var filtered=properties.filter(function(p){
+    if(!search) return true;
+    var hay=(p.address||'')+' '+(p.tenant||'')+' '+(p.llName||'')+' '+(p.postcode||'');
+    return hay.toLowerCase().includes(search);
+  });
+  var tbody=document.getElementById('prop-tbody');
+  var count=document.getElementById('prop-count');
+  if(count) count.textContent=filtered.length+' of '+properties.length+' properties';
+  if(!tbody) return;
+  if(!filtered.length){
+    tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text3)">No properties found</td></tr>';
+    return;
+  }
+  var html='';
+  filtered.forEach(function(p,i){
+    var depClass=depStatusClass(p.depositStatus);
+    html+='<tr style="cursor:pointer" onclick="openPropDetail('+i+')">'
+      +'<td><div style="font-size:12px;font-weight:500;color:var(--text)">'+(p.address||'—')+'</div></td>'
+      +'<td><div style="font-size:11px">'+(p.tenant||'—')+'</div><div style="font-size:10px;color:var(--text2)">'+(p.tenantEmail||'')+'</div></td>'
+      +'<td><div style="font-size:11px">'+(p.llName||'—')+'</div></td>'
+      +'<td style="font-size:12px;font-weight:500;color:var(--navy)">'+(p.rent?'£'+parseFloat(p.rent).toLocaleString('en-GB'):'—')+'</td>'
+      +'<td style="font-size:11px">'+(p.mgmtFee?p.mgmtFee+'%':'—')+'</td>'
+      +'<td style="font-size:11px">'+(p.deposit?'£'+parseFloat(p.deposit).toLocaleString('en-GB'):'—')+'</td>'
+      +'<td style="font-size:11px">'+(p.startDate||'—')+'</td>'
+      +'<td><span class="badge '+depClass+'">'+(p.depositStatus||'—')+'</span></td>'
+      +'<td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openPropDetail('+i+')">Open</button></td>'
+      +'</tr>';
+  });
+  tbody.innerHTML=html;
+  renderPropSidebar();
+}
+
+function depStatusClass(s){
+  if(!s) return 'badge-grey';
+  var sl=s.toLowerCase();
+  if(sl.includes('dispute')) return 'badge-red';
+  if(sl.includes('available')) return 'badge-amber';
+  if(sl.includes('clearance')) return 'badge-blue';
+  return 'badge-green';
+}
+
+function renderPropSidebar(){
+  // Recent move-ins (last 6 months)
+  var sixMonthsAgo=new Date(); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth()-6);
+  var recent=properties.filter(function(p){
+    if(!p.startDate) return false;
+    var d=parseUKDate(p.startDate);
+    return d&&d>=sixMonthsAgo;
+  }).sort(function(a,b){ return parseUKDate(b.startDate)-parseUKDate(a.startDate); }).slice(0,5);
+  var rEl=document.getElementById('prop-recent-moveins');
+  if(rEl){
+    if(!recent.length){ rEl.innerHTML='<div style="font-size:11px;color:var(--text3);text-align:center;padding:10px">None in last 6 months</div>'; }
+    else {
+      rEl.innerHTML=recent.map(function(p){
+        return '<div style="padding:6px 0;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
+          +'<div><div style="font-size:11px;font-weight:500;color:var(--text)">'+(p.address||'—')+'</div>'
+          +'<div style="font-size:10px;color:var(--text2)">'+(p.tenant||'—')+'</div></div>'
+          +'<div style="font-size:10px;color:var(--text3)">'+(p.startDate||'')+'</div></div>';
+      }).join('');
+    }
+  }
+  // Longest tenancies
+  var withDates=properties.filter(function(p){ return p.startDate; });
+  withDates.sort(function(a,b){ return parseUKDate(a.startDate)-parseUKDate(b.startDate); });
+  var top=withDates.slice(0,8);
+  var lEl=document.getElementById('prop-longest');
+  if(lEl){
+    lEl.innerHTML=top.map(function(p,i){
+      var start=parseUKDate(p.startDate);
+      var years=start?((new Date()-start)/(1000*60*60*24*365)).toFixed(1):'—';
+      return '<div style="padding:5px 0;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
+        +'<div><div style="font-size:11px;font-weight:500;color:var(--text)">'+(p.address||'—')+'</div>'
+        +'<div style="font-size:10px;color:var(--text2)">'+(p.tenant||'—')+'</div></div>'
+        +'<div style="font-size:11px;color:var(--navy);font-weight:500">'+years+'y</div></div>';
+    }).join('');
+  }
+}
+
+// ─── PROPERTY DETAIL MODAL ───────────────────────────────────────────────────
+function openPropDetail(idx){
+  var p=properties[idx];
+  if(!p) return;
+  currentPropIdx=idx;
+  propEditMode=false;
+  document.getElementById('pd-title').textContent=p.address||'Property';
+  document.getElementById('pd-sub').textContent=(p.tenant||'No tenant')+' · '+(p.startDate?'Since '+p.startDate:'');
+  renderPdDetails(p);
+  renderPdCompliance(p);
+  renderPdEmail(p);
+  switchPdTab('details', document.querySelector('.pd-tab'));
+  document.getElementById('pd-edit-btn').style.display='inline-block';
+  document.getElementById('pd-save-btn').style.display='none';
+  openModal('prop-detail-modal');
+}
+
+function renderPdDetails(p){
+  var html='<div class="grid-2" style="gap:10px">'
+    +pdField('Tenant',p.tenant)
+    +pdField('Tenant phone',p.tenantPhone)
+    +pdField('Tenant email',p.tenantEmail)
+    +pdField('Landlord',p.llName)
+    +pdField('Landlord email',p.llEmail)
+    +pdField('Landlord mobile',p.llMobile)
+    +pdField('Monthly rent',p.rent?'£'+parseFloat(p.rent).toLocaleString('en-GB'):'—')
+    +pdField('Management fee',(p.mgmtFee?p.mgmtFee+'%':'—'))
+    +pdField('Deposit',p.deposit?'£'+parseFloat(p.deposit).toLocaleString('en-GB'):'—')
+    +pdField('Deposit ID',p.depositId)
+    +'<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Deposit status</div><span class="badge '+depStatusClass(p.depositStatus)+'">'+(p.depositStatus||'—')+'</span></div>'
+    +pdField('Tenancy start',p.startDate)
+    +pdField('Deposit date',p.depositDate)
+    +pdField('APT anniversary',p.aptAnniversary)
+    +'</div>'
+    +(p.notes?'<div style="margin-top:12px"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Notes</div><div style="font-size:12px;padding:8px;background:var(--bg);border-radius:6px">'+p.notes+'</div></div>':'');
+  document.getElementById('pd-details').innerHTML=html;
+}
+
+function pdField(label,val){
+  return '<div><div style="font-size:10px;color:var(--text2);margin-bottom:2px">'+label+'</div>'
+    +'<div style="font-size:12px;color:var(--text)">'+(val||'—')+'</div></div>';
+}
+
+function renderPdCompliance(p){
+  var certs=[
+    {label:'Gas Safety (GSC)',date:p.gsc},
+    {label:'Electrical (EICR)',date:p.eicr},
+    {label:'EPC',date:p.epc},
+    {label:'Smoke alarm',date:p.smokeAlarm},
+    {label:'CO detector',date:p.coDetector},
+    {label:'Property licence',date:p.propLicence},
+    {label:'Right to Rent',date:p.rtrCheck},
+    {label:'RTR expiry',date:p.rtrExpiry},
+    {label:'Routine inspection',date:p.routineInspection},
+    {label:'APT anniversary',date:p.aptAnniversary}
+  ];
+  var html='<div class="grid-2" style="gap:8px">';
+  certs.forEach(function(c){
+    var pill='badge-grey'; var label='Not added';
+    if(c.date){
+      var d=daysUntil(c.date);
+      if(d<0){ pill='badge-red'; label='OVERDUE'; }
+      else if(d<=30){ pill='badge-red'; label=d+'d'; }
+      else if(d<=60){ pill='badge-amber'; label=d+'d'; }
+      else { pill='badge-green'; label='Valid'; }
+    }
+    html+='<div style="padding:8px;background:var(--bg);border-radius:6px;display:flex;justify-content:space-between;align-items:center">'
+      +'<div><div style="font-size:10px;color:var(--text2)">'+c.label+'</div>'
+      +'<div style="font-size:12px;font-weight:500;color:var(--text)">'+(c.date||'—')+'</div></div>'
+      +'<span class="badge '+pill+'">'+label+'</span></div>';
+  });
+  html+='</div>';
+  document.getElementById('pd-compliance').innerHTML=html;
+}
+
+var EMAIL_TYPES=[
+  {id:'gsc',label:'GSC reminder',subject:'Gas Safety Certificate — Action Required',body:function(p){ return 'Dear '+(p.llName||'Landlord')+',\n\nI hope you are well. I am writing to advise that the Gas Safety Certificate (GSC) for the above property is due for renewal'+(p.gsc?' on '+p.gsc:' shortly')+'\n\nUnder the Gas Safety (Installation and Use) Regulations 1998, a valid GSC is a legal requirement for all rented properties. Failure to renew may result in a fine of up to £6,000.\n\nWe have arranged for our approved contractor to carry out the annual gas safety inspection. Please confirm if there are any access issues.\n\nKind regards\nPickwick Estates\n020 8699 8000'; }},
+  {id:'eicr',label:'EICR reminder',subject:'Electrical Installation Condition Report — Action Required',body:function(p){ return 'Dear '+(p.llName||'Landlord')+',\n\nI am writing to advise that the Electrical Installation Condition Report (EICR) for your property at '+(p.address||'the above address')+' is due for renewal'+(p.eicr?' on '+p.eicr:' shortly')+'\n\nUnder the Electrical Safety Standards in the Private Rented Sector (England) Regulations 2020, a valid EICR is a legal requirement.\n\nWe will arrange access with the tenant and instruct our approved electrician. Please confirm you are happy for us to proceed.\n\nKind regards\nPickwick Estates'; }},
+  {id:'epc',label:'EPC reminder',subject:'Energy Performance Certificate — Renewal Required',body:function(p){ return 'Dear '+(p.llName||'Landlord')+',\n\nThe Energy Performance Certificate (EPC) for '+(p.address||'your property')+' is due to expire'+(p.epc?' on '+p.epc:' shortly')+'. A valid EPC with a minimum E rating is required under MEES regulations.\n\nPlease advise if you would like us to arrange an assessor.\n\nKind regards\nPickwick Estates'; }},
+  {id:'rent',label:'Rent review',subject:'Annual Rent Review — '+(new Date().getFullYear()),body:function(p){ return 'Dear '+(p.llName||'Landlord')+',\n\nI am writing in connection with the annual rent review for your property at '+(p.address||'the above address')+'. The current monthly rent is '+(p.rent?'£'+parseFloat(p.rent).toLocaleString('en-GB'):'as agreed')+'\n\nFollowing a review of current market rents in the area, we propose to discuss an adjustment in line with market conditions. Please contact us to discuss.\n\nKind regards\nPickwick Estates'; }},
+  {id:'deposit',label:'Deposit chaser',subject:'Deposit — Action Required',body:function(p){ return 'Dear '+(p.llName||'Landlord')+',\n\nI am writing regarding the deposit held for '+(p.address||'your property')+(p.depositId?' (DPS Ref: '+p.depositId+')':'')+'.\n\nCurrent status: '+(p.depositStatus||'—')+'\n\nPlease advise on how you wish to proceed.\n\nKind regards\nPickwick Estates'; }}
+];
+
+function renderPdEmail(p){
+  var btns=EMAIL_TYPES.map(function(t){
+    return '<button class="btn btn-outline btn-sm" style="margin-bottom:6px" onclick="loadEmailDraft(\'' + t.id + '\')">'+t.label+'</button>';
+  }).join(' ');
+  var html='<div style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:6px">'+btns+'</div>'
+    +'<div id="pd-email-preview" style="background:var(--bg);border-radius:8px;padding:14px;font-size:12px;line-height:1.6;white-space:pre-wrap;min-height:120px;color:var(--text2)">Select an email type above to preview the draft</div>'
+    +'<div style="display:flex;gap:8px;margin-top:10px">'
+    +'<button class="btn btn-outline btn-sm" onclick="copyEmailDraft()">Copy email</button>'
+    +'<a id="pd-mailto-link" href="#" class="btn btn-navy btn-sm">Open in Outlook</a>'
+    +'</div>';
+  document.getElementById('pd-email').innerHTML=html;
+}
+
+var _currentEmailDraft='';
+var _currentEmailSubject='';
+
+function loadEmailDraft(typeId){
+  var p=properties[currentPropIdx];
+  if(!p) return;
+  var t=EMAIL_TYPES.find(function(t){ return t.id===typeId; });
+  if(!t) return;
+  _currentEmailSubject=t.subject+' — '+(p.address||'');
+  _currentEmailDraft=t.body(p);
+  var prev=document.getElementById('pd-email-preview');
+  if(prev) prev.textContent=_currentEmailDraft;
+  var link=document.getElementById('pd-mailto-link');
+  if(link&&p.llEmail) link.href='mailto:'+p.llEmail+'?subject='+encodeURIComponent(_currentEmailSubject)+'&body='+encodeURIComponent(_currentEmailDraft);
+}
+
+function copyEmailDraft(){
+  if(!_currentEmailDraft){ showToast('Select an email type first'); return; }
+  navigator.clipboard.writeText(_currentEmailDraft).then(function(){ showToast('Email copied'); });
+}
+
+function switchPdTab(tab, btn){
+  ['pd-details','pd-compliance','pd-email'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.style.display='none';
+  });
+  var el=document.getElementById('pd-'+tab);
+  if(el) el.style.display='block';
+  document.querySelectorAll('.pd-tab').forEach(function(b){
+    b.style.borderBottom=b===btn?'2px solid var(--navy)':'2px solid transparent';
+    b.style.color=b===btn?'var(--navy)':'var(--text2)';
+    b.style.fontWeight=b===btn?'500':'400';
+  });
+}
+
+// ─── EDIT PROPERTY ────────────────────────────────────────────────────────────
+function togglePropEdit(){
+  propEditMode=true;
+  var p=properties[currentPropIdx];
+  if(!p) return;
+  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','notes'];
+  var html='<div class="grid-2" style="gap:10px">';
+  fields.forEach(function(f){
+    if(f==='depositStatus'){
+      html+='<div class="field-group"><label class="field-label">Deposit status</label><select class="field-input" id="pdedit-depositStatus"><option '+(p.depositStatus==='Protected'?'selected':'')+'>Protected</option><option '+(p.depositStatus==='Available for repayment'?'selected':'')+'>Available for repayment</option><option '+(p.depositStatus==='Dispute raised'?'selected':'')+'>Dispute raised</option><option '+(p.depositStatus==='Clearance pending'?'selected':'')+'>Clearance pending</option></select></div>';
+    } else {
+      var labels={tenant:'Tenant',tenantPhone:'Phone',tenantEmail:'Tenant email',llName:'Landlord',llEmail:'LL email',llMobile:'LL mobile',rent:'Rent (£)',mgmtFee:'Fee (%)',deposit:'Deposit (£)',depositId:'Deposit ID',startDate:'Start date',depositDate:'Deposit date',aptAnniversary:'APT anniversary',notes:'Notes'};
+      html+='<div class="field-group"><label class="field-label">'+(labels[f]||f)+'</label><input class="field-input" id="pdedit-'+f+'" value="'+(p[f]||'')+'"></div>';
+    }
+  });
+  html+='</div>';
+  document.getElementById('pd-details').innerHTML=html;
+  document.getElementById('pd-edit-btn').style.display='none';
+  document.getElementById('pd-save-btn').style.display='inline-block';
+}
+
+function savePropEdit(){
+  var p=properties[currentPropIdx];
+  if(!p) return;
+  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','notes'];
+  fields.forEach(function(f){
+    var el=document.getElementById('pdedit-'+f);
+    if(el) p[f]=el.value;
+  });
+  // Save to Firebase - use fbKey if exists, else index
+  var path=p.fbKey?'properties/'+p.fbKey:'properties/'+currentPropIdx;
+  fbSet(path, p, function(){
+    propEditMode=false;
+    renderPdDetails(p);
+    renderPropsTable();
+    renderStatCards();
+    document.getElementById('pd-edit-btn').style.display='inline-block';
+    document.getElementById('pd-save-btn').style.display='none';
+    showToast('Property updated');
+  });
+}
+
+function deleteProp(){
+  var p=properties[currentPropIdx];
+  if(!confirm('Delete '+( p?p.address:'this property')+'? This cannot be undone.')) return;
+  var path=p.fbKey?'properties/'+p.fbKey:'properties/'+currentPropIdx;
+  fbDelete(path, function(){
+    properties.splice(currentPropIdx,1);
+    closeModal('prop-detail-modal');
+    renderPropsTable();
+    renderStatCards();
+    showToast('Property deleted');
+  });
+}
+
+// ─── ADD PROPERTY ─────────────────────────────────────────────────────────────
+function openAddPropModal(){
+  ['ap-address','ap-tenant','ap-phone','ap-email','ap-llname','ap-llemail','ap-llmobile','ap-rent','ap-fee','ap-deposit','ap-depositid','ap-start','ap-depdate'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value='';
+  });
+  openModal('add-prop-modal');
+}
+
+function saveNewProp(){
+  var addr=document.getElementById('ap-address').value.trim();
+  if(!addr){ showToast('Address is required'); return; }
+  var prop={
+    address:addr,
+    tenant:document.getElementById('ap-tenant').value,
+    tenantPhone:document.getElementById('ap-phone').value,
+    tenantEmail:document.getElementById('ap-email').value,
+    llName:document.getElementById('ap-llname').value,
+    llEmail:document.getElementById('ap-llemail').value,
+    llMobile:document.getElementById('ap-llmobile').value,
+    rent:document.getElementById('ap-rent').value,
+    mgmtFee:document.getElementById('ap-fee').value,
+    deposit:document.getElementById('ap-deposit').value,
+    depositId:document.getElementById('ap-depositid').value,
+    depositStatus:'Protected',
+    startDate:document.getElementById('ap-start').value,
+    depositDate:document.getElementById('ap-depdate').value
+  };
+  fbPush('properties', prop, function(key){
+    prop.fbKey=key;
+    properties.push(prop);
+    closeModal('add-prop-modal');
+    renderPropsTable();
+    renderStatCards();
+    populatePropDatalist();
+    showToast('Property added');
+  });
+}
+
+// ─── WIRE showPage FOR PROPERTIES ────────────────────────────────────────────
+var _spPrev2=showPage;
+showPage=function(id,btn){
+  _spPrev2(id,btn);
+  if(id==='properties') renderPropsTable();
 };
 
 </script>
