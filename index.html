@@ -756,6 +756,7 @@ select.field-input{cursor:pointer}
     <div id="pd-email" style="display:none"></div>
     <div class="modal-footer" id="pd-footer">
       <button class="btn btn-red btn-sm" onclick="deleteProp()">Delete</button>
+      <button class="btn btn-sm" style="background:var(--amber-bg);color:var(--amber-text)" onclick="openEndTenancy()">End tenancy</button>
       <button class="btn btn-outline btn-sm" id="pd-edit-btn" onclick="togglePropEdit()">Edit</button>
       <button class="btn btn-navy btn-sm" id="pd-save-btn" onclick="savePropEdit()" style="display:none">Save changes</button>
       <button class="btn btn-outline btn-sm" onclick="closeModal('prop-detail-modal')">Close</button>
@@ -909,6 +910,32 @@ select.field-input{cursor:pointer}
     </div>
   </div>
 </div>
+
+<!-- END TENANCY MODAL -->
+<div class="modal-overlay" id="end-tenancy-modal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">End tenancy</div>
+    <div class="modal-sub" id="et-address"></div>
+    <div class="grid-2">
+      <div class="field-group"><label class="field-label">Tenancy end date *</label><input class="field-input" id="et-enddate" type="date"></div>
+      <div class="field-group"><label class="field-label">Reason for leaving</label><select class="field-input" id="et-reason"><option>Tenancy ended</option><option>Mutual agreement</option><option>Eviction</option><option>Abandoned</option><option>Other</option></select></div>
+      <div class="field-group"><label class="field-label">Deposit return status</label><select class="field-input" id="et-depstatus"><option>Returned in full</option><option>Deductions made</option><option>Dispute raised</option><option>Pending</option></select></div>
+      <div class="field-group"><label class="field-label">Deductions (£)</label><input class="field-input" id="et-deductions" type="number" placeholder="0"></div>
+      <div class="field-group"><label class="field-label">Utility handover date</label><input class="field-input" id="et-utility" type="date"></div>
+      <div class="field-group"><label class="field-label">Council tax notified</label><select class="field-input" id="et-council"><option value="">—</option><option>Yes</option><option>No</option></select></div>
+      <div class="field-group" style="grid-column:1/-1"><label class="field-label">Deduction notes</label><textarea class="field-input" id="et-depnotes" rows="2" placeholder="Details of any deductions..."></textarea></div>
+      <div class="field-group" style="grid-column:1/-1"><label class="field-label">General notes</label><textarea class="field-input" id="et-notes" rows="2" placeholder="Any other notes..."></textarea></div>
+    </div>
+    <div style="background:var(--amber-bg);border-radius:var(--radius-md);padding:10px 12px;font-size:11px;color:var(--amber-text);margin-bottom:4px">
+      ⚠ This will archive the tenancy to Past Tenants and remove the property from the active list.
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('end-tenancy-modal')">Cancel</button>
+      <button class="btn btn-red" onclick="confirmEndTenancy()">End tenancy &amp; archive</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- ADD JOB MODAL -->
 <div class="modal-overlay" id="add-job-modal">
@@ -2374,10 +2401,12 @@ function renderPdCompliance(p){
     var pill='badge-grey'; var label='Not added';
     if(c.date){
       var d=daysUntil(c.date);
-      if(d<0){ pill='badge-red'; label='OVERDUE'; }
+      if(d<0){ pill='badge-red'; label='OVERDUE '+Math.abs(d)+'d'; }
       else if(d<=30){ pill='badge-red'; label=d+'d'; }
       else if(d<=60){ pill='badge-amber'; label=d+'d'; }
       else { pill='badge-green'; label='Valid'; }
+    } else {
+      pill='badge-amber'; label='Not added';
     }
     html+='<div style="padding:8px;background:var(--bg);border-radius:6px;display:flex;justify-content:space-between;align-items:center">'
       +'<div><div style="font-size:10px;color:var(--text2)">'+c.label+'</div>'
@@ -2449,13 +2478,13 @@ function togglePropEdit(){
   propEditMode=true;
   var p=properties[currentPropIdx];
   if(!p) return;
-  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llEmail2','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','notes'];
+  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llEmail2','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','gsc','eicr','epc','smokeAlarm','coDetector','propLicence','rtrCheck','rtrExpiry','routineInspection','notes'];
   var html='<div class="grid-2" style="gap:10px">';
   fields.forEach(function(f){
     if(f==='depositStatus'){
       html+='<div class="field-group"><label class="field-label">Deposit status</label><select class="field-input" id="pdedit-depositStatus"><option '+(p.depositStatus==='Protected'?'selected':'')+'>Protected</option><option '+(p.depositStatus==='Available for repayment'?'selected':'')+'>Available for repayment</option><option '+(p.depositStatus==='Dispute raised'?'selected':'')+'>Dispute raised</option><option '+(p.depositStatus==='Clearance pending'?'selected':'')+'>Clearance pending</option></select></div>';
     } else {
-      var labels={tenant:'Tenant',tenantPhone:'Phone',tenantEmail:'Tenant email',llName:'Landlord',llEmail:'LL email',llEmail2:'LL email 2 (CC)',llMobile:'LL mobile',rent:'Rent (£)',mgmtFee:'Fee (%)',deposit:'Deposit (£)',depositId:'Deposit ID',startDate:'Start date',depositDate:'Deposit date',aptAnniversary:'APT anniversary',notes:'Notes'};
+      var labels={tenant:'Tenant',tenantPhone:'Phone',tenantEmail:'Tenant email',llName:'Landlord',llEmail:'LL email',llEmail2:'LL email 2 (CC)',llMobile:'LL mobile',rent:'Rent (£)',mgmtFee:'Fee (%)',deposit:'Deposit (£)',depositId:'Deposit ID',depositStatus:'Deposit status',startDate:'Start date (dd/mm/yyyy)',depositDate:'Deposit date',aptAnniversary:'APT anniversary (yyyy-mm-dd)',gsc:'GSC expiry (yyyy-mm-dd)',eicr:'EICR expiry (yyyy-mm-dd)',epc:'EPC expiry (yyyy-mm-dd)',smokeAlarm:'Smoke alarm date',coDetector:'CO detector date',propLicence:'Property licence expiry',rtrCheck:'RTR check date',rtrExpiry:'RTR expiry date',routineInspection:'Routine inspection date',notes:'Notes'};
       html+='<div class="field-group"><label class="field-label">'+(labels[f]||f)+'</label><input class="field-input" id="pdedit-'+f+'" value="'+(p[f]||'')+'"></div>';
     }
   });
@@ -2468,7 +2497,7 @@ function togglePropEdit(){
 function savePropEdit(){
   var p=properties[currentPropIdx];
   if(!p) return;
-  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llEmail2','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','notes'];
+  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llEmail2','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','gsc','eicr','epc','smokeAlarm','coDetector','propLicence','rtrCheck','rtrExpiry','routineInspection','notes'];
   fields.forEach(function(f){
     var el=document.getElementById('pdedit-'+f);
     if(el) p[f]=el.value;
@@ -2573,9 +2602,9 @@ var CERT_FIELDS = [
 ];
 
 function certPill(dateStr){
-  if(!dateStr) return '<span class="badge badge-grey">—</span>';
+  if(!dateStr) return '<span class="badge badge-amber">Not added</span>';
   var d = daysUntil(dateStr);
-  if(d < 0)  return '<span class="badge badge-red">OVERDUE</span>';
+  if(d < 0)  return '<span class="badge badge-red">OVERDUE '+Math.abs(d)+'d</span>';
   if(d <= 30) return '<span class="badge badge-red">'+d+'d</span>';
   if(d <= 60) return '<span class="badge badge-amber">'+d+'d</span>';
   return '<span class="badge badge-green">✓</span>';
@@ -3899,13 +3928,41 @@ function renderOffers(){
       +'<button class="btn btn-red btn-sm" onclick="deleteOffer(\''+o.fbKey+'\')">Delete</button>'
       +'</div></div>'
       +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
-      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'pre-tenancy\',\''+o.fbKey+'\')">Pre-tenancy pack</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'gdpr\',\''+o.fbKey+'\')">GDPR consent</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'fees\',\''+o.fbKey+'\')">Tenant fees</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'rtr\',\''+o.fbKey+'\')">RTR request</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'ll-tcs\',\''+o.fbKey+'\')">LL T&amp;Cs</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'ll-confirm\',\''+o.fbKey+'\')">LL confirmation</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'ll-compliance\',\''+o.fbKey+'\')">LL compliance</button>'
+      +'<div style="width:100%;margin-top:4px"><div style="font-size:10px;font-weight:500;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Tenant documents</div>'
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">'
+      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'pre-tenancy\',\''+o.fbKey+'\')">&#128196; Pre-tenancy pack</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="copyDoc(\'pre-tenancy\',\''+o.fbKey+'\')">&#128203; Copy</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="emailDoc(\'pre-tenancy\',\''+o.fbKey+'\',\'tenant\')">&#9993; Email tenant</button>'
+      +'</div>'
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">'
+      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'gdpr\',\''+o.fbKey+'\')">&#128196; GDPR consent</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="copyDoc(\'gdpr\',\''+o.fbKey+'\')">&#128203; Copy</button>'
+      +'</div>'
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">'
+      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'fees\',\''+o.fbKey+'\')">&#128196; Tenant fees</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="copyDoc(\'fees\',\''+o.fbKey+'\')">&#128203; Copy</button>'
+      +'</div>'
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">'
+      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'rtr\',\''+o.fbKey+'\')">&#128196; RTR request</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="copyDoc(\'rtr\',\''+o.fbKey+'\')">&#128203; Copy</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="emailDoc(\'rtr\',\''+o.fbKey+'\',\'tenant\')">&#9993; Email tenant</button>'
+      +'</div>'
+      +'<div style="font-size:10px;font-weight:500;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Landlord documents</div>'
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px">'
+      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'ll-tcs\',\''+o.fbKey+'\')">&#128196; LL T&amp;Cs</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="copyDoc(\'ll-tcs\',\''+o.fbKey+'\')">&#128203; Copy</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="emailDoc(\'ll-tcs\',\''+o.fbKey+'\',\'landlord\')">&#9993; Email LL</button>'
+      +'</div>'
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px">'
+      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'ll-confirm\',\''+o.fbKey+'\')">&#128196; LL confirmation</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="copyDoc(\'ll-confirm\',\''+o.fbKey+'\')">&#128203; Copy</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="emailDoc(\'ll-confirm\',\''+o.fbKey+'\',\'landlord\')">&#9993; Email LL</button>'
+      +'</div>'
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap">'
+      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'ll-compliance\',\''+o.fbKey+'\')">&#128196; LL compliance</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="copyDoc(\'ll-compliance\',\''+o.fbKey+'\')">&#128203; Copy</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="emailDoc(\'ll-compliance\',\''+o.fbKey+'\',\'landlord\')">&#9993; Email LL</button>'
+      +'</div></div>'
       +'</div></div>';
   });
   container.innerHTML=html;
@@ -4252,6 +4309,115 @@ showPage=function(id,btn){
     });
   }
 };
+
+
+// ─── END TENANCY ─────────────────────────────────────────────────────────────
+function openEndTenancy(){
+  var p=properties[currentPropIdx];
+  if(!p) return;
+  document.getElementById('et-address').textContent=(p.address||'')+(p.tenant?' · '+p.tenant:'');
+  document.getElementById('et-enddate').value='';
+  document.getElementById('et-deductions').value='';
+  document.getElementById('et-depnotes').value='';
+  document.getElementById('et-notes').value='';
+  openModal('end-tenancy-modal');
+}
+
+function confirmEndTenancy(){
+  var p=properties[currentPropIdx];
+  if(!p) return;
+  var endDate=document.getElementById('et-enddate').value;
+  if(!endDate){showToast('Please enter a tenancy end date');return;}
+  // Format end date dd/mm/yyyy
+  var d=new Date(endDate);
+  var endFmt=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();
+  // Create past tenant record
+  var pt={
+    address:p.address||'',
+    tenant:p.tenant||'',
+    startDate:p.startDate||'',
+    endDate:endFmt,
+    reason:document.getElementById('et-reason').value,
+    depositStatus:document.getElementById('et-depstatus').value,
+    deductions:document.getElementById('et-deductions').value||'',
+    landlord:p.llName||'',
+    rent:p.rent||'',
+    utilityHandover:document.getElementById('et-utility').value,
+    councilTax:document.getElementById('et-council').value,
+    depositId:p.depositId||'',
+    depositAmount:p.deposit||'',
+    deductionNotes:document.getElementById('et-depnotes').value,
+    notes:document.getElementById('et-notes').value,
+    archivedDate:new Date().toISOString()
+  };
+  fbPush('pasttenants', pt, function(key){
+    pt.fbKey=key;
+    pastTenants.push(pt);
+    // Remove from properties
+    var path=p.fbKey?'properties/'+p.fbKey:'properties/'+currentPropIdx;
+    fbDelete(path, function(){
+      properties.splice(currentPropIdx,1);
+      closeModal('end-tenancy-modal');
+      closeModal('prop-detail-modal');
+      renderPropsTable();
+      renderStatCards();
+      showToast('Tenancy ended — record archived to Past Tenants');
+    });
+  });
+}
+
+// ─── COPY / EMAIL DOC (OFFER ACCEPTED) ───────────────────────────────────────
+function getDocContent(type, fbKey){
+  var o=offers.find(function(x){return x.fbKey===fbKey;});
+  if(!o) return null;
+  var tenantNames=(o.tenants||[]).map(function(t){return t.name;}).join(' and ')||'The Tenant';
+  var prop=o.prop||'the property';
+  var rent=o.rent?'£'+parseFloat(o.rent).toLocaleString('en-GB')+' per calendar month':'as agreed';
+  var deposit=o.deposit?'£'+parseFloat(o.deposit).toLocaleString('en-GB'):'5 weeks rent';
+  var start=o.startDate||'as agreed';
+  var fee=(o.fee||12)+'%';
+  var docs={
+    'pre-tenancy':'PRE-TENANCY INFORMATION PACK\n\nProperty: '+prop+'\nTenant(s): '+tenantNames+'\nMonthly rent: '+rent+'\nDeposit: '+deposit+'\nProposed start: '+start+'\n\nThis pack contains important information about your upcoming tenancy.\n\nPickwick Estates\n020 3397 1144 / 020 3397 1166\nmaintenance@pickwickestates.com',
+    'gdpr':'GDPR DATA CONSENT FORM\n\nProperty: '+prop+'\nTenant(s): '+tenantNames+'\n\nPickwick Estates (Alps Estates Ltd) requires your consent to hold and process your personal data for the purpose of managing your tenancy under UK GDPR.\n\nSigned: _____________________ Date: _____________\n\nPickwick Estates · 020 3397 1144 / 020 3397 1166',
+    'fees':'TENANT FEES SCHEDULE\n\nProperty: '+prop+'\n\nMonthly rent: '+rent+'\nSecurity deposit: '+deposit+'\n\nAll other fees are prohibited under the Tenant Fees Act 2019.\n\nPickwick Estates · 020 3397 1144 / 020 3397 1166',
+    'rtr':'RIGHT TO RENT CHECK REQUEST\n\nProperty: '+prop+'\nTenant(s): '+tenantNames+'\nProposed start: '+start+'\n\nPlease bring original ID documents to our office.\n\nPickwick Estates · 020 3397 1144 / 020 3397 1166',
+    'll-tcs':'LANDLORD INSTRUCTION & TERMS OF BUSINESS\n\nProperty: '+prop+'\nService: '+(o.tier||'Fully Managed')+'\nManagement fee: '+fee+' of monthly rent\nWithdrawal fee: £700 + VAT (£840 inc VAT)\n\nPickwick Estates · 020 3397 1144 / 020 3397 1166',
+    'll-confirm':'Dear Landlord,\n\nWe are pleased to confirm we have accepted an offer for:\n\nProperty: '+prop+'\nTenant(s): '+tenantNames+'\nMonthly rent: '+rent+'\nProposed start: '+start+'\nDeposit: '+deposit+'\nManagement fee: '+fee+'\n\nKind regards\nPickwick Estates\n020 3397 1144 / 020 3397 1166',
+    'll-compliance':'COMPLIANCE REQUIREMENTS — ACTION REQUIRED\n\nDear Landlord,\n\nProperty: '+prop+'\n\nBefore the tenancy can commence, please confirm the following:\n\n[ ] Gas Safety Certificate (GSC)\n[ ] Electrical Installation Condition Report (EICR)\n[ ] Energy Performance Certificate (EPC) — minimum E rating\n[ ] Working smoke alarms on every floor\n[ ] Working CO detector\n[ ] Property licence (if applicable)\n\nPickwick Estates · 020 3397 1144 / 020 3397 1166'
+  };
+  return docs[type]||null;
+}
+
+function copyDoc(type, fbKey){
+  var text=getDocContent(type,fbKey);
+  if(!text){showToast('Document not found');return;}
+  navigator.clipboard.writeText(text).then(function(){ showToast('Document copied to clipboard'); });
+}
+
+function emailDoc(type, fbKey, recipient){
+  var o=offers.find(function(x){return x.fbKey===fbKey;});
+  if(!o) return;
+  var text=getDocContent(type,fbKey);
+  if(!text) return;
+  var subjects={
+    'pre-tenancy':'Pre-Tenancy Pack — '+(o.prop||''),
+    'gdpr':'GDPR Consent Form — '+(o.prop||''),
+    'fees':'Tenant Fees Schedule — '+(o.prop||''),
+    'rtr':'Right to Rent Request — '+(o.prop||''),
+    'll-tcs':'Terms of Business — '+(o.prop||''),
+    'll-confirm':'Offer Accepted Confirmation — '+(o.prop||''),
+    'll-compliance':'Compliance Requirements — '+(o.prop||'')
+  };
+  var toEmail='';
+  if(recipient==='tenant') toEmail=(o.tenants||[]).map(function(t){return t.email;}).filter(Boolean).join(',');
+  else if(recipient==='landlord'){
+    // Find landlord email from properties
+    var prop=properties.find(function(p){return p.address===o.prop;});
+    toEmail=prop?prop.llEmail||'':'';
+  }
+  var mailto='mailto:'+toEmail+'?subject='+encodeURIComponent(subjects[type]||'Document')+'&body='+encodeURIComponent(text);
+  window.location.href=mailto;
+}
 
 </script>
 </body>
