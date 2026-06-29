@@ -1216,8 +1216,9 @@ function navTo(page, filter){
   var btns=document.querySelectorAll('.nav-btn');
   var pageMap={dashboard:0,maintenance:1,offeraccepted:2,moveins:3,properties:4,compliance:5,deposits:6,contractors:7,pasttenants:8,reports:9,activity:10,settings:11};
   var idx=pageMap[page];
-  if(idx!==undefined) showPage(page, btns[idx]);
+  // Set filter BEFORE calling showPage so it's available when page renders
   if(filter) window._pendingFilter=filter;
+  if(idx!==undefined) showPage(page, btns[idx]);
 }
 
 function setMaintenanceFilter(f){ window._pendingFilter=f; }
@@ -2202,6 +2203,8 @@ showPage=function(id,btn){
       window._pendingFilter=null;
     }
     renderMaintenancePage();
+    // Scroll to top so filters are visible
+    window.scrollTo(0,0);
   }
 };
 
@@ -2601,12 +2604,17 @@ function renderCompTable(){
   if(window._pendingFilter){
     var pf = window._pendingFilter;
     var certEl = document.getElementById('comp-cert-filter');
+    var pills = document.querySelectorAll('#comp-filter-pills .filter-pill');
     if(pf === 'gsc' && certEl){ certEl.value='gsc'; certFilter='gsc'; }
     else if(pf === 'eicr' && certEl){ certEl.value='eicr'; certFilter='eicr'; }
     else if(pf === 'licence' && certEl){ certEl.value='propLicence'; certFilter='propLicence'; }
     else if(pf === 'expiring'){
       compStatusFilter='60';
-      document.querySelectorAll('#comp-filter-pills .filter-pill').forEach(function(p,i){ p.classList.toggle('active', i===3); });
+      pills.forEach(function(p,i){ p.classList.toggle('active', i===3); });
+    }
+    else if(pf === 'overdue'){
+      compStatusFilter='overdue';
+      pills.forEach(function(p,i){ p.classList.toggle('active', i===1); });
     }
     window._pendingFilter = null;
   }
@@ -3395,7 +3403,7 @@ function importPropertiesCSV(input){
         epc:row['EPC Date']||row['epc']||'',
         depositStatus:row['Deposit Status']||row['depositStatus']||'',
         startDate:row['Start Date']||row['Move-in Date']||row['Start date']||row['startDate']||'',
-        mgmtFee:row['Fee%']||row['mgmtFee']||'',
+        mgmtFee:row['Fee%']||row['Management Fee']||row['mgmtFee']||'',
         deposit:row['Deposit Amount']||row['Deposit']||row['deposit']||'',
         depositId:row['Deposit ID']||row['depositId']||'',
         smokeAlarm:'',coDetector:'',
