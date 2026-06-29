@@ -472,8 +472,8 @@ select.field-input{cursor:pointer}
               <thead>
                 <tr>
                   <th>Address</th><th>Tenant</th><th>Landlord</th>
-                  <th>Rent/mo</th><th>Fee %</th><th>Deposit</th>
-                  <th>Start date</th><th>Deposit status</th><th></th>
+                  <th>Rent/mo</th><th>Fee %</th><th>Start date</th>
+                  <th>Deposit status</th><th></th>
                 </tr>
               </thead>
               <tbody id="prop-tbody"></tbody>
@@ -2261,18 +2261,26 @@ function renderPropsTable(){
     return;
   }
   var html='';
-  filtered.forEach(function(p,i){
+  filtered.forEach(function(p){
+    var realIdx=properties.indexOf(p);
     var depClass=depStatusClass(p.depositStatus);
-    html+='<tr style="cursor:pointer" onclick="openPropDetail('+i+')">'
-      +'<td><div style="font-size:12px;font-weight:500;color:var(--text)">'+(p.address||'—')+'</div></td>'
-      +'<td><div style="font-size:11px">'+(p.tenant||'—')+'</div><div style="font-size:10px;color:var(--text2)">'+(p.tenantEmail||'')+'</div></td>'
-      +'<td><div style="font-size:11px">'+(p.llName||'—')+'</div></td>'
+    html+='<tr style="cursor:pointer" onclick="openPropDetail('+realIdx+')">'
+      +'<td><div style="font-size:12px;font-weight:500;color:var(--text)">'+(p.address||'—')+'</div>'
+      +(p.startDate?'<div style="font-size:10px;color:var(--text3)">Since '+p.startDate+'</div>':'')
+      +'</td>'
+      +'<td><div style="font-size:11px;font-weight:500">'+(p.tenant||'—')+'</div>'
+      +(p.tenantPhone?'<div style="font-size:10px;color:var(--text2)">&#128222; '+p.tenantPhone+'</div>':'')
+      +(p.tenantEmail?'<div style="font-size:10px;color:var(--text2)">&#x2709; '+p.tenantEmail+'</div>':'')
+      +'</td>'
+      +'<td><div style="font-size:11px;font-weight:500">'+(p.llName||'—')+'</div>'
+      +(p.llMobile?'<div style="font-size:10px;color:var(--text2)">&#128222; '+p.llMobile+'</div>':'')
+      +(p.llEmail?'<div style="font-size:10px;color:var(--text2)">&#x2709; '+p.llEmail+'</div>':'')
+      +'</td>'
       +'<td style="font-size:12px;font-weight:500;color:var(--navy)">'+(p.rent?'£'+parseFloat(p.rent).toLocaleString('en-GB'):'—')+'</td>'
       +'<td style="font-size:11px">'+(p.mgmtFee?p.mgmtFee+'%':'—')+'</td>'
-      +'<td style="font-size:11px">'+(p.deposit?'£'+parseFloat(p.deposit).toLocaleString('en-GB'):'—')+'</td>'
       +'<td style="font-size:11px">'+(p.startDate||'—')+'</td>'
       +'<td><span class="badge '+depClass+'">'+(p.depositStatus||'—')+'</span></td>'
-      +'<td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openPropDetail('+i+')">Open</button></td>'
+      +'<td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openPropDetail('+realIdx+')">Open</button></td>'
       +'</tr>';
   });
   tbody.innerHTML=html;
