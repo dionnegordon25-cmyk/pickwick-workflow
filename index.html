@@ -2317,9 +2317,24 @@ function renderPdDetails(p){
     +pdField('Tenant',p.tenant)
     +pdField('Tenant phone',p.tenantPhone)
     +pdField('Tenant email',p.tenantEmail)
-    +pdField('Landlord',p.llName)
-    +pdField('Landlord email',p.llEmail)
-    +pdField('Landlord mobile',p.llMobile)
+    +(function(ll){
+      var waNum=ll.llMobile?ll.llMobile.replace(/^0/,'').replace(/ /g,''):'';
+      return '<div style="grid-column:1/-1;background:var(--bg);border-radius:8px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'
+        +'<div>'
+        +'<div style="font-size:10px;color:var(--text2);margin-bottom:2px">Landlord</div>'
+        +'<div style="font-size:13px;font-weight:500;color:var(--text)">'+(ll.llName||'—')+'</div>'
+        +(ll.llEmail?'<div style="font-size:11px;color:var(--text2);margin-top:2px">&#x2709; '+ll.llEmail+'</div>':'')
+        +(ll.llEmail2?'<div style="font-size:11px;color:var(--text2);margin-top:1px">&#x2709; '+ll.llEmail2+'</div>':'')
+        +(ll.llMobile?'<div style="font-size:11px;color:var(--text2);margin-top:2px">&#128222; '+ll.llMobile+'</div>':'')
+        +'</div>'
+        +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+        +(waNum?'<a href="https://wa.me/44'+waNum+'" target="_blank" class="btn btn-sm" style="background:#25D366;color:#fff">WhatsApp</a>':'')
+        +(ll.llMobile?'<a href="tel:'+ll.llMobile+'" class="btn btn-outline btn-sm">Call</a>':'')
+        +(ll.llEmail?'<a href="mailto:'+ll.llEmail+'" class="btn btn-outline btn-sm">Email LL</a>':'')
+        +(ll.llEmail2?'<a href="mailto:'+ll.llEmail2+'" class="btn btn-outline btn-sm">Email CC</a>':'')
+        +'</div>'
+        +'</div>';
+    })(p)
     +pdField('Monthly rent',p.rent?'£'+parseFloat(p.rent).toLocaleString('en-GB'):'—')
     +pdField('Management fee',(p.mgmtFee?p.mgmtFee+'%':'—'))
     +pdField('Deposit',p.deposit?'£'+parseFloat(p.deposit).toLocaleString('en-GB'):'—')
@@ -2431,13 +2446,13 @@ function togglePropEdit(){
   propEditMode=true;
   var p=properties[currentPropIdx];
   if(!p) return;
-  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','notes'];
+  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llEmail2','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','notes'];
   var html='<div class="grid-2" style="gap:10px">';
   fields.forEach(function(f){
     if(f==='depositStatus'){
       html+='<div class="field-group"><label class="field-label">Deposit status</label><select class="field-input" id="pdedit-depositStatus"><option '+(p.depositStatus==='Protected'?'selected':'')+'>Protected</option><option '+(p.depositStatus==='Available for repayment'?'selected':'')+'>Available for repayment</option><option '+(p.depositStatus==='Dispute raised'?'selected':'')+'>Dispute raised</option><option '+(p.depositStatus==='Clearance pending'?'selected':'')+'>Clearance pending</option></select></div>';
     } else {
-      var labels={tenant:'Tenant',tenantPhone:'Phone',tenantEmail:'Tenant email',llName:'Landlord',llEmail:'LL email',llMobile:'LL mobile',rent:'Rent (£)',mgmtFee:'Fee (%)',deposit:'Deposit (£)',depositId:'Deposit ID',startDate:'Start date',depositDate:'Deposit date',aptAnniversary:'APT anniversary',notes:'Notes'};
+      var labels={tenant:'Tenant',tenantPhone:'Phone',tenantEmail:'Tenant email',llName:'Landlord',llEmail:'LL email',llEmail2:'LL email 2 (CC)',llMobile:'LL mobile',rent:'Rent (£)',mgmtFee:'Fee (%)',deposit:'Deposit (£)',depositId:'Deposit ID',startDate:'Start date',depositDate:'Deposit date',aptAnniversary:'APT anniversary',notes:'Notes'};
       html+='<div class="field-group"><label class="field-label">'+(labels[f]||f)+'</label><input class="field-input" id="pdedit-'+f+'" value="'+(p[f]||'')+'"></div>';
     }
   });
@@ -2450,7 +2465,7 @@ function togglePropEdit(){
 function savePropEdit(){
   var p=properties[currentPropIdx];
   if(!p) return;
-  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','notes'];
+  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llEmail2','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','notes'];
   fields.forEach(function(f){
     var el=document.getElementById('pdedit-'+f);
     if(el) p[f]=el.value;
@@ -3371,8 +3386,9 @@ function importPropertiesCSV(input){
         tenantPhone:row['Tenant Phone']||row['tenantPhone']||'',
         tenantEmail:row['Tenant Email']||row['tenantEmail']||'',
         llName:row['Landlord']||row['llName']||'',
-        llMobile:row['Landlord Phone']||row['llMobile']||'',
+        llMobile:row['Landlord Phone']||row['Landlord Phone 2']||row['llMobile']||'',
         llEmail:row['Landlord Email']||row['llEmail']||'',
+        llEmail2:row['Landlord Email 2']||row['llEmail2']||'',
         rent:row['Rent']||row['rent']||'',
         gsc:row['GSC Date']||row['gsc']||'',
         eicr:row['EICR Date']||row['eicr']||'',
@@ -3382,8 +3398,12 @@ function importPropertiesCSV(input){
         mgmtFee:row['Fee%']||row['mgmtFee']||'',
         deposit:row['Deposit Amount']||row['Deposit']||row['deposit']||'',
         depositId:row['Deposit ID']||row['depositId']||'',
-        smokeAlarm:'',coDetector:'',propLicence:'',rtrCheck:'',rtrExpiry:'',
-        routineInspection:'',aptAnniversary:'',notes:''
+        smokeAlarm:'',coDetector:'',
+        propLicence:row['Property Licence']||row['propLicence']||'',
+        rtrCheck:'',rtrExpiry:'',
+        routineInspection:'',
+        aptAnniversary:row['APT Anniversary']||row['aptAnniversary']||'',
+        notes:''
       };
       if(!prop.address){pending--;continue;}
       (function(p){
