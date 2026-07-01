@@ -972,10 +972,12 @@ select.field-input{cursor:pointer}
     </div>
     <div style="display:flex;gap:4px;border-bottom:0.5px solid var(--border);margin-bottom:14px" id="jd-tabs">
       <button class="jd-tab active" onclick="switchJdTab('details',this)" style="padding:5px 12px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--navy);border-bottom:2px solid var(--navy);font-weight:500">Details</button>
+      <button class="jd-tab" onclick="switchJdTab('quotes',this)" style="padding:5px 12px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--text2)">Quotes <span id="jd-quote-count" style="font-size:10px"></span></button>
       <button class="jd-tab" onclick="switchJdTab('log',this)" style="padding:5px 12px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--text2)">Chase log</button>
       <button class="jd-tab" onclick="switchJdTab('contractor',this)" style="padding:5px 12px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--text2)">Contractor</button>
     </div>
     <div id="jd-details"></div>
+    <div id="jd-quotes" style="display:none"></div>
     <div id="jd-log" style="display:none"></div>
     <div id="jd-contractor-tab" style="display:none"></div>
     <div class="modal-footer">
@@ -1600,16 +1602,35 @@ function setMainView(v){
 
 // ─── POPULATE CONTRACTOR DROPDOWNS ───────────────────────────────────────────
 function populateContractorDropdowns(){
+  // Always reload from Firebase to catch any newly added contractors
+  fbGet('contractors', function(data){
+    if(data){
+      Object.keys(data).forEach(function(k){
+        var c = data[k];
+        if(!CONTRACTORS.find(function(x){ return x.id===c.id; }) && !customContractors.find(function(x){ return x.id===c.id; })){
+          customContractors.push(c);
+        }
+      });
+    }
+    _buildContractorDropdowns();
+  });
+}
+
+function _buildContractorDropdowns(){
+  var all = getAllContractors();
   ['aj-contractor','ej-contractor','maint-contractor-filter'].forEach(function(id){
     var el=document.getElementById(id);
     if(!el) return;
     var isFilter = id==='maint-contractor-filter';
+    var currentVal = el.value;
     el.innerHTML = isFilter ? '<option value="">All contractors</option>' : '<option value="">No contractor yet</option>';
-    CONTRACTORS.forEach(function(c){
+    all.forEach(function(c){
       var opt=document.createElement('option');
       opt.value=c.id; opt.textContent=c.name;
       el.appendChild(opt);
     });
+    // Restore previously selected value if still valid
+    if(currentVal) el.value=currentVal;
   });
 }
 
@@ -1845,6 +1866,7 @@ function openJobDetail(fbKey){
 
 function switchJdTab(tab, btn){
   document.getElementById('jd-details').style.display=tab==='details'?'block':'none';
+  document.getElementById('jd-quotes').style.display=tab==='quotes'?'block':'none';
   document.getElementById('jd-log').style.display=tab==='log'?'block':'none';
   document.getElementById('jd-contractor-tab').style.display=tab==='contractor'?'block':'none';
   document.querySelectorAll('.jd-tab').forEach(function(b){
@@ -1852,6 +1874,7 @@ function switchJdTab(tab, btn){
     b.style.color=b===btn?'var(--navy)':'var(--text2)';
     b.style.fontWeight=b===btn?'500':'400';
   });
+  if(tab==='quotes') renderQuotesTab();
 }
 
 function copyJobMsg(){
@@ -1978,19 +2001,35 @@ function saveChase(){
   var note=document.getElementById('chase-note').value.trim();
   if(!note){ showToast('Please enter a chase note'); return; }
   var job=jobs.find(function(j){ return j.fbKey===currentJobIdx; });
-  if(!job) return;
+  if(!job){ showToast('Job not found'); return; }
   var now=new Date();
   var dateStr=('0'+now.getDate()).slice(-2)+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+now.getFullYear()+' '+('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);
+  var todayStr=('0'+now.getDate()).slice(-2)+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+now.getFullYear();
   if(!job.chaseLog) job.chaseLog=[];
   job.chaseLog.push({date:dateStr,note:note});
-  job.lastActionDate=('0'+now.getDate()).slice(-2)+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+now.getFullYear();
+  job.lastActionDate=todayStr;
   job.lastChased=dateStr;
-  fbSet('jobs/'+currentJobIdx, job, function(){
-    closeModal('chase-modal');
-    renderChaseStrip();
-    renderMaintenancePage();
-    showToast('Chase logged');
-  });
+  // Update only the changed fields to avoid overwriting quotes etc
+  var updates={
+    chaseLog: job.chaseLog,
+    lastActionDate: todayStr,
+    lastChased: dateStr
+  };
+  var pending=Object.keys(updates).length;
+  var done=0;
+  function onDone(){
+    done++;
+    if(done>=pending){
+      closeModal('chase-modal');
+      renderChaseStrip();
+      renderMaintenancePage();
+      renderDashFollowups();
+      showToast('Chase logged');
+    }
+  }
+  fbSet('jobs/'+currentJobIdx+'/chaseLog', job.chaseLog, onDone);
+  fbSet('jobs/'+currentJobIdx+'/lastActionDate', todayStr, onDone);
+  fbSet('jobs/'+currentJobIdx+'/lastChased', dateStr, onDone);
 }
 
 // ─── BULK ACTIONS ─────────────────────────────────────────────────────────────
@@ -2865,8 +2904,12 @@ function renderDepTable(){
     if(depStatusFilter === 'protected') return s.includes('protected');
     if(depStatusFilter === 'letonly'){
       // Find matching property and check letOnly flag + protected status
-      var prop = properties.find(function(p){ return (p.address||'').toLowerCase()===(d.address||'').toLowerCase(); });
-      return s.includes('protected') && prop && prop.letOnly && prop.letOnly.toLowerCase()==='y';
+      var daddr = (d.address||'').toLowerCase().trim();
+      var prop = properties.find(function(p){ 
+        var paddr = (p.address||'').toLowerCase().trim();
+        return paddr === daddr || paddr.indexOf(daddr) > -1 || daddr.indexOf(paddr) > -1;
+      });
+      return prop && (prop.letOnly||'').toLowerCase()==='y';
     }
     return true;
   });
@@ -3030,6 +3073,10 @@ function renderContractors(){
       +(quoted?'<span style="background:var(--amber-bg);color:var(--amber-text);font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px"><span style="opacity:0.7;font-size:9px">Quoted </span>'+fmtCurrency(quoted)+'</span>':'')
       +(invoiced?'<span style="background:var(--green-bg);color:var(--green-text);font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px"><span style="opacity:0.7;font-size:9px">Invoiced </span>'+fmtCurrency(invoiced)+'</span>':'')
       +(outstanding?'<span style="background:var(--red-bg);color:var(--red-text);font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px"><span style="opacity:0.7;font-size:9px">Outstanding </span>'+fmtCurrency(outstanding)+'</span>':'')
+      +(qs.invited?'<span style="background:var(--blue-bg);color:var(--blue-text);font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px"><span style="opacity:0.7;font-size:9px">Quotes invited </span>'+qs.invited+'</span>':'')
+      +(qs.accepted?'<span style="background:var(--green-bg);color:var(--green-text);font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px"><span style="opacity:0.7;font-size:9px">Won </span>'+qs.accepted+'</span>':'')
+      +(qs.rejected?'<span style="background:var(--red-bg);color:var(--red-text);font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px"><span style="opacity:0.7;font-size:9px">Rejected </span>'+qs.rejected+'</span>':'')
+      +(qs.noResponse?'<span style="background:var(--amber-bg);color:var(--amber-text);font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px"><span style="opacity:0.7;font-size:9px">No response </span>'+qs.noResponse+'</span>':'')
       +'</div>'
       +'</div>'
       +'<div style="display:flex;gap:5px;flex-shrink:0;align-items:center">'
@@ -4431,6 +4478,141 @@ function emailDoc(type, fbKey, recipient){
   }
   var mailto='mailto:'+toEmail+'?subject='+encodeURIComponent(subjects[type]||'Document')+'&body='+encodeURIComponent(text);
   window.location.href=mailto;
+}
+
+
+// =============================================================================
+// QUOTE COMPARISON
+// =============================================================================
+function renderQuotesTab(){
+  var job = jobs.find(function(j){ return j.fbKey===currentJobIdx; });
+  if(!job) return;
+  var quotes = job.quotes || [];
+  var allC = getAllContractors();
+
+  // Summary
+  var invited = quotes.length;
+  var responded = quotes.filter(function(q){ return q.status !== 'Invited'; }).length;
+  var accepted = quotes.filter(function(q){ return q.status === 'Accepted'; });
+  var rejected = quotes.filter(function(q){ return q.status === 'Rejected'; }).length;
+
+  // Update tab badge
+  var badge = document.getElementById('jd-quote-count');
+  if(badge) badge.textContent = invited ? '('+invited+')' : '';
+
+  var html = '<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">'
+    +'<span class="badge badge-grey">'+invited+' invited</span>'
+    +'<span class="badge badge-blue">'+responded+' responded</span>'
+    +'<span class="badge badge-green">'+accepted.length+' accepted</span>'
+    +(rejected?'<span class="badge badge-red">'+rejected+' rejected</span>':'')
+    +'</div>';
+
+  // Quote rows
+  if(!quotes.length){
+    html += '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">No quotes logged yet — add one below</div>';
+  } else {
+    html += '<table class="tbl" style="margin-bottom:14px"><thead><tr>'
+      +'<th>Contractor</th><th>Amount quoted</th><th>Status</th><th>Date</th><th>Notes</th><th></th>'
+      +'</tr></thead><tbody>';
+    quotes.forEach(function(q, i){
+      var c = getContractor(q.contractorId);
+      var statusColors = {
+        'Invited':'badge-grey','Quoted':'badge-blue',
+        'Accepted':'badge-green','Rejected':'badge-red','No response':'badge-amber'
+      };
+      var pill = statusColors[q.status]||'badge-grey';
+      html += '<tr>'
+        +'<td style="font-size:12px;font-weight:500">'+c.name+'</td>'
+        +'<td style="font-size:12px;color:var(--amber-text)">'+(q.amount?'£'+parseFloat(q.amount).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2}):'—')+'</td>'
+        +'<td><span class="badge '+pill+'">'+q.status+'</span></td>'
+        +'<td style="font-size:11px;color:var(--text3)">'+(q.date||'—')+'</td>'
+        +'<td style="font-size:11px;color:var(--text2)">'+(q.notes||'—')+'</td>'
+        +'<td><button class="btn btn-outline btn-sm" onclick="removeQuote('+i+')">✕</button></td>'
+        +'</tr>';
+    });
+    html += '</tbody></table>';
+  }
+
+  // Add quote form
+  var contractorOpts = allC.map(function(c){
+    return '<option value="'+c.id+'">'+c.name+'</option>';
+  }).join('');
+
+  html += '<div style="background:var(--bg);border-radius:8px;padding:12px">'
+    +'<div style="font-size:11px;font-weight:500;color:var(--text);margin-bottom:8px">Add quote</div>'
+    +'<div class="grid-2" style="gap:8px">'
+    +'<div class="field-group" style="margin-bottom:0"><label class="field-label">Contractor</label>'
+    +'<select class="field-input" id="nq-contractor"><option value="">Select contractor...</option>'+contractorOpts+'</select></div>'
+    +'<div class="field-group" style="margin-bottom:0"><label class="field-label">Amount quoted (£)</label>'
+    +'<input class="field-input" id="nq-amount" type="number" placeholder="0.00"></div>'
+    +'<div class="field-group" style="margin-bottom:0"><label class="field-label">Status</label>'
+    +'<select class="field-input" id="nq-status">'
+    +'<option>Invited</option><option>Quoted</option><option>Accepted</option><option>Rejected</option><option>No response</option>'
+    +'</select></div>'
+    +'<div class="field-group" style="margin-bottom:0"><label class="field-label">Notes</label>'
+    +'<input class="field-input" id="nq-notes" placeholder="e.g. too expensive, slow to respond..."></div>'
+    +'</div>'
+    +'<button class="btn btn-navy btn-sm" style="margin-top:10px" onclick="addQuote()">Add quote</button>'
+    +'</div>';
+
+  document.getElementById('jd-quotes').innerHTML = html;
+}
+
+function addQuote(){
+  var job = jobs.find(function(j){ return j.fbKey===currentJobIdx; });
+  if(!job) return;
+  var contractorId = document.getElementById('nq-contractor').value;
+  if(!contractorId){ showToast('Please select a contractor'); return; }
+  var now = new Date();
+  var dateStr = ('0'+now.getDate()).slice(-2)+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+now.getFullYear();
+  var quote = {
+    contractorId: contractorId,
+    amount: document.getElementById('nq-amount').value||'',
+    status: document.getElementById('nq-status').value,
+    notes: document.getElementById('nq-notes').value,
+    date: dateStr
+  };
+  if(!job.quotes) job.quotes=[];
+  job.quotes.push(quote);
+  fbSet('jobs/'+currentJobIdx, job, function(){
+    renderQuotesTab();
+    // If accepted, update main quote field on job
+    if(quote.status==='Accepted' && quote.amount){
+      job.quote = quote.amount;
+      job.contractorId = quote.contractorId;
+    }
+    renderDashJobs();
+    showToast('Quote added');
+  });
+}
+
+function removeQuote(idx){
+  var job = jobs.find(function(j){ return j.fbKey===currentJobIdx; });
+  if(!job || !job.quotes) return;
+  if(!confirm('Remove this quote entry?')) return;
+  job.quotes.splice(idx,1);
+  fbSet('jobs/'+currentJobIdx, job, function(){
+    renderQuotesTab();
+    showToast('Quote removed');
+  });
+}
+
+// ── CONTRACTOR CARD: show rejected/win rate ───────────────────────────────────
+// Extend renderContractors to show quote stats
+function getContractorQuoteStats(cid){
+  var invited=0, accepted=0, rejected=0, noResponse=0, totalQuoted=0;
+  jobs.forEach(function(j){
+    if(!j.quotes) return;
+    j.quotes.forEach(function(q){
+      if(q.contractorId!==cid) return;
+      invited++;
+      if(q.status==='Accepted'){ accepted++; if(q.amount) totalQuoted+=parseFloat(q.amount)||0; }
+      else if(q.status==='Rejected') rejected++;
+      else if(q.status==='No response') noResponse++;
+      else if(q.amount) totalQuoted+=parseFloat(q.amount)||0;
+    });
+  });
+  return {invited:invited, accepted:accepted, rejected:rejected, noResponse:noResponse};
 }
 
 </script>
