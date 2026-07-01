@@ -560,6 +560,7 @@ select.field-input{cursor:pointer}
         <div class="filter-pill" onclick="setDepFilter('available',this)">Available</div>
         <div class="filter-pill" onclick="setDepFilter('clearance',this)">Clearance</div>
         <div class="filter-pill" onclick="setDepFilter('protected',this)">Protected</div>
+        <div class="filter-pill" style="background:var(--purple-bg);color:var(--purple-text);border-color:var(--purple-border)" onclick="setDepFilter('letonly',this)">Let Only — we hold deposit</div>
       </div>
       <div class="two-col-wide">
         <div>
@@ -2486,7 +2487,7 @@ function togglePropEdit(){
   propEditMode=true;
   var p=properties[currentPropIdx];
   if(!p) return;
-  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llEmail2','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','gsc','eicr','epc','smokeAlarm','coDetector','propLicence','rtrCheck','rtrExpiry','routineInspection','notes'];
+  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llEmail2','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','gsc','eicr','epc','smokeAlarm','coDetector','propLicence','rtrCheck','rtrExpiry','routineInspection','notes','letOnly'];
   var html='<div class="grid-2" style="gap:10px">';
   fields.forEach(function(f){
     if(f==='depositStatus'){
@@ -2505,7 +2506,7 @@ function togglePropEdit(){
 function savePropEdit(){
   var p=properties[currentPropIdx];
   if(!p) return;
-  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llEmail2','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','gsc','eicr','epc','smokeAlarm','coDetector','propLicence','rtrCheck','rtrExpiry','routineInspection','notes'];
+  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llEmail2','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','gsc','eicr','epc','smokeAlarm','coDetector','propLicence','rtrCheck','rtrExpiry','routineInspection','notes','letOnly'];
   fields.forEach(function(f){
     var el=document.getElementById('pdedit-'+f);
     if(el) p[f]=el.value;
@@ -2862,6 +2863,11 @@ function renderDepTable(){
     if(depStatusFilter === 'available') return s.includes('available');
     if(depStatusFilter === 'clearance') return s.includes('clearance');
     if(depStatusFilter === 'protected') return s.includes('protected');
+    if(depStatusFilter === 'letonly'){
+      // Find matching property and check letOnly flag + protected status
+      var prop = properties.find(function(p){ return (p.address||'').toLowerCase()===(d.address||'').toLowerCase(); });
+      return s.includes('protected') && prop && prop.letOnly && prop.letOnly.toLowerCase()==='y';
+    }
     return true;
   });
 
