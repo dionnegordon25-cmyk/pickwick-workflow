@@ -3075,6 +3075,7 @@ function renderContractors(){
     var quoted  = cJobs.reduce(function(s,j){ return s+(parseFloat(j.quote)||0); },0);
     var invoiced= cJobs.reduce(function(s,j){ return s+(parseFloat(j.invoice)||0); },0);
     var outstanding = Math.max(0, quoted - invoiced);
+    var qs = getContractorQuoteStats(c.id);
     var initials = c.name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
     var bg = avatarColors[ci % avatarColors.length];
     var tc = textColors[ci % textColors.length];
