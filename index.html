@@ -1741,11 +1741,31 @@ function renderKanban(){
     colJobs.forEach(function(job){
       var chase=needsChase(job);
       var days=chase?daysSince(job.lastActionDate||job.dateLogged):0;
-      html+='<div style="background:#fff;border:0.5px solid var(--border);border-radius:8px;padding:9px;margin-bottom:6px;cursor:pointer'+(chase?';border-left:3px solid var(--red-text)':'')+'" onclick="openJobDetail(this.dataset.key)" data-key='+job.fbKey+'>'
-        +'<div style="font-size:11px;font-weight:500;color:var(--text)">'+(job.prop||'—')+(chase?' <span style="color:var(--red-text)">⚠'+days+'d</span>':'')+'</div>'
-        +'<div style="font-size:10px;color:var(--text2);margin-top:2px">'+(job.issue||'—')+'</div>'
-        +'<div style="font-size:10px;color:var(--text3);margin-top:4px">'+(getContractor(job.contractorId).name||'No contractor')+(job.quote?' · '+fmtCurrency(job.quote):'')+'</div>'
-        +'</div>';
+      html+=(function(job,chase,days){
+        var quotes=job.quotes||[];
+        var rejectedQ=quotes.filter(function(q){return q.status==='Rejected';});
+        var quoteSummary='';
+        if(quotes.length){
+          quoteSummary='<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:3px">';
+          quotes.forEach(function(q){
+            var cn=getContractor(q.contractorId);
+            var bg=q.status==='Accepted'?'var(--green-bg)':q.status==='Rejected'?'var(--red-bg)':q.status==='Quoted'?'var(--blue-bg)':'var(--bg)';
+            var tc=q.status==='Accepted'?'var(--green-text)':q.status==='Rejected'?'var(--red-text)':q.status==='Quoted'?'var(--blue-text)':'var(--text3)';
+            var shortName=cn.name.split(' ')[0];
+            quoteSummary+='<span style="font-size:9px;padding:1px 5px;border-radius:10px;background:'+bg+';color:'+tc+'">'+shortName+(q.amount?' £'+parseFloat(q.amount).toLocaleString('en-GB'):'')+'</span>';
+          });
+          quoteSummary+='</div>';
+        }
+        return '<div style="background:#fff;border:0.5px solid var(--border);border-radius:8px;padding:9px;margin-bottom:6px;cursor:pointer'+(chase?';border-left:3px solid var(--red-text)':'')+'" onclick="openJobDetail(this.dataset.key)" data-key='+job.fbKey+'>'
+          +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">'
+          +'<div style="font-size:11px;font-weight:500;color:var(--text);flex:1">'+(job.prop||'—')+(chase?' <span style="color:var(--red-text)">⚠'+days+'d</span>':'')+'</div>'
+          +(rejectedQ.length?'<span style="font-size:9px;padding:1px 6px;border-radius:10px;background:var(--red-bg);color:var(--red-text);white-space:nowrap;flex-shrink:0">'+rejectedQ.length+' rejected</span>':'')
+          +'</div>'
+          +'<div style="font-size:10px;color:var(--text2);margin-top:2px">'+(job.issue||'—')+'</div>'
+          +'<div style="font-size:10px;color:var(--text3);margin-top:3px">'+(getContractor(job.contractorId).name||'No contractor')+(job.quote?' · '+fmtCurrency(job.quote):'')+'</div>'
+          +quoteSummary
+          +'</div>';
+      })(job,chase,days)
     });
     if(!colJobs.length) html+='<div style="font-size:11px;color:var(--text3);text-align:center;padding:16px 0">No jobs</div>';
     el.innerHTML=html;
@@ -3204,7 +3224,17 @@ function deleteContractor(cid){
 var _spCont = showPage;
 showPage = function(id, btn){
   _spCont(id, btn);
-  if(id==='contractors'){ renderContractors(); }
+  if(id==='contractors'){
+    // Always reload contractors from Firebase first
+    fbGet('contractors', function(data){
+      customContractors=[];
+      if(data) Object.keys(data).forEach(function(k){
+        var c=data[k];
+        if(!CONTRACTORS.find(function(x){ return x.id===c.id; })) customContractors.push(c);
+      });
+      renderContractors();
+    });
+  }
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
