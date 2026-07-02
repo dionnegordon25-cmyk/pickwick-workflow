@@ -371,6 +371,9 @@ select.field-input{cursor:pointer}
           <option value="Complete">Complete</option>
           <option value="Overdue">Overdue</option>
           <option value="chase">Needs chasing (3d+)</option>
+          <option value="On hold">On hold</option>
+          <option value="Monitoring">Monitoring</option>
+          <option value="urgent">Urgent ⚡</option>
         </select>
         <select class="field-input" id="maint-contractor-filter" onchange="filterJobs()" style="width:160px">
           <option value="">All contractors</option>
@@ -603,7 +606,17 @@ select.field-input{cursor:pointer}
         <input class="search-bar" id="cont-search" placeholder="Search by name, trade, phone or email..." oninput="filterContractors()">
         <button class="btn btn-navy" onclick="openAddContractorModal()">+ Add contractor</button>
       </div>
-      <div id="contractor-cards"></div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="tbl" id="cont-table">
+          <thead>
+            <tr>
+              <th>Contractor</th><th>Trade</th><th>Contact</th>
+              <th>Jobs</th><th>Quoted</th><th>Invoiced</th><th>Outstanding</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="cont-tbody"></tbody>
+        </table>
+      </div>
     </div>
 
     <div id="page-pasttenants" class="page">
@@ -948,13 +961,17 @@ select.field-input{cursor:pointer}
       <div class="field-group"><label class="field-label">Tenant phone</label><input class="field-input" id="aj-phone" placeholder="Auto-fills from address"></div>
       <div class="field-group"><label class="field-label">Contractor</label><select class="field-input" id="aj-contractor"><option value="">No contractor yet</option></select></div>
       <div class="field-group"><label class="field-label">Category</label><select class="field-input" id="aj-category"><option>Gas / Heating</option><option>Plumbing</option><option>Electrical</option><option>Glazing</option><option>Carpentry</option><option>Painting &amp; decorating</option><option>Damp / Structural</option><option>Roofing</option><option>Cleaning</option><option>Appliance repair</option><option>General</option><option>Other</option></select></div>
-      <div class="field-group"><label class="field-label">Status</label><select class="field-input" id="aj-status"><option>Awaiting contractor</option><option>Quote received</option><option>Awaiting approval</option><option>In progress</option><option>Complete</option></select></div>
+      <div class="field-group"><label class="field-label">Status</label><select class="field-input" id="aj-status"><option>Awaiting contractor</option><option>Quote received</option><option>Awaiting approval</option><option>In progress</option><option>On hold</option><option>Monitoring</option><option>Complete</option></select></div>
       <div class="field-group" style="grid-column:1/-1"><label class="field-label">Issue description *</label><textarea class="field-input" id="aj-issue" rows="2" placeholder="Describe the issue..."></textarea></div>
       <div class="field-group"><label class="field-label">Access details</label><input class="field-input" id="aj-access" placeholder="Key at office, tenant to arrange..."></div>
       <div class="field-group"><label class="field-label">Notes</label><input class="field-input" id="aj-notes" placeholder="Additional notes..."></div>
       <div class="field-group"><label class="field-label">Quote (£)</label><input class="field-input" id="aj-quote" type="number" placeholder="0.00"></div>
       <div class="field-group"><label class="field-label">Invoice (£)</label><input class="field-input" id="aj-invoice" type="number" placeholder="0.00"></div>
       <div class="field-group" style="grid-column:1/-1"><label class="field-label">Photo / Drive link</label><input class="field-input" id="aj-photo" placeholder="https://drive.google.com/..."></div>
+      <div class="field-group" style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:8px;background:var(--red-bg);border-radius:var(--radius-md)">
+        <input type="checkbox" id="aj-urgent" style="width:16px;height:16px;accent-color:var(--red-text)">
+        <label for="aj-urgent" style="font-size:12px;font-weight:500;color:var(--red-text);cursor:pointer">⚡ Mark as urgent — will appear at top of all views</label>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('add-job-modal')">Cancel</button>
@@ -999,13 +1016,17 @@ select.field-input{cursor:pointer}
       <div class="field-group"><label class="field-label">Tenant phone</label><input class="field-input" id="ej-phone"></div>
       <div class="field-group"><label class="field-label">Contractor</label><select class="field-input" id="ej-contractor"><option value="">No contractor</option></select></div>
       <div class="field-group"><label class="field-label">Category</label><select class="field-input" id="ej-category"><option>Gas / Heating</option><option>Plumbing</option><option>Electrical</option><option>Glazing</option><option>Carpentry</option><option>Painting &amp; decorating</option><option>Damp / Structural</option><option>Roofing</option><option>Cleaning</option><option>Appliance repair</option><option>General</option><option>Other</option></select></div>
-      <div class="field-group"><label class="field-label">Status</label><select class="field-input" id="ej-status"><option>Awaiting contractor</option><option>Quote received</option><option>Awaiting approval</option><option>In progress</option><option>Complete</option><option>Overdue</option></select></div>
+      <div class="field-group"><label class="field-label">Status</label><select class="field-input" id="ej-status"><option>Awaiting contractor</option><option>Quote received</option><option>Awaiting approval</option><option>In progress</option><option>On hold</option><option>Monitoring</option><option>Complete</option><option>Overdue</option></select></div>
       <div class="field-group" style="grid-column:1/-1"><label class="field-label">Issue</label><textarea class="field-input" id="ej-issue" rows="2"></textarea></div>
       <div class="field-group"><label class="field-label">Access</label><input class="field-input" id="ej-access"></div>
       <div class="field-group"><label class="field-label">Notes</label><input class="field-input" id="ej-notes"></div>
       <div class="field-group"><label class="field-label">Quote (£)</label><input class="field-input" id="ej-quote" type="number"></div>
       <div class="field-group"><label class="field-label">Invoice (£)</label><input class="field-input" id="ej-invoice" type="number"></div>
       <div class="field-group" style="grid-column:1/-1"><label class="field-label">Photo / Drive link</label><input class="field-input" id="ej-photo"></div>
+      <div class="field-group" style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:8px;background:var(--red-bg);border-radius:var(--radius-md)">
+        <input type="checkbox" id="ej-urgent" style="width:16px;height:16px;accent-color:var(--red-text)">
+        <label for="ej-urgent" style="font-size:12px;font-weight:500;color:var(--red-text);cursor:pointer">⚡ Mark as urgent</label>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-red btn-sm" onclick="deleteJob()">Delete job</button>
@@ -1285,19 +1306,23 @@ function renderChecklist(){
 // ─── DASHBOARD JOBS ───────────────────────────────────────────────────────────
 function needsChase(job){
   if(job.status==='Complete') return false;
+  if(job.status==='On hold') return false;
+  if(job.status==='Monitoring') return false;
   var d=job.lastActionDate||job.dateLogged;
   return daysSince(d)>=3;
 }
 
-function statusPillClass(status){
+function statusPillClass(status, urgent){
+  if(urgent) return 'badge-red';
   if(!status) return 'badge-grey';
   var s=status.toLowerCase();
-  if(s.includes('overdue')||s.includes('urgent')) return 'badge-red';
+  if(s.includes('overdue')) return 'badge-red';
   if(s.includes('awaiting contractor')) return 'badge-amber';
   if(s.includes('awaiting approval')) return 'badge-amber';
   if(s.includes('quote received')) return 'badge-purple';
   if(s.includes('in progress')) return 'badge-blue';
   if(s.includes('complete')) return 'badge-green';
+  if(s.includes('on hold')||s.includes('monitoring')) return 'badge-grey';
   return 'badge-grey';
 }
 
@@ -1430,7 +1455,7 @@ function renderDashFollowups(){
 // ─── STAT CARDS ───────────────────────────────────────────────────────────────
 function renderStatCards(){
   // Row 1
-  var overdue=jobs.filter(function(j){ return j.status&&j.status.toLowerCase().includes('overdue'); }).length;
+  var overdue=jobs.filter(function(j){ return j.urgent===true||(j.status&&j.status.toLowerCase().includes('overdue')); }).length;
   var awaitingC=jobs.filter(function(j){ return j.status&&j.status.toLowerCase().includes('awaiting contractor'); }).length;
   var awaitingA=jobs.filter(function(j){ return j.status&&j.status.toLowerCase().includes('awaiting approval'); }).length;
 
@@ -1444,8 +1469,9 @@ function renderStatCards(){
   var totalProps=properties.length||86;
 
   // Row 2
-  var depDisputes=deposits.filter(function(d){ return d.status&&d.status.toLowerCase().includes('dispute'); }).length;
-  var depReady=deposits.filter(function(d){ return d.status&&d.status.toLowerCase().includes('available'); }).length;
+  // Read deposit stats from properties (source of truth for deposit status)
+  var depDisputes=properties.filter(function(p){ return p.depositStatus&&p.depositStatus.toLowerCase().includes('dispute'); }).length;
+  var depReady=properties.filter(function(p){ return p.depositStatus&&p.depositStatus.toLowerCase().includes('available'); }).length;
 
   var gscDue=properties.filter(function(p){ return p.gsc&&daysUntil(p.gsc)<=60; }).length;
   var eicrDue=properties.filter(function(p){ return p.eicr&&daysUntil(p.eicr)<=60; }).length;
@@ -1676,6 +1702,7 @@ function getFilteredJobs(){
   search=search.toLowerCase();
   return jobs.filter(function(j){
     if(status==='chase') return needsChase(j);
+    if(status==='urgent') return j.urgent===true;
     if(status&&j.status!==status) return false;
     if(contractor&&j.contractorId!==contractor) return false;
     if(search){
@@ -1937,7 +1964,8 @@ function saveNewJob(){
     quote:document.getElementById('aj-quote').value||null,
     invoice:document.getElementById('aj-invoice').value||null,
     photoLink:document.getElementById('aj-photo').value,
-    dateLogged:dateStr, lastActionDate:dateStr, chaseLog:[]
+    dateLogged:dateStr, lastActionDate:dateStr, chaseLog:[],
+    urgent: document.getElementById('aj-urgent').checked ? true : false
   };
   fbPush('jobs', job, function(key){
     job.fbKey=key;
@@ -1985,6 +2013,7 @@ function saveEditJob(){
   job.quote=document.getElementById('ej-quote').value||null;
   job.invoice=document.getElementById('ej-invoice').value||null;
   job.photoLink=document.getElementById('ej-photo').value;
+  job.urgent=document.getElementById('ej-urgent').checked;
   var now=new Date();
   job.lastActionDate=('0'+now.getDate()).slice(-2)+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+now.getFullYear();
   fbSet('jobs/'+currentJobIdx, job, function(){
@@ -3062,56 +3091,45 @@ function renderContractors(){
   set('cs-quoted', '£'+totalQ.toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:0}));
   set('cs-invoiced', '£'+totalI.toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:0}));
 
-  var avatarColors = ['#EEF3FA','#FFF0F0','#F0FFF4','#F5F0FF','#FFF8F0','#F0F8FF','#FFF0F8','#F0FFF8','#FFFFF0'];
-  var textColors   = ['#1E3A5F','#993C1D','#3B6D11','#534AB7','#854F0B','#185FA5','#993C1D','#1E3A5F','#854F0B'];
-
-  var container = document.getElementById('contractor-cards');
-  if(!container) return;
-  if(!filtered.length){ container.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3)">No contractors found</div>'; return; }
+  var tbody = document.getElementById('cont-tbody');
+  if(!tbody) return;
+  if(!filtered.length){ tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text3)">No contractors found</td></tr>'; return; }
 
   var html = '';
-  filtered.forEach(function(c, ci){
+  filtered.forEach(function(c){
     var cJobs = jobs.filter(function(j){ return j.contractorId===c.id; });
     var quoted  = cJobs.reduce(function(s,j){ return s+(parseFloat(j.quote)||0); },0);
     var invoiced= cJobs.reduce(function(s,j){ return s+(parseFloat(j.invoice)||0); },0);
     var outstanding = Math.max(0, quoted - invoiced);
     var qs = getContractorQuoteStats(c.id);
-    var initials = c.name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
-    var bg = avatarColors[ci % avatarColors.length];
-    var tc = textColors[ci % textColors.length];
     var phoneClean = c.phone?c.phone.replace(/^0/,'').replace(/ /g,''):'';
-
-    html += '<div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:14px">'
-      +'<div style="width:40px;height:40px;border-radius:50%;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:'+tc+';flex-shrink:0">'+initials+'</div>'
-      +'<div style="flex:1;min-width:0">'
-      +'<div style="display:flex;align-items:center;gap:8px">'
-      +'<div style="font-size:13px;font-weight:500;color:var(--text)">'+c.name+'</div>'
-      +'<span class="badge badge-grey">'+cJobs.length+' jobs</span>'
-      +'</div>'
-      +'<div style="font-size:10px;color:var(--text2);margin-top:2px">'+c.trade+'</div>'
-      +'<div style="font-size:10px;color:var(--text3);margin-top:1px">'+(c.phone||'')+(c.phone&&c.email?' · ':'')+( c.email||'')+'</div>'
-      +'<div style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap">'
-      +(quoted?'<span style="background:var(--amber-bg);color:var(--amber-text);font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px"><span style="opacity:0.7;font-size:9px">Quoted </span>'+fmtCurrency(quoted)+'</span>':'')
-      +(invoiced?'<span style="background:var(--green-bg);color:var(--green-text);font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px"><span style="opacity:0.7;font-size:9px">Invoiced </span>'+fmtCurrency(invoiced)+'</span>':'')
-      +(outstanding?'<span style="background:var(--red-bg);color:var(--red-text);font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px"><span style="opacity:0.7;font-size:9px">Outstanding </span>'+fmtCurrency(outstanding)+'</span>':'')
-      +(qs.invited?'<span style="background:var(--blue-bg);color:var(--blue-text);font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px"><span style="opacity:0.7;font-size:9px">Quotes invited </span>'+qs.invited+'</span>':'')
-      +(qs.accepted?'<span style="background:var(--green-bg);color:var(--green-text);font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px"><span style="opacity:0.7;font-size:9px">Won </span>'+qs.accepted+'</span>':'')
-      +(qs.rejected?'<span style="background:var(--red-bg);color:var(--red-text);font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px"><span style="opacity:0.7;font-size:9px">Rejected </span>'+qs.rejected+'</span>':'')
-      +(qs.noResponse?'<span style="background:var(--amber-bg);color:var(--amber-text);font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px"><span style="opacity:0.7;font-size:9px">No response </span>'+qs.noResponse+'</span>':'')
-      +'</div>'
-      +'</div>'
-      +'<div style="display:flex;gap:5px;flex-shrink:0;align-items:center">'
-      +(phoneClean?'<a href="https://wa.me/44'+phoneClean+'" target="_blank" style="width:28px;height:28px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:14px">💬</a>':'')
-      +(c.phone?'<a href="tel:'+c.phone+'" style="width:28px;height:28px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:13px">📞</a>':'')
-      +(c.email?'<a href="mailto:'+c.email+'" style="width:28px;height:28px;border-radius:50%;background:var(--bg);border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:13px">✉</a>':'')
-      +'<div style="width:0.5px;height:24px;background:var(--border);margin:0 2px"></div>'
-      +'<button class="btn btn-navy btn-sm" onclick="openContractorJobs(\'' + c.id + '\')">View jobs</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="openEditContractor(\'' + c.id + '\')">Edit</button>'
-      +'<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red-text)" onclick="deleteContractor(\'' + c.id + '\')">Delete</button>'
-      +'</div>'
-      +'</div>';
+    html += '<tr>'
+      +'<td><div style="font-size:12px;font-weight:500;color:var(--text)">'+c.name+'</div>'
+      +(qs.invited?'<div style="display:flex;gap:3px;margin-top:3px">'
+        +(qs.invited?'<span class="badge badge-blue" style="font-size:9px">'+qs.invited+' invited</span>':'')
+        +(qs.accepted?'<span class="badge badge-green" style="font-size:9px">'+qs.accepted+' won</span>':'')
+        +(qs.rejected?'<span class="badge badge-red" style="font-size:9px">'+qs.rejected+' rejected</span>':'')
+        +(qs.noResponse?'<span class="badge badge-amber" style="font-size:9px">'+qs.noResponse+' no resp</span>':'')
+        +'</div>':'')
+      +'</td>'
+      +'<td style="font-size:11px;color:var(--text2)">'+(c.trade||'—')+'</td>'
+      +'<td><div style="font-size:11px">'+(c.phone||'—')+'</div>'
+      +(c.email?'<div style="font-size:10px;color:var(--text2)">'+c.email+'</div>':'')+'</td>'
+      +'<td style="font-size:12px;font-weight:500;text-align:center">'+cJobs.length+'</td>'
+      +'<td style="font-size:12px;color:var(--amber-text)">'+(quoted?fmtCurrency(quoted):'—')+'</td>'
+      +'<td style="font-size:12px;color:var(--green-text)">'+(invoiced?fmtCurrency(invoiced):'—')+'</td>'
+      +'<td style="font-size:12px;color:var(--red-text)">'+(outstanding>0?fmtCurrency(outstanding):'—')+'</td>'
+      +'<td style="white-space:nowrap">'
+      +(phoneClean?'<a href="https://wa.me/44'+phoneClean+'" target="_blank" class="btn btn-sm" style="background:#25D366;color:#fff;margin-right:3px">💬</a>':'')
+      +(c.phone?'<a href="tel:'+c.phone+'" class="btn btn-outline btn-sm" style="margin-right:3px">📞</a>':'')
+      +(c.email?'<a href="mailto:'+c.email+'" class="btn btn-outline btn-sm" style="margin-right:3px">✉</a>':'')
+      +'<button class="btn btn-navy btn-sm" style="margin-right:3px" onclick="openContractorJobs(\''+c.id+'\')">View jobs</button>'
+      +'<button class="btn btn-outline btn-sm" style="margin-right:3px" onclick="openEditContractor(\''+c.id+'\')">Edit</button>'
+      +'<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red-text)" onclick="deleteContractor(\''+c.id+'\')">Delete</button>'
+      +'</td>'
+      +'</tr>';
   });
-  container.innerHTML = html;
+  tbody.innerHTML = html;
 }
 
 function openContractorJobs(cid){
@@ -4299,7 +4317,11 @@ function renderMoveIns(){
       +'<span class="badge '+pillClass+'">'+status+'</span></div>'
       +'<div style="background:var(--bg);border-radius:20px;height:6px;margin-bottom:4px">'
       +'<div style="background:'+barColor+';height:6px;border-radius:20px;width:'+pct+'%;transition:width 0.3s"></div></div>'
-      +'<div style="font-size:10px;color:var(--text3)">'+pct+'% complete</div>'
+      +'<div style="font-size:10px;color:var(--text3);margin-bottom:8px">'+pct+'% complete</div>'
+      +'<div style="display:flex;gap:6px">'
+      +'<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openMiModal(\''+m.fbKey+'\')">Open checklist</button>'
+      +'<button class="btn btn-red btn-sm" onclick="event.stopPropagation();deleteMoveIn(\''+m.fbKey+'\')">Delete</button>'
+      +'</div>'
       +'</div>';
   });
   container.innerHTML=html;
@@ -4378,6 +4400,16 @@ function toggleMiItem(side, idx){
     openMiModal(currentMiKey);
     renderMoveIns();
     renderStatCards();
+  });
+}
+
+function deleteMoveIn(fbKey){
+  if(!confirm('Delete this move-in record? This cannot be undone.')) return;
+  fbDelete('moveins/'+fbKey, function(){
+    moveins=moveins.filter(function(m){ return m.fbKey!==fbKey; });
+    renderMoveIns();
+    renderStatCards();
+    showToast('Move-in record deleted');
   });
 }
 
