@@ -1831,7 +1831,7 @@ function openJobDetail(fbKey){
   currentJobIdx=fbKey;
   var c=getContractor(job.contractorId);
   // Build WA message
-  var waMsg='Hi '+c.name+', could you please attend to the following:%0A%0AProperty: '+(job.prop||'—')+'%0AIssue: '+(job.issue||'—')+'%0ATenant: '+(job.tenant||'—')+'%0AAccess: '+(job.access||'—')+'%0A%0AThank you — Pickwick Estates';
+  var waMsg='Hi '+c.name+', could you please attend to the following:%0A%0AProperty: '+(job.prop||'—')+'%0AIssue: '+(job.issue||'—')+'%0ATenant: '+(job.tenant||'—')+(job.tenantPhone?'%0ATenant phone: '+job.tenantPhone:'')+'%0AAccess: '+(job.access||'Key at office')+(job.notes?'%0ANotes: '+job.notes:'')+'%0A%0AThank you%0APickwick Estates%0A020 3397 1144 / 020 3397 1166';
   var waLink=c.phone?'https://wa.me/44'+c.phone.replace(/^0/,'').replace(/\s/g,'')+'?text='+waMsg:'#';
 
   document.getElementById('jd-title').textContent=job.prop||'Job detail';
@@ -1901,7 +1901,7 @@ function copyJobMsg(){
   var job=jobs.find(function(j){ return j.fbKey===currentJobIdx; });
   if(!job) return;
   var c=getContractor(job.contractorId);
-  var msg='Hi '+c.name+', could you please attend to the following:\n\nProperty: '+(job.prop||'—')+'\nIssue: '+(job.issue||'—')+'\nTenant: '+(job.tenant||'—')+'\nAccess: '+(job.access||'—')+'\n\nThank you — Pickwick Estates';
+  var msg='Hi '+c.name+', could you please attend to the following:\n\nProperty: '+(job.prop||'—')+'\nIssue: '+(job.issue||'—')+'\nTenant: '+(job.tenant||'—')+(job.tenantPhone?'\nTenant phone: '+job.tenantPhone:'')+'\nAccess: '+(job.access||'Key at office')+(job.notes?'\nNotes: '+job.notes:'')+'\n\nThank you\nPickwick Estates\n020 3397 1144 / 020 3397 1166';
   navigator.clipboard.writeText(msg).then(function(){ showToast('Message copied'); });
 }
 
