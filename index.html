@@ -725,6 +725,11 @@ select.field-input{cursor:pointer}
             <div class="field-group"><label class="field-label">Phone</label><input class="field-input" id="s-phone" value="020 3397 1144 / 020 3397 1166"></div>
             <div class="field-group"><label class="field-label">Email</label><input class="field-input" id="s-email" value="maintenance@pickwickestates.com"></div>
             <button class="btn btn-navy btn-sm" onclick="saveAgencySettings()">Save settings</button>
+          <div style="margin-top:16px;padding-top:16px;border-top:0.5px solid var(--border)">
+            <div style="font-size:11px;font-weight:500;color:var(--text);margin-bottom:4px">Bulk management fee update</div>
+            <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Sets Let Only properties to 8%, all others to 10%. You can adjust individually via property edit.</div>
+            <button class="btn btn-sm" style="background:var(--amber-bg);color:var(--amber-text)" onclick="bulkSetFees()">Set fees now</button>
+          </div>
           </div>
           <div class="card">
             <div class="card-title">Single job WhatsApp / Email template</div>
@@ -4686,6 +4691,32 @@ function getContractorQuoteStats(cid){
     });
   });
   return {invited:invited, accepted:accepted, rejected:rejected, noResponse:noResponse};
+}
+
+
+// ─── BULK FEE UPDATE ──────────────────────────────────────────────────────────
+function bulkSetFees(){
+  if(!confirm('This will set:\n\n• Let Only properties (letOnly = y) → 8%\n• All other properties → 10%\n\nContinue?')) return;
+  if(!properties.length){ showToast('No properties loaded'); return; }
+  var updated=0, pending=properties.length;
+  properties.forEach(function(p){
+    var fee = (p.letOnly&&p.letOnly.toLowerCase()==='y') ? '8' : '10';
+    p.mgmtFee = fee;
+    var path = p.fbKey ? 'properties/'+p.fbKey+'/mgmtFee' : null;
+    if(path){
+      fbSet(path, fee, function(){
+        updated++;
+        pending--;
+        if(pending<=0){
+          renderStatCards();
+          showToast(updated+' properties updated — Let Only: 8%, All others: 10%');
+        }
+      });
+    } else {
+      pending--;
+      if(pending<=0) showToast(updated+' properties updated');
+    }
+  });
 }
 
 </script>
