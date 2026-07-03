@@ -33,7 +33,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 input,select,textarea,button{font-family:var(--font)}
 
 /* LOGIN */
-#login-screen{display:flex;position:fixed;inset:0;z-index:9999;flex-direction:column;align-items:center;justify-content:center;background:#F5F5F3}
+#login-screen{display:none;position:fixed;inset:0;z-index:9999;flex-direction:column;align-items:center;justify-content:center;background:#F5F5F3}
 .login-brand{background:var(--maroon);color:#fff;width:100%;padding:18px 0;text-align:center;position:absolute;top:0;left:0}
 .login-brand-name{font-size:20px;font-weight:600;letter-spacing:0.5px}
 .login-brand-sub{font-size:12px;opacity:0.7;margin-top:2px}
@@ -188,6 +188,14 @@ select.field-input{cursor:pointer}
 </div>
 
 <!-- MAIN APP -->
+<div id="loading-screen" style="position:fixed;inset:0;z-index:9998;background:#F5F5F3;display:flex;flex-direction:column;align-items:center;justify-content:center">
+  <div style="background:var(--maroon);color:#fff;padding:14px 32px;border-radius:10px;text-align:center;margin-bottom:24px">
+    <div style="font-size:18px;font-weight:600;letter-spacing:0.5px">Pickwick Estates</div>
+    <div style="font-size:11px;opacity:0.7;margin-top:2px">Alps Estates Ltd</div>
+  </div>
+  <div style="font-size:12px;color:var(--text3)">Loading...</div>
+</div>
+
 <div id="main-app" class="app">
 
   <div class="topbar">
@@ -1168,12 +1176,14 @@ function doSignOut(){
 
 function showApp(user){
   DB_READY=true;
+  document.getElementById('loading-screen').style.display='none';
   document.getElementById('login-screen').style.display='none';
   document.getElementById('main-app').style.display='flex';
   console.log('Logged in:',user.email);
 }
 
 function showLoginScreen(){
+  document.getElementById('loading-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('main-app').style.display='none';
   var btn=document.getElementById('login-btn');
