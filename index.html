@@ -2478,7 +2478,22 @@ function renderPdDetails(p){
         +'</div>';
     })(p)
     +pdField('Monthly rent',p.rent?'£'+parseFloat(p.rent).toLocaleString('en-GB'):'—')
-    +pdField('Management fee',(p.mgmtFee?p.mgmtFee+'%':'—'))
+    +(function(p){
+      if(!p.mgmtFee||!p.rent) return pdField('Management fee',p.mgmtFee?p.mgmtFee+'%':'—');
+      var rent=parseFloat(p.rent)||0;
+      var pct=parseFloat(p.mgmtFee)||0;
+      var net=rent*pct/100;
+      var vat=net*0.2;
+      var gross=net+vat;
+      return '<div style="grid-column:1/-1;background:var(--bg);border-radius:8px;padding:10px 14px">'
+        +'<div style="font-size:10px;color:var(--text2);margin-bottom:6px">Management fee</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'
+        +'<div><div style="font-size:10px;color:var(--text3)">Rate</div><div style="font-size:13px;font-weight:500;color:var(--text)">'+pct+'% + VAT</div></div>'
+        +'<div><div style="font-size:10px;color:var(--text3)">Net fee/mo</div><div style="font-size:13px;font-weight:500;color:var(--navy)">£'+net.toFixed(2)+'</div></div>'
+        +'<div><div style="font-size:10px;color:var(--text3)">VAT (20%)</div><div style="font-size:13px;font-weight:500;color:var(--text2)">£'+vat.toFixed(2)+'</div></div>'
+        +'<div><div style="font-size:10px;color:var(--text3)">Gross/mo</div><div style="font-size:13px;font-weight:600;color:var(--green-text)">£'+gross.toFixed(2)+'</div></div>'
+        +'</div></div>';
+    })(p)
     +pdField('Deposit',p.deposit?'£'+parseFloat(p.deposit).toLocaleString('en-GB'):'—')
     +pdField('Deposit ID',p.depositId)
     +'<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Deposit status</div><span class="badge '+depStatusClass(p.depositStatus)+'">'+(p.depositStatus||'—')+'</span></div>'
@@ -2590,26 +2605,41 @@ function togglePropEdit(){
   propEditMode=true;
   var p=properties[currentPropIdx];
   if(!p) return;
-  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llEmail2','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','gsc','eicr','epc','smokeAlarm','coDetector','propLicence','rtrCheck','rtrExpiry','routineInspection','notes','letOnly'];
   var html='<div class="grid-2" style="gap:10px">';
-  fields.forEach(function(f){
-    if(f==='depositStatus'){
-      html+='<div class="field-group"><label class="field-label">Deposit status</label><select class="field-input" id="pdedit-depositStatus"><option '+(p.depositStatus==='Protected'?'selected':'')+'>Protected</option><option '+(p.depositStatus==='Available for repayment'?'selected':'')+'>Available for repayment</option><option '+(p.depositStatus==='Dispute raised'?'selected':'')+'>Dispute raised</option><option '+(p.depositStatus==='Clearance pending'?'selected':'')+'>Clearance pending</option></select></div>';
-    } else {
-      var labels={tenant:'Tenant',tenantPhone:'Phone',tenantEmail:'Tenant email',llName:'Landlord',llEmail:'LL email',llEmail2:'LL email 2 (CC)',llMobile:'LL mobile',rent:'Rent (£)',mgmtFee:'Fee (%)',deposit:'Deposit (£)',depositId:'Deposit ID',depositStatus:'Deposit status',startDate:'Start date (dd/mm/yyyy)',depositDate:'Deposit date',aptAnniversary:'APT anniversary (yyyy-mm-dd)',gsc:'GSC expiry (yyyy-mm-dd)',eicr:'EICR expiry (yyyy-mm-dd)',epc:'EPC expiry (yyyy-mm-dd)',smokeAlarm:'Smoke alarm date',coDetector:'CO detector date',propLicence:'Property licence expiry',rtrCheck:'RTR check date',rtrExpiry:'RTR expiry date',routineInspection:'Routine inspection date',notes:'Notes'};
-      html+='<div class="field-group"><label class="field-label">'+(labels[f]||f)+'</label><input class="field-input" id="pdedit-'+f+'" value="'+(p[f]||'')+'"></div>';
-    }
-  });
+  html+='<div class="field-group"><label class="field-label">Tenant name</label><input class="field-input" id="pdedit-tenant" value="'+(p.tenant||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">Landlord name</label><input class="field-input" id="pdedit-llName" value="'+(p.llName||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">Tenant phone</label><input class="field-input" id="pdedit-tenantPhone" value="'+(p.tenantPhone||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">LL mobile</label><input class="field-input" id="pdedit-llMobile" value="'+(p.llMobile||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">Tenant email</label><input class="field-input" id="pdedit-tenantEmail" value="'+(p.tenantEmail||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">LL email</label><input class="field-input" id="pdedit-llEmail" value="'+(p.llEmail||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">Rent (£)</label><input class="field-input" id="pdedit-rent" value="'+(p.rent||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">Fee (%)</label><input class="field-input" id="pdedit-mgmtFee" value="'+(p.mgmtFee||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">Deposit (£)</label><input class="field-input" id="pdedit-deposit" value="'+(p.deposit||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">Deposit ID</label><input class="field-input" id="pdedit-depositId" value="'+(p.depositId||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">Deposit status</label><select class="field-input" id="pdedit-depositStatus"><option '+(p.depositStatus==='Protected'?'selected':'')+'>Protected</option><option '+(p.depositStatus==='Available for repayment'?'selected':'')+'>Available for repayment</option><option '+(p.depositStatus==='Dispute raised'?'selected':'')+'>Dispute raised</option><option '+(p.depositStatus==='Clearance pending'?'selected':'')+'>Clearance pending</option></select></div>';
+  html+='<div class="field-group"><label class="field-label">Start date (dd/mm/yyyy)</label><input class="field-input" id="pdedit-startDate" value="'+(p.startDate||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">Deposit date</label><input class="field-input" id="pdedit-depositDate" value="'+(p.depositDate||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">APT anniversary (yyyy-mm-dd)</label><input class="field-input" id="pdedit-aptAnniversary" value="'+(p.aptAnniversary||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">GSC expiry (yyyy-mm-dd)</label><input class="field-input" id="pdedit-gsc" value="'+(p.gsc||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">EICR expiry (yyyy-mm-dd)</label><input class="field-input" id="pdedit-eicr" value="'+(p.eicr||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">EPC expiry (yyyy-mm-dd)</label><input class="field-input" id="pdedit-epc" value="'+(p.epc||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">Smoke alarm date</label><input class="field-input" id="pdedit-smokeAlarm" value="'+(p.smokeAlarm||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">CO detector date</label><input class="field-input" id="pdedit-coDetector" value="'+(p.coDetector||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">Property licence expiry</label><input class="field-input" id="pdedit-propLicence" value="'+(p.propLicence||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">RTR check date</label><input class="field-input" id="pdedit-rtrCheck" value="'+(p.rtrCheck||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">RTR expiry date</label><input class="field-input" id="pdedit-rtrExpiry" value="'+(p.rtrExpiry||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">Routine inspection</label><input class="field-input" id="pdedit-routineInspection" value="'+(p.routineInspection||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">Let Only (y/n)</label><input class="field-input" id="pdedit-letOnly" value="'+(p.letOnly||'')+'"></div>';
+  html+='<div class="field-group" style="grid-column:1/-1"><label class="field-label">Notes</label><input class="field-input" id="pdedit-notes" value="'+(p.notes||'')+'"></div>';
   html+='</div>';
   document.getElementById('pd-details').innerHTML=html;
   document.getElementById('pd-edit-btn').style.display='none';
   document.getElementById('pd-save-btn').style.display='inline-block';
 }
-
 function savePropEdit(){
   var p=properties[currentPropIdx];
   if(!p) return;
-  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llEmail2','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','gsc','eicr','epc','smokeAlarm','coDetector','propLicence','rtrCheck','rtrExpiry','routineInspection','notes','letOnly'];
+  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','gsc','eicr','epc','smokeAlarm','coDetector','propLicence','rtrCheck','rtrExpiry','routineInspection','letOnly','notes'];
   fields.forEach(function(f){
     var el=document.getElementById('pdedit-'+f);
     if(el) p[f]=el.value;
@@ -3511,10 +3541,10 @@ function buildImportExportPanel(){
   if(!container) return;
   var sections=[
     {label:'Properties (address, tenant, rent, deposit status)',exportFn:'exportPropertiesCSV',importFn:'importPropertiesCSV'},
-    {label:'Landlord details (name, email, mobile per property)',exportFn:null,importFn:'importLandlordsCSV'},
-    {label:'Compliance dates (GSC, EICR, EPC etc per property)',exportFn:null,importFn:'importComplianceCSV'},
+    {label:'Landlord details (name, email, mobile per property)',exportFn:'exportLandlordsCSV',importFn:'importLandlordsCSV'},
+    {label:'Compliance dates (GSC, EICR, EPC etc per property)',exportFn:'exportComplianceCSV',importFn:'importComplianceCSV'},
     {label:'Maintenance jobs',exportFn:'exportJobsCSV',importFn:'importJobsCSV'},
-    {label:'Contractors',exportFn:'exportContractorsCSV',importFn:null},
+    {label:'Contractors',exportFn:'exportContractorsCSV',importFn:'importContractorsCSV'},
     {label:'Past tenants',exportFn:'exportPastTenantsCSV',importFn:'importPastTenantsCSV'}
   ];
   container.innerHTML=sections.map(function(s){
@@ -4717,6 +4747,63 @@ function bulkSetFees(){
       if(pending<=0) showToast(updated+' properties updated');
     }
   });
+}
+
+
+function exportLandlordsCSV(){
+  downloadCSV([['Address','Landlord Name','Landlord Email','Landlord Email 2','Landlord Mobile','Landlord Phone 2','Management Fee']].concat(
+    properties.map(function(p){
+      return [p.address||'',p.llName||'',p.llEmail||'',p.llEmail2||'',p.llMobile||'',p.llPhone2||'',p.mgmtFee||''];
+    })
+  ),'landlords_export.csv');
+}
+
+function exportComplianceCSV(){
+  downloadCSV([['Address','Tenant','GSC Date','EICR Date','EPC Date','Smoke Alarm','CO Detector','Property Licence','RTR Check','RTR Expiry','Routine Inspection','APT Anniversary']].concat(
+    properties.map(function(p){
+      return [p.address||'',p.tenant||'',p.gsc||'',p.eicr||'',p.epc||'',p.smokeAlarm||'',p.coDetector||'',p.propLicence||'',p.rtrCheck||'',p.rtrExpiry||'',p.routineInspection||'',p.aptAnniversary||''];
+    })
+  ),'compliance_export.csv');
+}
+
+function importContractorsCSV(input){
+  var file=input.files[0]; if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split('\n').filter(Boolean);
+    var headers=parseCSVLine(lines[0]);
+    var imported=0, pending=lines.length-1;
+    if(pending===0){showToast('No data rows found');return;}
+    for(var i=1;i<lines.length;i++){
+      if(!lines[i].trim()){pending--;continue;}
+      var vals=parseCSVLine(lines[i]);
+      var row={};
+      headers.forEach(function(h,idx){row[h.trim()]=vals[idx]||'';});
+      var name=row['Name']||row['name']||'';
+      if(!name){pending--;continue;}
+      var data={
+        id:name.toLowerCase().replace(/[^a-z0-9]/g,'_')+'_'+Date.now()+'_'+i,
+        name:name,
+        trade:row['Trade']||row['trade']||'',
+        phone:row['Phone']||row['phone']||'',
+        phone2:row['Phone2']||row['phone2']||'',
+        email:row['Email']||row['email']||''
+      };
+      (function(d){
+        fbSet('contractors/'+d.id,d,function(){
+          if(!CONTRACTORS.find(function(c){return c.name===d.name;})) customContractors.push(d);
+          imported++;
+          pending--;
+          if(pending<=0){
+            populateContractorDropdowns();
+            showToast(imported+' contractors imported');
+          }
+        });
+      })(data);
+    }
+  };
+  reader.readAsText(file);
+  input.value='';
 }
 
 </script>
