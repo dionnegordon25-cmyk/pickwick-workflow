@@ -3574,28 +3574,31 @@ function importPropertiesCSV(input){
       // Map columns - handle both old and new format
       var prop={
         address:row['Address']||row['address']||'',
-        tenant:row['Tenant']||row['tenant']||'',
-        tenantPhone:row['Tenant Phone']||row['tenantPhone']||'',
-        tenantEmail:row['Tenant Email']||row['tenantEmail']||'',
-        llName:row['Landlord']||row['llName']||'',
-        llMobile:row['Landlord Phone']||row['Landlord Phone 2']||row['llMobile']||'',
-        llEmail:row['Landlord Email']||row['llEmail']||'',
-        llEmail2:row['Landlord Email 2']||row['llEmail2']||'',
+        tenant:row['Tenant Name']||row['Tenant']||row['tenant']||'',
+        tenantPhone:row['tenant Phone']||row['Tenant Phone']||row['Phone']||row['tenantPhone']||'',
+        tenantEmail:row['Email']||row['Tenant Email']||row['tenantEmail']||'',
+        llName:row['Landlord Name']||row['Landlord']||row['llName']||'',
+        llMobile:(row['Landlord Phone ']||row['Landlord Phone']||row['LL Phone ']||row['LL Phone']||row['Landlord Mobile']||row['llMobile']||'').trim(),
+        llEmail:(row['Landlord Email']||row['LL Email']||row['llEmail']||'').trim(),
+        llEmail2:(row['Landlord Email 2']||row['llEmail2']||'').trim(),
         rent:row['Rent']||row['rent']||'',
-        gsc:row['GSC Date']||row['gsc']||'',
-        eicr:row['EICR Date']||row['eicr']||'',
-        epc:row['EPC Date']||row['epc']||'',
-        depositStatus:row['Deposit Status']||row['depositStatus']||'',
-        startDate:row['Start Date']||row['Move-in Date']||row['Start date']||row['startDate']||'',
+        gsc:row['GSC Date']||row['GSC']||row['gsc']||'',
+        eicr:(row['EICR Date']||row['EICR']||row['eicr']||'').trim(),
+        epc:row['EPC Date']||row['EPC']||row['epc']||'',
+        depositStatus:row['Status']||row['Deposit Status']||row['depositStatus']||'',
+        startDate:row['Start date']||row['Start Date']||row['Move-in Date']||row['startDate']||'',
         mgmtFee:row['Fee%']||row['Management Fee']||row['mgmtFee']||'',
         deposit:row['Deposit Amount']||row['Deposit']||row['deposit']||'',
         depositId:row['Deposit ID']||row['depositId']||'',
-        smokeAlarm:'',coDetector:'',
-        propLicence:row['Property Licence']||row['propLicence']||'',
-        rtrCheck:'',rtrExpiry:'',
-        routineInspection:'',
+        smokeAlarm:row['Smoke Alarm']||row['smokeAlarm']||'',
+        coDetector:row['CO Detector']||row['coDetector']||'',
+        propLicence:row['Property Licence']||row['Licence']||row['propLicence']||'',
+        rtrCheck:row['RTR Check']||row['rtrCheck']||'',
+        rtrExpiry:row['RTR Expiry']||row['rtrExpiry']||'',
+        routineInspection:row['Routine Inspection']||row['routineInspection']||'',
         aptAnniversary:row['APT Anniversary']||row['aptAnniversary']||'',
-        notes:''
+        letOnly:row['Let Only']||row['letOnly']||'',
+        notes:row['Notes']||row['notes']||''
       };
       if(!prop.address){pending--;continue;}
       (function(p){
@@ -3633,7 +3636,7 @@ function importJobsCSV(input){
       headers.forEach(function(h,idx){row[h.trim()]=vals[idx]||'';});
       var job={
         prop:row['Property']||row['prop']||'',
-        tenant:row['Tenant']||row['tenant']||'',
+        tenant:row['Tenant Name']||row['Tenant']||row['tenant']||'',
         tenantPhone:row['Tenant Phone']||row['tenantPhone']||'',
         contractorId:row['Contractor ID']||row['contractorId']||'',
         contractorName:row['Contractor']||'',
@@ -3683,7 +3686,7 @@ function importPastTenantsCSV(input){
       headers.forEach(function(h,idx){row[h.trim()]=vals[idx]||'';});
       var pt={
         address:row['Address']||row['address']||'',
-        tenant:row['Tenant']||row['tenant']||'',
+        tenant:row['Tenant Name']||row['Tenant']||row['tenant']||'',
         startDate:row['Start']||row['startDate']||'',
         endDate:row['End']||row['endDate']||'',
         reason:row['Reason']||row['reason']||'',
