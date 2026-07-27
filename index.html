@@ -1063,6 +1063,62 @@ select.field-input{cursor:pointer}
 </div>
 
 
+<!-- REFERRAL FEES MODAL -->
+<div id="referral-overlay" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.6);align-items:center;justify-content:center">
+
+  <!-- PIN screen -->
+  <div id="rf-pin-screen" style="background:#fff;border-radius:14px;padding:32px;width:360px;text-align:center">
+    <div style="font-size:16px;font-weight:500;color:var(--navy);margin-bottom:6px">Referral Fees</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:20px">Enter PIN to access</div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-bottom:20px">
+      <input type="password" maxlength="1" class="rf-pin-digit field-input" style="width:52px;height:52px;text-align:center;font-size:22px;font-weight:600" oninput="rfPinNext(this,0)">
+      <input type="password" maxlength="1" class="rf-pin-digit field-input" style="width:52px;height:52px;text-align:center;font-size:22px;font-weight:600" oninput="rfPinNext(this,1)">
+      <input type="password" maxlength="1" class="rf-pin-digit field-input" style="width:52px;height:52px;text-align:center;font-size:22px;font-weight:600" oninput="rfPinNext(this,2)">
+      <input type="password" maxlength="1" class="rf-pin-digit field-input" style="width:52px;height:52px;text-align:center;font-size:22px;font-weight:600" oninput="rfPinNext(this,3)">
+    </div>
+    <div id="rf-pin-error" style="color:var(--red-text);font-size:12px;margin-bottom:12px;display:none">Incorrect PIN</div>
+    <div style="display:flex;gap:8px;justify-content:center">
+      <button class="btn btn-outline" onclick="closeReferral()">Cancel</button>
+      <button class="btn btn-navy" onclick="checkRfPin()">Enter</button>
+    </div>
+  </div>
+
+  <!-- Main referral screen -->
+  <div id="rf-main-screen" style="display:none;background:#fff;border-radius:14px;padding:0;width:900px;max-height:90vh;overflow-y:auto">
+    <div style="background:var(--navy);padding:16px 20px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between">
+      <div style="color:#fff;font-size:15px;font-weight:500">Referral Fees</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:#fff" onclick="exportReferralCSV()">Export CSV</button>
+        <button class="btn btn-sm" style="background:var(--red-bg);color:var(--red-text)" onclick="closeReferral()">Close</button>
+      </div>
+    </div>
+    <div style="padding:16px 20px">
+      <!-- Summary strip -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+        <div class="card"><div style="font-size:10px;color:var(--text2)">Total fees due</div><div style="font-size:20px;font-weight:500;color:var(--navy)" id="rf-total-due">—</div></div>
+        <div class="card"><div style="font-size:10px;color:var(--text2)">Total paid</div><div style="font-size:20px;font-weight:500;color:var(--green-text)" id="rf-total-paid">—</div></div>
+        <div class="card"><div style="font-size:10px;color:var(--text2)">Outstanding</div><div style="font-size:20px;font-weight:500;color:var(--red-text)" id="rf-outstanding">—</div></div>
+        <div class="card"><div style="font-size:10px;color:var(--text2)">Jobs with referral</div><div style="font-size:20px;font-weight:500;color:var(--navy)" id="rf-job-count">—</div></div>
+      </div>
+      <!-- Contractor toggles -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title">Referral contractors <span style="font-size:10px;color:var(--text3);font-weight:400">toggle to enable referral fee tracking</span></div>
+        <div id="rf-contractor-toggles" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
+      <!-- Jobs table -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="tbl">
+          <thead>
+            <tr><th>Property</th><th>Contractor</th><th>Issue</th><th>Invoice</th><th>Fee %</th><th>Fee due</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody id="rf-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -4086,40 +4142,23 @@ function renderOffers(){
       +'<button class="btn btn-red btn-sm" onclick="deleteOffer(\''+o.fbKey+'\')">Delete</button>'
       +'</div></div>'
       +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
-      +'<div style="width:100%;margin-top:4px"><div style="font-size:10px;font-weight:500;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Tenant documents</div>'
-      +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">'
-      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'pre-tenancy\',\''+o.fbKey+'\')">&#128196; Pre-tenancy pack</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="copyDoc(\'pre-tenancy\',\''+o.fbKey+'\')">&#128203; Copy</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="emailDoc(\'pre-tenancy\',\''+o.fbKey+'\',\'tenant\')">&#9993; Email tenant</button>'
+      +'<div style="width:100%;margin-top:4px">'
+      +'<div style="font-size:10px;font-weight:500;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Tenant</div>'
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">'
+      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'tenant-welcome\',\''+o.fbKey+'\')">&#128196; Welcome pack</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="copyDoc(\'tenant-welcome\',\''+o.fbKey+'\')">&#128203; Copy</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="emailDoc(\'tenant-welcome\',\''+o.fbKey+'\',\'tenant\')">&#9993; Email tenant</button>'
       +'</div>'
-      +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">'
-      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'gdpr\',\''+o.fbKey+'\')">&#128196; GDPR consent</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="copyDoc(\'gdpr\',\''+o.fbKey+'\')">&#128203; Copy</button>'
-      +'</div>'
-      +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">'
-      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'fees\',\''+o.fbKey+'\')">&#128196; Tenant fees</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="copyDoc(\'fees\',\''+o.fbKey+'\')">&#128203; Copy</button>'
-      +'</div>'
-      +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">'
-      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'rtr\',\''+o.fbKey+'\')">&#128196; RTR request</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="copyDoc(\'rtr\',\''+o.fbKey+'\')">&#128203; Copy</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="emailDoc(\'rtr\',\''+o.fbKey+'\',\'tenant\')">&#9993; Email tenant</button>'
-      +'</div>'
-      +'<div style="font-size:10px;font-weight:500;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Landlord documents</div>'
-      +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px">'
-      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'ll-tcs\',\''+o.fbKey+'\')">&#128196; LL T&amp;Cs</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="copyDoc(\'ll-tcs\',\''+o.fbKey+'\')">&#128203; Copy</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="emailDoc(\'ll-tcs\',\''+o.fbKey+'\',\'landlord\')">&#9993; Email LL</button>'
-      +'</div>'
-      +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px">'
-      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'ll-confirm\',\''+o.fbKey+'\')">&#128196; LL confirmation</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="copyDoc(\'ll-confirm\',\''+o.fbKey+'\')">&#128203; Copy</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="emailDoc(\'ll-confirm\',\''+o.fbKey+'\',\'landlord\')">&#9993; Email LL</button>'
+      +'<div style="font-size:10px;font-weight:500;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Landlord</div>'
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px">'
+      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'ll-welcome\',\''+o.fbKey+'\')">&#128196; Instruction pack</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="copyDoc(\'ll-welcome\',\''+o.fbKey+'\')">&#128203; Copy</button>'
+      +'<button class="btn btn-outline btn-sm" onclick="emailDoc(\'ll-welcome\',\''+o.fbKey+'\',\'landlord\')">&#9993; Email LL</button>'
       +'</div>'
       +'<div style="display:flex;gap:5px;flex-wrap:wrap">'
-      +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'ll-compliance\',\''+o.fbKey+'\')">&#128196; LL compliance</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="copyDoc(\'ll-compliance\',\''+o.fbKey+'\')">&#128203; Copy</button>'
-      +'<button class="btn btn-outline btn-sm" onclick="emailDoc(\'ll-compliance\',\''+o.fbKey+'\',\'landlord\')">&#9993; Email LL</button>'
+      +'<button class="btn btn-outline btn-sm" style="background:var(--purple-bg);color:var(--purple-text)" onclick="genDoc(\'pep\',\''+o.fbKey+'\')">&#128196; PEP &amp; Sanctions</button>'
+      +'<button class="btn btn-outline btn-sm" style="background:var(--purple-bg);color:var(--purple-text)" onclick="copyDoc(\'pep\',\''+o.fbKey+'\')">&#128203; Copy</button>'
+      +'<button class="btn btn-outline btn-sm" style="background:var(--purple-bg);color:var(--purple-text)" onclick="emailDoc(\'pep\',\''+o.fbKey+'\',\'landlord\')">&#9993; Email LL</button>'
       +'</div></div>'
       +'</div></div>';
   });
@@ -4161,6 +4200,15 @@ function deleteOffer(fbKey){
 }
 
 function genDoc(type, fbKey){
+  // Handle new combined document types
+  if(type==='tenant-welcome'||type==='ll-welcome'||type==='pep'){
+    var o=offers.find(function(x){return x.fbKey===fbKey;});
+    if(!o){ showToast('Offer not found'); return; }
+    var text=getNewDocContent(type,fbKey);
+    var titles={'tenant-welcome':'Welcome — Offer Accepted','ll-welcome':'Landlord Instruction Pack','pep':'PEP & Sanctions Check'};
+    openDocWindow(titles[type]||type, text||'');
+    return;
+  }
   var o=offers.find(function(x){return x.fbKey===fbKey;});
   if(!o){ showToast('Offer not found'); return; }
   var tenantNames=(o.tenants||[]).map(function(t){return t.name;}).join(' and ')||'The Tenant';
@@ -4561,7 +4609,7 @@ function getDocContent(type, fbKey){
 }
 
 function copyDoc(type, fbKey){
-  var text=getDocContent(type,fbKey);
+  var text=(type==='tenant-welcome'||type==='ll-welcome'||type==='pep')?getNewDocContent(type,fbKey):getDocContent(type,fbKey);
   if(!text){showToast('Document not found');return;}
   navigator.clipboard.writeText(text).then(function(){ showToast('Document copied to clipboard'); });
 }
@@ -4569,9 +4617,15 @@ function copyDoc(type, fbKey){
 function emailDoc(type, fbKey, recipient){
   var o=offers.find(function(x){return x.fbKey===fbKey;});
   if(!o) return;
-  var text=getDocContent(type,fbKey);
+  if(!isNew){ text=getDocContent(type,fbKey); }
   if(!text) return;
+  var isNew=type==='tenant-welcome'||type==='ll-welcome'||type==='pep';
+  var text=isNew?getNewDocContent(type,fbKey):getDocContent(type,fbKey);
+  if(text) { /* override below */ }
   var subjects={
+    'tenant-welcome':'Congratulations! Your offer has been accepted - Next Steps for '+(o.prop||''),
+    'll-welcome':'Offer accepted — tenancy confirmed at '+(o.prop||''),
+    'pep':'PEP & Sanctions check — '+(o.prop||''),
     'pre-tenancy':'Pre-Tenancy Pack — '+(o.prop||''),
     'gdpr':'GDPR Consent Form — '+(o.prop||''),
     'fees':'Tenant Fees Schedule — '+(o.prop||''),
@@ -4807,6 +4861,281 @@ function importContractorsCSV(input){
   };
   reader.readAsText(file);
   input.value='';
+}
+
+
+// ─── NEW COMBINED DOCUMENT FUNCTIONS ─────────────────────────────────────────
+function buildTenantWelcome(o){
+  var tenantNames=(o.tenants||[]).map(function(t){return t.name;}).join(' and ')||'The Tenant';
+  var prop=o.prop||'the property';
+  var rent=o.rent?'£'+parseFloat(o.rent).toLocaleString('en-GB'):'as agreed';
+  var deposit=o.deposit?'£'+parseFloat(o.deposit).toLocaleString('en-GB'):'5 weeks rent';
+  var holding=o.holding?'£'+parseFloat(o.holding).toLocaleString('en-GB'):'1 week rent';
+  var start=o.startDate||'as agreed';
+  var text='Dear '+tenantNames+','
+    +'\n\nWe are delighted to inform you that your offer for the property at '+prop+' has been accepted by the landlord, subject to contract and successful reference checks.'
+    +'\n\nTo move your application forward, we will now initiate the tenant referencing process. This will be handled externally by Rightmove Referencing. You will shortly receive an email link from them to complete your application online.'
+    +'\n\nPlease check your junk/spam folder as these emails can sometimes be filtered.'
+    +'\n\n'
+    +'TENANCY DETAILS\n'
+    +'Property: '+prop+'\n'
+    +'Monthly rent: '+rent+' per calendar month\n'
+    +'Proposed start date: '+start+'\n'
+    +'Security deposit: '+deposit+' (5 weeks rent — to be protected with the Deposit Protection Service)\n'
+    +'Holding deposit: '+holding+' (payable now to secure the property — deducted from your first months rent on move-in)\n\n'
+    +'DATA PROTECTION & PRIVACY NOTICE\n'
+    +'Pickwick Estates (Alps Estates Ltd) is registered under the UK GDPR and Data Protection Act 2018. We will hold and process your personal data solely for the purpose of managing your tenancy application and subsequent tenancy. Data held includes: your name, contact details, identification documents, and financial information. Your data will be retained for 6 years post-tenancy and will not be shared with third parties without your consent, except where required by law.\n\n'
+    +'IMPORTANT NOTICE REGARDING DIGITAL ID AND REFERENCING\n'
+    +'To evaluate your suitability as a tenant and to satisfy our statutory legal obligations under the UK Right to Rent scheme, your personal data will be shared securely with our designated referencing provider, Rightmove, alongside any associated credit bureaus, employers, previous landlords, or certified Identity Service Providers (IDSPs).\n\n'
+    +'As part of this process, you will be required to undergo a Digital ID and verification check. This includes the digital scanning of your official identification documents (e.g., passport) and facial biometric verification (selfie/liveness check) to authenticate your identity securely.\n\n'
+    +'WHAT YOU NEED TO DO NEXT\n\n'
+    +'1. Keep an eye out for the email link from Rightmove Referencing — please check your junk/spam folder.\n'
+    +'2. Prepare your photo ID, proof of current address, and income/employment details to avoid delays.\n\n'
+    +'If you have any questions about the digital ID check or the referencing process, please do not hesitate to contact us.\n\n'
+    +'TENANT FEES SCHEDULE\n'
+    +'In accordance with the Tenant Fees Act 2019 and the Renters Rights Act 2025:\n\n'
+    +'Rent: '+rent+' per calendar month\n'
+    +'Security deposit: '+deposit+' (maximum 5 weeks rent)\n'
+    +'Holding deposit: '+holding+' (maximum 1 week rent)\n'
+    +'Variation of tenancy (if requested by tenant): £50 inc VAT\n'
+    +'Lost key replacement: reasonable costs evidenced in writing\n'
+    +'Late rent interest: 3% above Bank of England base rate after 14 days\n\n'
+    +'All other fees are prohibited under the Tenant Fees Act 2019.\n\n'
+    +'Kind regards\n'
+    +'Pickwick Estates (Alps Estates Ltd)\n'
+    +'020 3397 1144 / 020 3397 1166\n'
+    +'lettings@pickwickestates.com';
+  return text;
+}
+
+function buildLlWelcome(o){
+  var tenantNames=(o.tenants||[]).map(function(t){return t.name;}).join(' and ')||'The Tenant';
+  var prop=o.prop||'the property';
+  var rent=o.rent?'£'+parseFloat(o.rent).toLocaleString('en-GB'):'as agreed';
+  var deposit=o.deposit?'£'+parseFloat(o.deposit).toLocaleString('en-GB'):'5 weeks rent';
+  var holding=o.holding?'£'+parseFloat(o.holding).toLocaleString('en-GB'):'1 week rent';
+  var start=o.startDate||'as agreed';
+  var fee=o.fee||12;
+  var conditions=o.notes&&o.notes.trim()?o.notes:'None agreed.';
+  var llName=(function(){ var p=properties.find(function(x){return x.address===o.prop;}); return p&&p.llName?p.llName:'Landlord'; })();
+  var text='Dear [LLNAME],\n\nWe are pleased to confirm that we have accepted an offer on your property and are progressing the tenancy as detailed below.\n\nTENANCY DETAILS\nProperty: [PROP]\nTenant(s): [TENANTS]\nMonthly rent: [RENT] per calendar month\nProposed start date: [START]\nSecurity deposit: [DEPOSIT] (5 weeks rent — protected with the Deposit Protection Service)\nHolding deposit received: [HOLDING]\nManagement fee: [FEE]% + VAT\n\nSPECIAL CONDITIONS / MAINTENANCE REQUIRED PRIOR TO MOVE-IN\n[CONDITIONS]\n\nOUR TERMS OF BUSINESS\nPickwick Estates (Alps Estates Ltd) is appointed as managing agent on the following terms:\n\n- Management fee: [FEE]% of monthly rent + VAT (charged monthly)\n- Withdrawal fee: £700 + VAT (£840 inc VAT) if you withdraw after an offer has been accepted\n- Pickwick Estates is a member of a Client Money Protection scheme\n- Pickwick Estates subscribes to a property redress scheme\n- All maintenance works above an agreed threshold will require your prior approval\n\nCOMPLIANCE — ACTION REQUIRED BEFORE MOVE-IN\nPlease confirm the following are in place and forward copies of all certificates to lettings@pickwickestates.com:\n\n[ ] Gas Safety Certificate (GSC) — annual legal requirement\n[ ] Electrical Installation Condition Report (EICR) — required every 5 years\n[ ] Energy Performance Certificate (EPC) — minimum E rating required under MEES regulations\n[ ] Working smoke alarm on every floor\n[ ] Working CO detector in any room with a solid fuel burning appliance\n[ ] Property licence (if applicable in this borough)\n\nDOCUMENTS REQUIRED FROM YOU\n\n1. PROOF OF OWNERSHIP\nPlease provide a copy of your Land Registry title document or mortgage statement confirming you are the registered owner of [PROP]\n\n2. PERMISSION TO LET\nIf the property is mortgaged, please provide written confirmation from your lender that you have permission to let the property. If no mortgage exists, please confirm this by return email.\n\nYOUR DATA — GDPR NOTICE\nPickwick Estates (Alps Estates Ltd) is registered under the UK GDPR and the Data Protection Act 2018. We will hold and process your personal data solely for the purpose of managing your property. Your data will be retained for 6 years and will not be shared without your consent, except where required by law.\n\nKind regards\nPickwick Estates\n020 3397 1144 / 020 3397 1166\nlettings@pickwickestates.com';
+  text=text.replace(/\[LLNAME\]/g,llName).replace(/\[TENANTS\]/g,tenantNames)
+    .replace(/\[PROP\]/g,prop).replace(/\[RENT\]/g,rent).replace(/\[DEPOSIT\]/g,deposit)
+    .replace(/\[HOLDING\]/g,holding).replace(/\[START\]/g,start)
+    .replace(/\[FEE\]/g,fee).replace(/\[CONDITIONS\]/g,conditions);
+  return text;
+}
+
+function buildPep(o){
+  var prop=o.prop||'the property';
+  var llName=(function(){ var p=properties.find(function(x){return x.address===o.prop;}); return p&&p.llName?p.llName:'Landlord'; })();
+  var text='Dear [LLNAME],\n\nThank you for instructing Pickwick Estates to manage your property at [PROP].\n\nPEP & SANCTIONS CHECK\nAs part of our legal obligations under the Money Laundering Regulations 2017, we are required to carry out a Politically Exposed Person (PEP) and financial sanctions check on all landlords before a tenancy commences.\n\nTo enable us to complete this check, please provide the following by return email to lettings@pickwickestates.com:\n\n- Full legal name:\n- Date of birth:\n\nThis information will be held securely and used solely for compliance purposes in accordance with our GDPR obligations.\n\nKind regards\nPickwick Estates\n020 3397 1144 / 020 3397 1166\nlettings@pickwickestates.com';
+  text=text.replace(/\[LLNAME\]/g,llName).replace(/\[PROP\]/g,prop);
+  return text;
+}
+
+function getNewDocContent(type, fbKey){
+  var o=offers.find(function(x){return x.fbKey===fbKey;});
+  if(!o) return null;
+  if(type==='tenant-welcome') return buildTenantWelcome(o);
+  if(type==='ll-welcome') return buildLlWelcome(o);
+  if(type==='pep') return buildPep(o);
+  return null;
+}
+
+function openDocWindow(title, text){
+  var win=window.open('','_blank','width=720,height=850');
+  win.document.write('<html><head><title>'+title+'<\/title><style>body{font-family:Arial,sans-serif;padding:40px;font-size:13px;line-height:1.8;white-space:pre-wrap;max-width:680px;margin:0 auto}h2{color:#1E3A5F;margin-bottom:20px;font-size:16px}button{position:fixed;top:10px;right:10px;padding:8px 16px;background:#1E3A5F;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px}<\/style><\/head><body>');
+  win.document.write('<button onclick="window.print()">Print / Save PDF<\/button>');
+  win.document.write('<h2>'+title+'<\/h2>');
+  win.document.write(text.replace(/\n/g,'<br>'));
+  win.document.write('<\/body><\/html>');
+  win.document.close();
+}
+
+
+// =============================================================================
+// REFERRAL FEES (PIN PROTECTED — PIN: 1155)
+// =============================================================================
+var RF_PIN = '1155';
+var rfUnlocked = false;
+var RF_STORAGE_KEY = 'rf_contractors';
+var RF_PAID_KEY = 'rf_paid';
+
+// ── Keyboard shortcut: press R then F within 1 second ────────────────────────
+var rfKeyBuffer = '';
+document.addEventListener('keydown', function(e){
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT') return;
+  rfKeyBuffer += e.key.toUpperCase();
+  setTimeout(function(){ rfKeyBuffer=''; }, 1000);
+  if(rfKeyBuffer.includes('RF')){
+    rfKeyBuffer='';
+    openReferral();
+  }
+});
+
+function openReferral(){
+  var overlay = document.getElementById('referral-overlay');
+  if(!overlay) return;
+  overlay.style.display='flex';
+  rfUnlocked = false;
+  document.getElementById('rf-pin-screen').style.display='block';
+  document.getElementById('rf-main-screen').style.display='none';
+  document.getElementById('rf-pin-error').style.display='none';
+  document.querySelectorAll('.rf-pin-digit').forEach(function(d){ d.value=''; });
+  setTimeout(function(){ var d=document.querySelector('.rf-pin-digit'); if(d) d.focus(); }, 100);
+}
+
+function closeReferral(){
+  var overlay=document.getElementById('referral-overlay');
+  if(overlay) overlay.style.display='none';
+  rfUnlocked=false;
+  document.querySelectorAll('.rf-pin-digit').forEach(function(d){ d.value=''; });
+}
+
+function rfPinNext(input, idx){
+  if(input.value.length===1){
+    var digits=document.querySelectorAll('.rf-pin-digit');
+    if(idx<3) digits[idx+1].focus();
+    else checkRfPin();
+  }
+}
+
+function checkRfPin(){
+  var digits=document.querySelectorAll('.rf-pin-digit');
+  var entered=Array.from(digits).map(function(d){ return d.value; }).join('');
+  if(entered===RF_PIN){
+    rfUnlocked=true;
+    document.getElementById('rf-pin-screen').style.display='none';
+    document.getElementById('rf-main-screen').style.display='block';
+    renderReferralPage();
+  } else {
+    document.getElementById('rf-pin-error').style.display='block';
+    document.querySelectorAll('.rf-pin-digit').forEach(function(d){ d.value=''; });
+    document.querySelectorAll('.rf-pin-digit')[0].focus();
+  }
+}
+
+// Close on overlay click (outside the modal boxes)
+document.getElementById('referral-overlay').addEventListener('click', function(e){
+  if(e.target===this) closeReferral();
+});
+
+// ── Data helpers ──────────────────────────────────────────────────────────────
+function getRfContractors(){
+  try{ return JSON.parse(localStorage.getItem(RF_STORAGE_KEY)||'{}'); } catch(e){ return {}; }
+}
+function saveRfContractors(data){ localStorage.setItem(RF_STORAGE_KEY, JSON.stringify(data)); }
+function getRfPaid(){
+  try{ return JSON.parse(localStorage.getItem(RF_PAID_KEY)||'{}'); } catch(e){ return {}; }
+}
+function saveRfPaid(data){ localStorage.setItem(RF_PAID_KEY, JSON.stringify(data)); }
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderReferralPage(){
+  if(!rfUnlocked) return;
+  var rfContractors = getRfContractors(); // {contractorId: {enabled:true, pct:10}}
+  var rfPaid = getRfPaid(); // {jobFbKey: true}
+  var allC = getAllContractors();
+
+  // Contractor toggles
+  var togglesEl = document.getElementById('rf-contractor-toggles');
+  if(togglesEl){
+    togglesEl.innerHTML = allC.map(function(c){
+      var cfg = rfContractors[c.id]||{enabled:false,pct:10};
+      return '<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;border:0.5px solid var(--border);border-radius:8px;background:'+(cfg.enabled?'var(--green-bg)':'var(--bg)')+'">'
+        +'<input type="checkbox" data-cid="'+c.id+'" '+(cfg.enabled?'checked':'')+' onchange="toggleRfContractor(this.dataset.cid)" style="accent-color:var(--green-text)">'
+        +'<label style="font-size:12px;font-weight:500;color:var(--text);cursor:pointer">'+c.name+'</label>'
+        +(cfg.enabled?'<input type="number" data-cid="'+c.id+'" value="'+cfg.pct+'" min="1" max="100" style="width:50px;padding:2px 6px;border:0.5px solid var(--border2);border-radius:4px;font-size:11px;text-align:center" onchange="updateRfPct(this.dataset.cid,this.value)"><span style="font-size:10px;color:var(--text2)">%</span>':'')
+        +'</div>';
+    }).join('');
+  }
+
+  // Jobs with referral contractors
+  var enabledIds = Object.keys(rfContractors).filter(function(id){ return rfContractors[id].enabled; });
+  var rfJobs = jobs.filter(function(j){
+    return enabledIds.includes(j.contractorId) && parseFloat(j.invoice)>0;
+  });
+
+  var totalDue=0, totalPaid=0;
+  var tbody = document.getElementById('rf-tbody');
+  if(!tbody) return;
+
+  if(!rfJobs.length){
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text3)">'
+      +(enabledIds.length?'No invoiced jobs found for referral contractors':'Enable contractors above to see referral fees')
+      +'</td></tr>';
+  } else {
+    var html='';
+    rfJobs.forEach(function(job){
+      var cfg=rfContractors[job.contractorId]||{pct:10};
+      var invoice=parseFloat(job.invoice)||0;
+      var fee=Math.round(invoice*cfg.pct/100*100)/100;
+      var paid=rfPaid[job.fbKey]||false;
+      totalDue+=fee;
+      if(paid) totalPaid+=fee;
+      var c=getContractor(job.contractorId);
+      html+='<tr style="'+(paid?'opacity:0.5;text-decoration:line-through;':'')+'">'
+        +'<td style="font-size:11px;font-weight:500">'+(job.prop||'—')+'</td>'
+        +'<td style="font-size:11px">'+(c.name||'—')+'</td>'
+        +'<td style="font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(job.issue||'—')+'</td>'
+        +'<td style="font-size:12px;color:var(--green-text)">'+fmtCurrency(invoice)+'</td>'
+        +'<td style="font-size:11px">'+cfg.pct+'%</td>'
+        +'<td style="font-size:12px;font-weight:500;color:var(--navy)">'+fmtCurrency(fee)+'</td>'
+        +'<td>'+(paid?'<span class="badge badge-green">Paid</span>':'<span class="badge badge-amber">Outstanding</span>')+'</td>'
+        +'<td><button class="btn btn-sm '+(paid?'btn-outline':'btn-navy')+'" data-key="'+job.fbKey+'" onclick="toggleRfPaid(this.dataset.key)">'+(paid?'Mark unpaid':'Mark paid')+'</button></td>'
+        +'</tr>';
+    });
+    tbody.innerHTML=html;
+  }
+
+  var outstanding=totalDue-totalPaid;
+  function setEl(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; }
+  setEl('rf-total-due', fmtCurrency(totalDue));
+  setEl('rf-total-paid', fmtCurrency(totalPaid));
+  setEl('rf-outstanding', fmtCurrency(outstanding));
+  setEl('rf-job-count', rfJobs.length);
+}
+
+function toggleRfContractor(cid){
+  var data=getRfContractors();
+  var cur=data[cid]||{enabled:false,pct:10};
+  cur.enabled=!cur.enabled;
+  data[cid]=cur;
+  saveRfContractors(data);
+  renderReferralPage();
+}
+
+function updateRfPct(cid, pct){
+  var data=getRfContractors();
+  if(!data[cid]) data[cid]={enabled:true,pct:10};
+  data[cid].pct=parseFloat(pct)||10;
+  saveRfContractors(data);
+  renderReferralPage();
+}
+
+function toggleRfPaid(fbKey){
+  var data=getRfPaid();
+  data[fbKey]=!data[fbKey];
+  saveRfPaid(data);
+  renderReferralPage();
+}
+
+function exportReferralCSV(){
+  if(!rfUnlocked){ showToast('Please unlock referral fees first'); return; }
+  var rfContractors=getRfContractors();
+  var rfPaid=getRfPaid();
+  var enabledIds=Object.keys(rfContractors).filter(function(id){ return rfContractors[id].enabled; });
+  var rfJobs=jobs.filter(function(j){ return enabledIds.includes(j.contractorId)&&parseFloat(j.invoice)>0; });
+  var rows=[['Property','Contractor','Issue','Invoice','Fee %','Referral Fee','Status','Date']];
+  rfJobs.forEach(function(job){
+    var cfg=rfContractors[job.contractorId]||{pct:10};
+    var invoice=parseFloat(job.invoice)||0;
+    var fee=Math.round(invoice*cfg.pct/100*100)/100;
+    var c=getContractor(job.contractorId);
+    rows.push([job.prop||'',c.name||'',job.issue||'','£'+invoice.toFixed(2),cfg.pct+'%','£'+fee.toFixed(2),rfPaid[job.fbKey]?'Paid':'Outstanding',job.dateLogged||'']);
+  });
+  downloadCSV(rows,'referral_fees.csv');
 }
 
 </script>
