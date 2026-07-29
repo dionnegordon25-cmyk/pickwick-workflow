@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dionne's Mileage Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#F7F6F3;min-height:100vh;font-size:13px;color:#1C2B3A}
+.header{background:#1C2B3A;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.header-title{font-size:14px;font-weight:600;letter-spacing:0.3px}
+.header-sub{font-size:10px;color:#93B8D8;margin-top:2px}
+.tabs{background:#152230;display:flex;overflow-x:auto}
+.tab{padding:9px 18px;border:none;background:none;color:#93B8D8;font-size:12px;cursor:pointer;border-bottom:2px solid transparent;font-family:inherit;white-space:nowrap}
+.tab.active{color:#fff;border-bottom:2px solid #4A9BE8}
+.body{padding:16px 20px;max-width:1200px}
+.card{background:#fff;border-radius:8px;border:0.5px solid #E2E0DC;margin-bottom:12px;overflow:hidden}
+.card-pad{padding:14px 16px}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+@media(max-width:600px){.stats-row{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:#fff;border-radius:8px;border:0.5px solid #E2E0DC;padding:10px 12px}
+.stat-val{font-size:20px;font-weight:600}
+.stat-label{font-size:10px;color:#888;margin-top:2px;text-transform:uppercase;letter-spacing:0.5px}
+.month-bar{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.month-btn{padding:4px 12px;border-radius:20px;border:0.5px solid #E2E0DC;background:#fff;font-size:11px;cursor:pointer;font-family:inherit}
+.month-btn.active{background:#1C2B3A;color:#fff;border-color:#1C2B3A}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.5px;border-bottom:0.5px solid #E2E0DC;white-space:nowrap}
+td{padding:8px 10px;border-bottom:0.5px solid #F0EFEC;vertical-align:top}
+.totals-row td{font-weight:600;background:#F7F6F3}
+.btn{padding:6px 14px;border-radius:6px;border:0.5px solid #E2E0DC;background:#fff;font-size:11px;cursor:pointer;font-family:inherit;transition:background 0.15s}
+.btn:hover{background:#F7F6F3}
+.btn-primary{background:#1C2B3A;color:#fff;border:none}
+.btn-primary:hover{background:#2A3F54}
+.btn-sm{padding:3px 8px;font-size:10px;border-radius:4px}
+.btn-danger{color:#c00}
+input[type=text],input[type=number],textarea,select{border:0.5px solid #D0CEC9;border-radius:4px;padding:5px 8px;font-size:12px;font-family:inherit;width:100%;outline:none}
+input:focus,textarea:focus{border-color:#4A9BE8}
+textarea{resize:vertical;min-height:180px}
+.upload-zone{border:2px dashed #D0CEC9;border-radius:8px;padding:28px;text-align:center;color:#888;cursor:pointer;transition:all 0.2s;margin-bottom:12px}
+.upload-zone:hover,.upload-zone.drag{border-color:#4A9BE8;color:#1C5FA5;background:#F0F8FF}
+.img-preview{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.img-thumb{position:relative;width:80px;height:80px;border-radius:6px;overflow:hidden;border:0.5px solid #E2E0DC;flex-shrink:0}
+.img-thumb img{width:100%;height:100%;object-fit:cover}
+.img-thumb .rm{position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.alert{border-radius:6px;padding:9px 12px;font-size:11px;margin-top:8px;line-height:1.5}
+.alert-warn{background:#FFF8F0;border:0.5px solid #F5C17A;color:#854F0B}
+.alert-info{background:#F0F8FF;border:0.5px solid #93B8D8;color:#1C5FA5}
+.alert-ok{background:#F0FFF4;border:0.5px solid #86EFAC;color:#166534}
+.pill{display:inline-block;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:600;margin-left:4px}
+.pill-edit{background:#E8F5E9;color:#2E7D32}
+.pill-unk{background:#FEF3C7;color:#92400E}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid #93B8D8;border-top-color:#1C2B3A;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:5px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.page{display:none}
+.page.active{display:block}
+.rules-item{display:flex;gap:12px;padding:10px 0;border-bottom:0.5px solid #F0EFEC}
+.rules-num{width:22px;height:22px;min-width:22px;border-radius:11px;background:#1C2B3A;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.empty{text-align:center;color:#aaa;padding:40px 20px;font-size:12px}
+.route-text{font-size:11px;color:#444;line-height:1.5}
+.unknown-warn{font-size:10px;color:#C07B2A;margin-top:3px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">Dionne's Mileage Tracker</div>
+    <div class="header-sub">SE22 8UJ · HMRC £0.45/mi · 1-hour gap rule · From March 2025</div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn btn-primary" onclick="exportCSV()">Export CSV</button>
+    <button class="btn btn-primary" onclick="exportPDF()" style="background:#2A5F3A">Export PDF</button>
+    <button class="btn" onclick="addManualRow()">+ Add row</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('log',this)">Mileage Log</button>
+  <button class="tab" onclick="switchTab('input',this)">Add Diary</button>
+  <button class="tab" onclick="switchTab('rules',this)">Rules</button>
+</div>
+
+<div class="body">
+
+  <!-- LOG -->
+  <div id="page-log" class="page active">
+    <div class="stats-row" id="stats-row"></div>
+    <div class="month-bar" id="month-bar"></div>
+    <div class="card">
+      <table>
+        <thead><tr>
+          <th>Date</th><th>Time</th><th>Route</th>
+          <th style="text-align:right">Miles</th>
+          <th style="text-align:right">Claim</th>
+          <th>Notes</th><th></th>
+        </tr></thead>
+        <tbody id="log-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- INPUT -->
+  <div id="page-input" class="page">
+    <div class="card card-pad">
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px">Upload diary images</div>
+      <div style="font-size:11px;color:#777;margin-bottom:12px">Upload JPEG or PNG photos of your diary, calendar screenshots or printouts. Claude reads the text automatically.</div>
+      <div class="upload-zone" id="upload-zone"
+        onclick="document.getElementById('file-input').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="handleDrop(event)">
+        <div style="font-size:28px;margin-bottom:8px">📷</div>
+        <div style="font-size:12px;font-weight:500">Click to upload or drag & drop</div>
+        <div style="font-size:11px;margin-top:4px;color:#aaa">JPEG · PNG · multiple files OK</div>
+      </div>
+      <input type="file" id="file-input" accept="image/jpeg,image/png,image/*" multiple style="display:none" onchange="handleFiles(this.files)">
+      <div class="img-preview" id="img-preview"></div>
+      <div id="img-status"></div>
+      <div style="display:flex;gap:8px;margin-top:10px" id="img-btns" style="display:none">
+        <button class="btn btn-primary" id="btn-read" onclick="readImages()">Read images & extract journeys</button>
+        <button class="btn" onclick="clearImages()">Clear</button>
+      </div>
+    </div>
+
+    <div class="card card-pad">
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px">Or paste diary text</div>
+      <div style="font-size:11px;color:#777;margin-bottom:10px">Paste from Outlook, Google Calendar, any PDF or spreadsheet.</div>
+      <textarea id="paste-area" placeholder="Monday 2 June 2025&#10;09:30 Viewing — 95a Bovill Road SE23 1EL&#10;10:15 Viewing — 11a Benson Road SE23 3RL&#10;14:30 Valuation — 67 Woolstone Road SE23 2TQ&#10;&#10;Tuesday 3 June 2025&#10;09:00 Maintenance visit — 138 Upland Road SE22 0DQ"></textarea>
+      <div id="text-status"></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn btn-primary" onclick="parseText()">Parse & add to log</button>
+        <button class="btn" onclick="document.getElementById('paste-area').value=''">Clear</button>
+      </div>
+      <div style="margin-top:14px;padding:10px;background:#F7F6F3;border-radius:6px;font-size:11px;color:#666;line-height:1.7">
+        <strong>Detected as travel:</strong> addresses, postcodes, or keywords: viewing, valuation, inspection, maintenance, visit, tenant, landlord.<br>
+        <strong>Ignored:</strong> lunch, calls, Zoom, Teams, admin, meeting, email, holiday, dentist.<br>
+        <strong>Gap rule:</strong> more than 1 hour between appointments = return to office, new journey starts.
+      </div>
+    </div>
+  </div>
+
+  <!-- RULES -->
+  <div id="page-rules" class="page">
+    <div class="card card-pad">
+      <div style="font-size:14px;font-weight:600;margin-bottom:14px">Mileage Rules & Assumptions</div>
+      <div id="rules-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════
+const HMRC = 0.45;
+const GAP_MIN = 60;
+const OFFICE = [51.4537, -0.0739];
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+const PC = {
+  "SE1":[51.5045,-0.0865],"SE2":[51.4876,0.1123],"SE3":[51.4651,0.0134],
+  "SE4":[51.4636,-0.0378],"SE5":[51.4703,-0.0867],"SE6":[51.4362,-0.0076],
+  "SE7":[51.4833,0.0598],"SE8":[51.4776,-0.029],"SE9":[51.4477,0.0557],
+  "SE10":[51.4834,-0.0098],"SE11":[51.489,-0.1134],"SE12":[51.4418,0.0116],
+  "SE13":[51.458,-0.0162],"SE14":[51.4713,-0.0411],"SE15":[51.4701,-0.0601],
+  "SE16":[51.4975,-0.0562],"SE17":[51.4865,-0.0955],"SE18":[51.4876,0.0784],
+  "SE19":[51.4143,-0.0831],"SE20":[51.4094,-0.0561],"SE21":[51.4444,-0.0868],
+  "SE22":[51.4529,-0.0689],"SE23":[51.4444,-0.0489],"SE24":[51.4558,-0.1031],
+  "SE25":[51.3974,-0.0643],"SE26":[51.4259,-0.0491],"SE27":[51.4329,-0.1035],
+  "SE28":[51.5004,0.1148],"BR1":[51.4042,-0.0148],"BR2":[51.3869,-0.0279],
+  "BR3":[51.408,-0.0239],"SW2":[51.4551,-0.1188],"SW9":[51.4693,-0.1169],
+  "SW16":[51.4114,-0.1248],"W8":[51.5044,-0.1941],"EC1":[51.5228,-0.1023],
+  "SW1":[51.4994,-0.1376],"SW4":[51.4631,-0.1402],"SW8":[51.4816,-0.1278],
+  "E1":[51.5155,-0.0664],"N1":[51.5362,-0.1033],"NW1":[51.5290,-0.1437],
+};
+
+const IGNORE = ["lunch","coffee","call","phone","zoom","teams","meeting","admin","debrief",
+  "training","review","email","holiday","leave","birthday","dentist","doctor",
+  "interview","webinar","conference","workshop","catch up","catch-up","1:1"];
+const TRAVEL = ["viewing","valuation","inspection","visit","check","measure","survey",
+  "appointment","appt","property","tenant","landlord","maintenance","collect","deliver","sign","keys"];
+
+// ═══════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════
+let logs = [];
+let activeMonth = null;
+let editIdx = null;
+let pendingImgs = [];
+
+const FB_URL = "https://dg-lettings-default-rtdb.europe-west1.firebasedatabase.app";
+const FB_SECRET = "8X7TgjMPfsy6mbCu3Hr0T2gF0gDudbfAskaLG5RS";
+function fbUrl(path){ return FB_URL+"/"+path+".json?auth="+FB_SECRET; }
+
+function load(){
+  const tbody=document.getElementById("log-tbody");
+  if(tbody) tbody.innerHTML='<tr><td colspan="6" class="empty"><span class="spinner"></span> Loading...</td></tr>';
+  fetch(fbUrl("mileage"))
+    .then(r=>r.json())
+    .then(data=>{
+      logs=[];
+      if(data&&typeof data==="object"&&!Array.isArray(data)){
+        Object.keys(data).forEach(k=>{ const row=data[k]; if(row&&row.ds){ row.fbKey=k; logs.push(row); } });
+        logs.sort((a,b)=>(a.ds||"").localeCompare(b.ds||""));
+      }
+      if(logs.length){ const ms=[...new Set(logs.map(l=>l.ds.slice(0,7)))].sort(); activeMonth=ms[ms.length-1]; }
+      render();
+    })
+    .catch(e=>{ console.error("Firebase load error",e); render(); });
+}
+
+function save(){
+  logs.forEach(row=>{
+    if(!row.fbKey) row.fbKey="ml_"+row.ds.replace(/-/g,"")+"_"+Math.random().toString(36).slice(2,7);
+    fetch(fbUrl("mileage/"+row.fbKey),{method:"PUT",body:JSON.stringify(row)}).catch(e=>console.error(e));
+  });
+  render();
+}
+
+function deleteFromFB(key){ fetch(fbUrl("mileage/"+key),{method:"DELETE"}).catch(e=>console.error(e)); }
+
+// ═══════════════════════════════════════════════════════════════════
+// DISTANCE
+// ═══════════════════════════════════════════════════════════════════
+function hav([a,b],[c,d]){
+  const R=3958.8,r=Math.PI/180;
+  const dL=(c-a)*r,dO=(d-b)*r;
+  const x=Math.sin(dL/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin(dO/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+function getPC(t){
+  const m=(t||"").match(/\b([A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}|[A-Z]{1,2}\d{1,2}[A-Z]?)\b/i);
+  return m?m[1].toUpperCase().replace(/\s/g,""):null;
+}
+function coords(pc){
+  if(!pc) return null;
+  pc=pc.toUpperCase().replace(/\s/g,"");
+  const ow=pc.length>3?pc.slice(0,pc.length-3):pc;
+  if(PC[ow]) return PC[ow];
+  if(PC[pc.slice(0,3).replace(/\d$/,"")]) return PC[pc.slice(0,3).replace(/\d$/,"")];
+  if(PC[pc.slice(0,2).replace(/\d$/,"")]) return PC[pc.slice(0,2).replace(/\d$/,"")];
+  return null;
+}
+function dist(a,b){
+  const ca=a==="OFFICE"?OFFICE:coords(getPC(a)||a);
+  const cb=b==="OFFICE"?OFFICE:coords(getPC(b)||b);
+  if(!ca||!cb) return null;
+  return hav(ca,cb);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PARSER
+// ═══════════════════════════════════════════════════════════════════
+function isTravel(t){
+  const l=t.toLowerCase();
+  if(IGNORE.some(k=>l.includes(k))) return false;
+  if(getPC(t)) return true;
+  if(/\d+\s+[a-z]/i.test(t)) return true;
+  if(TRAVEL.some(k=>l.includes(k))) return true;
+  return false;
+}
+function parseTimeStr(t){
+  if(!t) return null;
+  const m=t.match(/(\d{1,2}):?(\d{2})?\s*(am|pm)?/i);
+  if(!m) return null;
+  let h=parseInt(m[1]),mn=parseInt(m[2]||"0");
+  if(m[3]&&/pm/i.test(m[3])&&h<12) h+=12;
+  if(m[3]&&/am/i.test(m[3])&&h===12) h=0;
+  return h*60+mn;
+}
+
+function parseDiary(text){
+  const MONTHS={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11,
+    january:0,february:1,march:2,april:3,june:5,july:6,august:7,
+    september:8,october:9,november:10,december:11};
+  const lines=text.split("\n").map(l=>l.trim()).filter(Boolean);
+  const entries=[]; let curDate=null;
+
+  // Detect pipe-delimited table format: | Date | Time | Property | Type |
+  const isPipeTable=lines.some(l=>l.startsWith("|")&&l.includes("|")&&l.split("|").length>3);
+
+  if(isPipeTable){
+    // Find header row to determine column positions
+    let dateCol=-1,timeCol=-1,propCol=-1;
+    for(const line of lines){
+      if(!line.startsWith("|")) continue;
+      const cols=line.split("|").map(c=>c.trim().toLowerCase());
+      if(cols.includes("date")||cols.includes("property")||cols.includes("time")){
+        dateCol=cols.findIndex(c=>c==="date");
+        timeCol=cols.findIndex(c=>c==="time");
+        propCol=cols.findIndex(c=>c==="property"||c==="address"||c==="location");
+        break;
+      }
+    }
+    // Fallback column positions if header not found (date=1, time=2, prop=3)
+    if(dateCol<0) dateCol=1;
+    if(timeCol<0) timeCol=2;
+    if(propCol<0) propCol=3;
+
+    for(const line of lines){
+      if(!line.startsWith("|")) continue;
+      const cols=line.split("|").map(c=>c.trim());
+      if(cols.length<3) continue;
+      // Skip header and separator rows
+      if(cols.some(c=>/^-+$/.test(c))) continue;
+      const dateStr=cols[dateCol]||"";
+      const timeStr=cols[timeCol]||"";
+      const propStr=cols[propCol]||"";
+      if(!propStr||!dateStr) continue;
+      // Skip header row
+      if(/^(date|property|address|location|time)$/i.test(dateStr.toLowerCase())) continue;
+
+      // Parse date — supports "04 Mar 2026", "4/3/2026", "04/03/2026"
+      let d=null;
+      const dm=dateStr.match(/(\d{1,2})\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december)\s*(\d{2,4})?/i);
+      if(dm){ const mo=MONTHS[dm[2].toLowerCase().slice(0,3)]; const yr=dm[3]?parseInt(dm[3]):new Date().getFullYear(); if(mo!==undefined) d=new Date(yr,mo,parseInt(dm[1])); }
+      if(!d){ const nd=dateStr.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-]?(\d{2,4})?/); if(nd) d=new Date(nd[3]?parseInt(nd[3]):new Date().getFullYear(),parseInt(nd[2])-1,parseInt(nd[1])); }
+      if(!d) continue;
+
+      // Parse time — supports "10:15", "10:15-10:30", "10:15–10:45"
+      const tmRange=timeStr.match(/(\d{1,2}:\d{2})\s*[-–—]\s*(\d{1,2}:\d{2})/);
+      const t=tmRange?parseTimeStr(tmRange[1]):parseTimeStr((timeStr.match(/(\d{1,2}[:]?\d{0,2})/)||[])[1]);
+      const tEnd=tmRange?parseTimeStr(tmRange[2]):null;
+
+      // Clean property address — remove trailing city/country if just "London"
+      const addr=propStr.replace(/,?\s*london\s*$/i,"").trim();
+      if(addr.length>3) entries.push({date:d,time:t,endTime:tEnd,addr});
+    }
+    return entries;
+  }
+
+  // Standard free-text parsing
+  for(const line of lines){
+    const dm=line.match(/(\d{1,2})\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december)/i);
+    if(dm){ const mo=MONTHS[dm[2].toLowerCase().slice(0,3)]; if(mo!==undefined){curDate=new Date(new Date().getFullYear(),mo,parseInt(dm[1]));continue;} }
+    const nd=line.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-]?(\d{2,4})?/);
+    if(nd&&!isTravel(line)){ curDate=new Date(nd[3]?parseInt(nd[3]):new Date().getFullYear(),parseInt(nd[2])-1,parseInt(nd[1])); continue; }
+    const tm=line.match(/^(\d{1,2}[:.]?\d{0,2}\s*(?:am|pm)?)\s*[-–—:]\s*(?:\d{1,2}[:.]?\d{0,2}\s*(?:am|pm)?)?\s*(.+)/i)
+      ||line.match(/^(\d{1,2}[:.]?\d{2})\s+(.+)/i);
+    if(tm&&curDate){
+      const desc=(tm[3]||tm[2]||"").trim();
+      if(isTravel(desc)) entries.push({date:new Date(curDate),time:parseTimeStr(tm[1]),addr:desc});
+    } else if(curDate&&isTravel(line)&&!/^\d{4}$/.test(line)){
+      entries.push({date:new Date(curDate),time:null,addr:line});
+    }
+  }
+  return entries;
+}
+
+function buildJourneys(entries){
+  if(!entries.length) return [];
+  const s=[...entries].sort((a,b)=>a.date-b.date||(a.time||0)-(b.time||0));
+  const out=[]; let cur=null,lt=null,ld=null;
+  for(const e of s){
+    const ds=e.date.toISOString().slice(0,10);
+    const nd=ds!==ld, gap=lt!=null&&e.time!=null&&(e.time-lt)>GAP_MIN;
+    if(!cur||nd||gap){
+      if(cur) out.push(cur);
+      cur={date:e.date,ds,stops:[e.addr],startTime:e.time,endTime:e.endTime||e.time};
+    } else {
+      const last=cur.stops[cur.stops.length-1];
+      const spc=getPC(e.addr)&&getPC(last)&&getPC(e.addr)===getPC(last);
+      if(!spc) cur.stops.push(e.addr);
+      if(e.endTime!=null) cur.endTime=e.endTime;
+      else if(e.time!=null) cur.endTime=e.time;
+    }
+    lt=e.time; ld=ds;
+  }
+  if(cur) out.push(cur);
+  return out;
+}
+
+function calcJourney(stops){
+  const route=["OFFICE",...stops,"OFFICE"]; let mi=0; const unk=[];
+  for(let i=0;i<route.length-1;i++){ const d=dist(route[i],route[i+1]); if(d==null)unk.push(route[i+1]); else mi+=d; }
+  return {miles:Math.round(mi*1.3*10)/10, route, unk};
+}
+
+function toRows(journeys){
+  return journeys.map(j=>{
+    const {miles,route,unk}=calcJourney(j.stops);
+    // Format depart/arrive times
+    const dep=j.startTime!=null?fmtT(j.startTime):"";
+    const arr=j.endTime!=null?fmtT(j.endTime):"";
+    const timeStr=dep&&arr?dep+" – "+arr:dep||arr||"";
+    return {date:j.date.toISOString(),ds:j.ds,route:route.join(" → "),timeStr,miles,claim:Math.round(miles*HMRC*100)/100,unk,notes:"",edited:false};
+  });
+}
+function fmtT(mins){ const h=Math.floor(mins/60),m=mins%60; return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`; }
+
+function merge(newRows){
+  const kept=logs.filter(l=>!newRows.some(n=>n.ds===l.ds&&n.route===l.route));
+  logs=[...kept,...newRows].sort((a,b)=>a.ds.localeCompare(b.ds));
+  if(newRows.length){ const ms=[...new Set(newRows.map(r=>r.ds.slice(0,7)))].sort(); activeMonth=ms[ms.length-1]; }
+  save();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// IMAGE HANDLING
+// ═══════════════════════════════════════════════════════════════════
+function handleFiles(files){
+  Array.from(files).forEach(f=>{
+    if(!f.type.startsWith("image/")) return;
+    const r=new FileReader();
+    r.onload=e=>{ pendingImgs.push({file:f,url:e.target.result}); renderPreviews(); };
+    r.readAsDataURL(f);
+  });
+}
+function handleDrop(e){ e.preventDefault(); document.getElementById("upload-zone").classList.remove("drag"); handleFiles(e.dataTransfer.files); }
+function clearImages(){ pendingImgs=[]; renderPreviews(); document.getElementById("img-status").innerHTML=""; }
+function removeImg(i){ pendingImgs.splice(i,1); renderPreviews(); }
+function renderPreviews(){
+  document.getElementById("img-preview").innerHTML=pendingImgs.map((img,i)=>
+    `<div class="img-thumb"><img src="${img.url}"><button class="rm" onclick="removeImg(${i})">✕</button></div>`
+  ).join("");
+  const btns=document.getElementById("img-btns");
+  if(btns) btns.style.display=pendingImgs.length?"flex":"none";
+}
+
+async function readImages(){
+  if(!pendingImgs.length) return;
+  const btn=document.getElementById("btn-read");
+  const status=document.getElementById("img-status");
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Reading images...';
+  status.innerHTML='';
+  let combined="";
+  for(let i=0;i<pendingImgs.length;i++){
+    status.innerHTML=`<div class="alert alert-info"><span class="spinner"></span>Reading image ${i+1} of ${pendingImgs.length}…</div>`;
+    const img=pendingImgs[i];
+    const b64=img.url.split(",")[1];
+    const mt=img.file.type||"image/jpeg";
+    try{
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          model:"claude-sonnet-4-6",
+          max_tokens:2000,
+          messages:[{role:"user",content:[
+            {type:"image",source:{type:"base64",media_type:mt,data:b64}},
+            {type:"text",text:"This is a diary or calendar page belonging to a lettings manager in SE London. Please extract ALL appointments and entries exactly as written. Include date headers, times and locations/addresses. Output plain text only, one entry per line, keeping date headers. Do not summarise — transcribe exactly what you see including all addresses and postcodes."}
+          ]}]
+        })
+      });
+      const data=await res.json();
+      if(data.error){ status.innerHTML=`<div class="alert alert-warn">API error: ${data.error.message}</div>`; break; }
+      combined+="\n"+(data.content&&data.content[0]&&data.content[0].text||"");
+    }catch(err){
+      status.innerHTML=`<div class="alert alert-warn">Failed to read image ${i+1}: ${err.message}</div>`;
+      break;
+    }
+  }
+  btn.disabled=false; btn.innerHTML="Read images & extract journeys";
+  if(!combined.trim()){ status.innerHTML='<div class="alert alert-warn">Could not extract text from the images.</div>'; return; }
+  const entries=parseDiary(combined);
+  if(!entries.length){ status.innerHTML='<div class="alert alert-warn">No travel appointments found in these images. Try pasting text instead.</div>'; return; }
+  const journeys=buildJourneys(entries);
+  const rows=toRows(journeys);
+  merge(rows);
+  status.innerHTML=`<div class="alert alert-ok">✓ Read ${entries.length} appointments → ${rows.length} journeys added to your log.</div>`;
+  clearImages();
+  switchTab("log",document.querySelectorAll(".tab")[0]);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TEXT PARSE
+// ═══════════════════════════════════════════════════════════════════
+function parseText(){
+  const text=document.getElementById("paste-area").value.trim();
+  const status=document.getElementById("text-status");
+  if(!text){ status.innerHTML='<div class="alert alert-warn">Please paste some diary text first.</div>'; return; }
+  const entries=parseDiary(text);
+  if(!entries.length){ status.innerHTML='<div class="alert alert-warn">No travel appointments found. Make sure dates and addresses are included.</div>'; return; }
+  const journeys=buildJourneys(entries);
+  const rows=toRows(journeys);
+  merge(rows);
+  status.innerHTML=`<div class="alert alert-ok">✓ Parsed ${entries.length} appointments → ${rows.length} journeys added.</div>`;
+  document.getElementById("paste-area").value="";
+  switchTab("log",document.querySelectorAll(".tab")[0]);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// LOG ACTIONS
+// ═══════════════════════════════════════════════════════════════════
+function addManualRow(){
+  const ds=new Date().toISOString().slice(0,10);
+  logs.push({date:new Date().toISOString(),ds,route:"Office → [address] → Office",miles:0,claim:0,unk:[],notes:"",edited:true,manual:true});
+  activeMonth=ds.slice(0,7); save();
+}
+function setMonth(m){ activeMonth=m; editIdx=null; render(); }
+function toggleEdit(i){ editIdx=editIdx===i?null:i; render(); }
+function deleteRow(i){
+  if(!confirm("Delete this entry?")) return;
+  const fbKey=logs[i].fbKey;
+  logs.splice(i,1);
+  if(fbKey) deleteFromFB(fbKey);
+  save();
+}
+function saveField(i,field,val){
+  if(!logs[i]) return;
+  logs[i]={...logs[i],[field]:val,edited:true};
+  if(field==="miles"){ const m=parseFloat(val)||0; logs[i].miles=m; logs[i].claim=Math.round(m*HMRC*100)/100; }
+  const row=logs[i];
+  if(row.fbKey){
+    fetch(fbUrl("mileage/"+row.fbKey),{method:"PUT",body:JSON.stringify(row)}).catch(e=>console.error(e));
+  }
+  render();
+}
+
+function exportCSV(){
+  const ml=getML();
+  const totM=ml.reduce((s,l)=>s+l.miles,0), totC=ml.reduce((s,l)=>s+l.claim,0);
+  const rows=[["Date","Time","Route","Miles","HMRC Rate","Claim (£)","Notes"],
+    ...ml.map(l=>[fmtD(new Date(l.date)),l.timeStr||"",l.route,l.miles.toFixed(1),HMRC,l.claim.toFixed(2),l.notes||""]),
+    ["","TOTAL",totM.toFixed(1),"",totC.toFixed(2),""]];
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const a=document.createElement("a");
+  a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
+  a.download=`mileage_${activeMonth||"all"}_pickwick.csv`; a.click();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════
+function getML(){ return activeMonth?logs.filter(l=>l.ds.startsWith(activeMonth)):logs; }
+function fmtD(d){ return `${d.getDate()} ${MONTH_NAMES[d.getMonth()].slice(0,3)} ${d.getFullYear()}`; }
+function fmtM(n){ return `£${n.toFixed(2)}`; }
+function mlbl(m){ const[y,mo]=m.split("-"); return `${MONTH_NAMES[parseInt(mo)-1].slice(0,3)} ${y}`; }
+
+function render(){
+  const ml=getML();
+  const months=[...new Set(logs.map(l=>l.ds.slice(0,7)))].sort();
+  const totMi=ml.reduce((s,l)=>s+l.miles,0), totC=ml.reduce((s,l)=>s+l.claim,0);
+  const allC=logs.reduce((s,l)=>s+l.claim,0);
+
+  document.getElementById("stats-row").innerHTML=`
+    <div class="stat-card"><div class="stat-val">${ml.length}</div><div class="stat-label">Journeys</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#1C4A8A">${totMi.toFixed(1)}</div><div class="stat-label">Miles</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#1A6B3A">${fmtM(totC)}</div><div class="stat-label">Claim</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#5A3A8A">${fmtM(allC)}</div><div class="stat-label">All-time claim</div></div>`;
+
+  document.getElementById("month-bar").innerHTML=
+    `<button class="month-btn${activeMonth===null?" active":""}" onclick="setMonth(null)">All</button>`+
+    months.map(m=>`<button class="month-btn${m===activeMonth?" active":""}" onclick="setMonth('${m}')">${mlbl(m)}</button>`).join("");
+
+  const tbody=document.getElementById("log-tbody");
+  if(!ml.length){ tbody.innerHTML=`<tr><td colspan="6" class="empty">No entries yet — upload diary images or paste text in the <strong>Add Diary</strong> tab.</td></tr>`; return; }
+
+  tbody.innerHTML=ml.map((row)=>{
+    const i=logs.indexOf(row);
+    const ed=editIdx===i;
+    return `<tr style="background:${row.edited?"#FAFFF8":""}">
+      <td style="white-space:nowrap;font-size:11px;color:#555">
+        ${fmtD(new Date(row.date))}
+        ${row.edited?'<span class="pill pill-edit">edited</span>':""}
+      </td>
+      <td style="white-space:nowrap;font-size:11px;color:#666">${row.timeStr||"—"}</td>
+      <td>
+        ${ed?`<input type="text" value="${row.route.replace(/"/g,"&quot;")}" onblur="saveField(${i},'route',this.value)" style="font-size:11px">`
+          :`<div class="route-text">${row.route}</div>`}
+        ${row.unk&&row.unk.length?`<div class="unknown-warn">⚠ Postcode not found: ${row.unk.join(", ")}</div>`:""}
+      </td>
+      <td style="text-align:right;white-space:nowrap">
+        ${ed?`<input type="number" step="0.1" value="${row.miles}" onblur="saveField(${i},'miles',this.value)" style="width:70px;text-align:right">`
+          :`<span style="font-weight:500">${row.miles.toFixed(1)} mi</span>`}
+      </td>
+      <td style="text-align:right;color:#1A6B3A;font-weight:600;white-space:nowrap">${fmtM(row.claim)}</td>
+      <td><input type="text" value="${(row.notes||"").replace(/"/g,"&quot;")}" placeholder="notes" onblur="saveField(${i},'notes',this.value)" style="font-size:11px"></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm" onclick="toggleEdit(${i})" style="margin-right:4px">${ed?"Done":"Edit"}</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteRow(${i})">✕</button>
+      </td>
+    </tr>`;
+  }).join("")+`
+  <tr class="totals-row">
+    <td colspan="3" style="font-size:11px">${activeMonth?mlbl(activeMonth):"All time"} · ${ml.length} journeys</td>
+    <td style="text-align:right">${totMi.toFixed(1)} mi</td>
+    <td style="text-align:right;color:#1A6B3A">${fmtM(totC)}</td>
+    <td colspan="2"></td>
+  </tr>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RULES
+// ═══════════════════════════════════════════════════════════════════
+const RULES=[
+  ["Start / End point","All journeys start and end at Pickwick Estates, Dulwich Office, SE22 8UJ."],
+  ["HMRC Rate","£0.45 per mile — standard HMRC approved mileage rate for cars (first 10,000 miles per tax year)."],
+  ["Gap rule","A gap of more than 1 hour between appointments is treated as a return to office. Two separate journeys are created."],
+  ["Consecutive viewings","Back-to-back appointments at the same postcode are counted as one stop, not two round trips."],
+  ["Continuous journey","Multiple stops within one journey window are routed Office → A → B → C → Office."],
+  ["Distance method","Straight-line postcode distance × 1.3 road factor to approximate actual driving distance."],
+  ["Tax year","Tracking from March 2025. HMRC mileage allowance resets each April."],
+  ["Ignored appointments","Calls, Zoom, Teams, lunch, admin, office meetings and personal appointments are excluded."],
+  ["Manual overrides","Any auto-calculated mileage can be manually edited. Edited rows are highlighted green."],
+];
+function renderRules(){
+  document.getElementById("rules-list").innerHTML=RULES.map(([t,d],i)=>`
+    <div class="rules-item">
+      <div class="rules-num">${i+1}</div>
+      <div><div style="font-size:12px;font-weight:600;margin-bottom:3px">${t}</div>
+      <div style="font-size:11px;color:#666;line-height:1.6">${d}</div></div>
+    </div>`).join("");
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════════════
+function switchTab(id,btn){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.getElementById("page-"+id).classList.add("active");
+  btn.classList.add("active");
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
+load();
+if(logs.length){ const ms=[...new Set(logs.map(l=>l.ds.slice(0,7)))].sort(); activeMonth=ms[ms.length-1]; }
+render();
+renderRules();
+</script>
+</body>
+</html>
