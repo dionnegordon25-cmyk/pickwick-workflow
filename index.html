@@ -2604,7 +2604,7 @@ function renderPdCompliance(p){
       else if(d<=60){ pill='badge-amber'; label=d+'d'; }
       else { pill='badge-green'; label='Valid'; }
     } else {
-      pill='badge-amber'; label='Not added';
+      pill=(p.letOnly&&p.letOnly!=='n')?'badge-grey':'badge-amber'; label=(p.letOnly&&p.letOnly!=='n')?'Not managed':'Not added';
     }
     html+='<div style="padding:8px;background:var(--bg);border-radius:6px;display:flex;justify-content:space-between;align-items:center">'
       +'<div><div style="font-size:10px;color:var(--text2)">'+c.label+'</div>'
@@ -2894,7 +2894,7 @@ function renderCompTable(){
     html += '<tr onclick="openPropDetail('+idx+')" style="cursor:pointer">'
       +'<td><div style="font-size:12px;font-weight:500;color:var(--text)">'+(p.address||'—')+'</div>'
       +'<div style="font-size:10px;color:var(--text2)">'+(p.tenant||'—')+'</div></td>'
-      +CERT_FIELDS.map(function(c){ return '<td>'+certPill(p[c.key])+'</td>'; }).join('')
+      +CERT_FIELDS.map(function(c){ return '<td>'+certPill(p[c.key],p.letOnly&&p.letOnly!=='n')+'</td>'; }).join('')
       +'<td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openPropDetail('+idx+')">Open</button></td>'
       +'</tr>';
   });
