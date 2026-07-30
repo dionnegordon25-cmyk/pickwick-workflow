@@ -479,6 +479,7 @@ select.field-input{cursor:pointer}
           <div class="filter-pill" onclick="setMgmtFilter('managed',this)">Fully Managed</div>
           <div class="filter-pill" onclick="setMgmtFilter('let-only',this)">Let Only</div>
           <div class="filter-pill" onclick="setMgmtFilter('deposit',this)" style="background:var(--purple-bg);color:var(--purple-text)">Let Only — Deposit Held</div>
+          <div class="filter-pill" onclick="setMgmtFilter('archived',this)" style="background:#F3F4F6;color:#6B7280;border-color:#D1D5DB">Archived</div>
         </div>
         <button class="btn btn-navy" onclick="openAddPropModal()">+ Add property</button>
       </div>
@@ -758,6 +759,16 @@ select.field-input{cursor:pointer}
             <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Sets Let Only properties to 8%, all others to 10%. You can adjust individually via property edit.</div>
             <button class="btn btn-sm" style="background:var(--amber-bg);color:var(--amber-text)" onclick="bulkSetFees()">Set fees now</button>
           </div>
+          <div style="margin-top:16px;padding-top:16px;border-top:0.5px solid var(--border)">
+            <div style="font-size:11px;font-weight:500;color:var(--text);margin-bottom:4px">Assign property IDs</div>
+            <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Assigns a unique ID (P001, P002...) to all existing properties that don't have one yet.</div>
+            <button class="btn btn-sm btn-navy" onclick="bulkAssignIds()">Assign IDs now</button>
+          </div>
+          <div style="margin-top:16px;padding-top:16px;border-top:0.5px solid var(--border)">
+            <div style="font-size:11px;font-weight:500;color:var(--text);margin-bottom:4px">Bulk mark deposits as Protected</div>
+            <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Marks all deposits as Protected. Use for Let Only — Deposit Held properties.</div>
+            <button class="btn btn-sm" style="background:var(--purple-bg);color:var(--purple-text)" onclick="bulkMarkDepositsProtected()">Mark all as Protected</button>
+          </div>
           </div>
           <div class="card">
             <div class="card-title">Single job WhatsApp / Email template</div>
@@ -812,6 +823,7 @@ select.field-input{cursor:pointer}
     <div class="modal-footer" id="pd-footer">
       <button class="btn btn-red btn-sm" onclick="deleteProp()">Delete</button>
       <button class="btn btn-sm" style="background:var(--amber-bg);color:var(--amber-text)" onclick="openEndTenancy()">End tenancy</button>
+      <button class="btn btn-sm" style="background:#6B7280;color:#fff" onclick="openArchiveProp()">Archive</button>
       <button class="btn btn-outline btn-sm" id="pd-edit-btn" onclick="togglePropEdit()">Edit</button>
       <button class="btn btn-navy btn-sm" id="pd-save-btn" onclick="savePropEdit()" style="display:none">Save changes</button>
       <button class="btn btn-outline btn-sm" onclick="closeModal('prop-detail-modal')">Close</button>
@@ -1174,6 +1186,37 @@ select.field-input{cursor:pointer}
       <button class="btn btn-red btn-sm" id="bc-clear-btn" onclick="clearBooking()" style="display:none">Clear booking</button>
       <button class="btn btn-outline" onclick="closeModal('book-contractor-modal')">Cancel</button>
       <button class="btn btn-navy" onclick="saveBooking()">Save booking</button>
+    </div>
+  </div>
+</div>
+
+<!-- ARCHIVE PROPERTY MODAL -->
+<div class="modal-overlay" id="archive-prop-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">Archive property</div>
+    <div class="modal-sub" id="ap-arch-address"></div>
+    <div style="background:var(--bg);border-radius:8px;padding:12px;margin:14px 0;font-size:12px;color:var(--text2);line-height:1.6">
+      Archiving removes this property from all active views, counts and compliance tracking. It can be unarchived at any time from the Archived section in All Properties.
+    </div>
+    <div class="field-group">
+      <label class="field-label">Reason for archiving *</label>
+      <select class="field-input" id="arch-reason">
+        <option value="">— Select reason —</option>
+        <option>Sold</option>
+        <option>Let Only removed</option>
+        <option>Landlord withdrew</option>
+        <option>Property no longer available</option>
+        <option>Duplicate entry</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Notes (optional)</label>
+      <input class="field-input" id="arch-notes" placeholder="Any additional notes...">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('archive-prop-modal')">Cancel</button>
+      <button class="btn btn-sm" style="background:#6B7280;color:#fff" onclick="confirmArchiveProp()">Archive property</button>
     </div>
   </div>
 </div>
@@ -1601,8 +1644,8 @@ function renderStatCards(){
 
   // Row 2
   // Read deposit stats from properties (source of truth for deposit status)
-  var depDisputes=properties.filter(function(p){ return p.depositStatus&&p.depositStatus.toLowerCase().includes('dispute'); }).length;
-  var depReady=properties.filter(function(p){ return p.depositStatus&&p.depositStatus.toLowerCase().includes('available'); }).length;
+  var depDisputes=activeProps.filter(function(p){ return p.depositStatus&&p.depositStatus.toLowerCase().includes('dispute'); }).length;
+  var depReady=activeProps.filter(function(p){ return p.depositStatus&&p.depositStatus.toLowerCase().includes('available'); }).length;
 
   var gscDue=properties.filter(function(p){ return p.gsc&&daysUntil(p.gsc)<=60; }).length;
   var eicrDue=properties.filter(function(p){ return p.eicr&&daysUntil(p.eicr)<=60; }).length;
@@ -2479,9 +2522,17 @@ function renderPropsTable(){
   var search=(document.getElementById('prop-search')||{}).value||'';
   search=search.toLowerCase();
   var filtered=properties.filter(function(p){
-    if(!search) return true;
-    var hay=(p.address||'')+' '+(p.tenant||'')+' '+(p.llName||'')+' '+(p.postcode||'');
-    return hay.toLowerCase().includes(search);
+    if(mgmtFilter==='archived') return p.archived===true;
+    if(p.archived) return false;
+    if(search){
+      var hay=(p.address||'')+' '+(p.tenant||'')+' '+(p.llName||'')+' '+(p.postcode||'');
+      if(!hay.toLowerCase().includes(search)) return false;
+    }
+    var lo=p.letOnly;
+    if(mgmtFilter==='managed'&&(lo&&lo!=='n')) return false;
+    if(mgmtFilter==='let-only'&&lo!=='let-only') return false;
+    if(mgmtFilter==='deposit'&&lo!=='y') return false;
+    return true;
   });
   var tbody=document.getElementById('prop-tbody');
   var count=document.getElementById('prop-count');
@@ -2927,6 +2978,7 @@ function renderCompTable(){
   }
 
   var filtered = properties.filter(function(p){
+    if(p.archived) return false;
     if(search){
       var hay = (p.address||'')+' '+(p.tenant||'')+' '+(p.llName||'');
       if(!hay.toLowerCase().includes(search)) return false;
@@ -5425,6 +5477,69 @@ function weekNav(dir){
 function setWeekContractor(val){
   weekContractorId=val;
   renderWeeklyDiary();
+}
+
+
+// ─── ARCHIVE PROPERTY ────────────────────────────────────────────────────────
+function openArchiveProp(){
+  var p=properties[currentPropIdx];
+  if(!p) return;
+  if(p.archived){
+    // Unarchive immediately
+    if(!confirm('Unarchive '+p.address+'? It will reappear in all active views.')) return;
+    p.archived=false; p.archiveReason=''; p.archiveNotes='';
+    fbSet('properties/'+p.fbKey+'/archived', false, function(){
+      closeModal('prop-detail-modal');
+      renderPropsTable();
+      renderStatCards();
+      showToast('Property unarchived');
+    });
+    return;
+  }
+  document.getElementById('ap-arch-address').textContent=p.address||'';
+  document.getElementById('arch-reason').value='';
+  document.getElementById('arch-notes').value='';
+  openModal('archive-prop-modal');
+}
+
+function confirmArchiveProp(){
+  var reason=document.getElementById('arch-reason').value;
+  if(!reason){ showToast('Please select a reason'); return; }
+  var p=properties[currentPropIdx];
+  if(!p) return;
+  p.archived=true;
+  p.archiveReason=reason;
+  p.archiveNotes=document.getElementById('arch-notes').value;
+  p.archivedDate=new Date().toISOString();
+  fbSet('properties/'+p.fbKey+'/archived', true, function(){});
+  fbSet('properties/'+p.fbKey+'/archiveReason', reason, function(){});
+  fbSet('properties/'+p.fbKey+'/archiveNotes', p.archiveNotes, function(){});
+  fbSet('properties/'+p.fbKey+'/archivedDate', p.archivedDate, function(){
+    closeModal('archive-prop-modal');
+    closeModal('prop-detail-modal');
+    renderPropsTable();
+    renderStatCards();
+    showToast('Property archived — '+reason);
+  });
+}
+
+// ─── BULK ASSIGN IDS ─────────────────────────────────────────────────────────
+function bulkAssignIds(){
+  var untagged=properties.filter(function(p){ return !p.propId&&!p.archived; });
+  if(!untagged.length){ showToast('All active properties already have IDs'); return; }
+  if(!confirm('Assign IDs to '+untagged.length+' properties without one?')) return;
+  var maxId=properties.reduce(function(m,p){ var n=parseInt((p.propId||'P000').replace('P',''))||0; return n>m?n:m; },0);
+  var pending=untagged.length, done=0;
+  untagged.forEach(function(p){
+    maxId++;
+    p.propId='P'+String(maxId).padStart(3,'0');
+    if(p.fbKey){
+      fbSet('properties/'+p.fbKey+'/propId', p.propId, function(){
+        done++; pending--;
+        if(pending<=0){ renderPropsTable(); showToast(done+' IDs assigned'); }
+      });
+    } else { pending--; if(pending<=0) showToast(done+' IDs assigned'); }
+  });
 }
 
 </script>
