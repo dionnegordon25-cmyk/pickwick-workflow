@@ -474,6 +474,12 @@ select.field-input{cursor:pointer}
       <!-- Properties page -->
       <div class="ops-bar">
         <input class="search-bar" id="prop-search" placeholder="Search address, tenant, landlord, postcode..." oninput="filterProps()">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <div class="filter-pill active" onclick="setMgmtFilter('all',this)">All</div>
+          <div class="filter-pill" onclick="setMgmtFilter('managed',this)">Fully Managed</div>
+          <div class="filter-pill" onclick="setMgmtFilter('let-only',this)">Let Only</div>
+          <div class="filter-pill" onclick="setMgmtFilter('deposit',this)" style="background:var(--purple-bg);color:var(--purple-text)">Let Only — Deposit Held</div>
+        </div>
         <button class="btn btn-navy" onclick="openAddPropModal()">+ Add property</button>
       </div>
       <div class="two-col-wide">
@@ -2400,6 +2406,14 @@ showPage=function(id,btn){
 var currentPropIdx = null;
 var propEditMode = false;
 
+var mgmtFilter='all';
+function setMgmtFilter(f,btn){
+  mgmtFilter=f;
+  document.querySelectorAll('#page-properties .filter-pill').forEach(function(p){ p.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  filterProps();
+}
+
 function filterProps(){
   renderPropsTable();
 }
@@ -2431,6 +2445,7 @@ function renderPropsTable(){
       +'<td><div style="font-size:11px;font-weight:500">'+(p.tenant||'—')+'</div>'
       +(p.tenantPhone?'<div style="font-size:10px;color:var(--text2)">&#128222; '+p.tenantPhone+'</div>':'')
       +(p.tenantEmail?'<div style="font-size:10px;color:var(--text2)">&#x2709; '+p.tenantEmail+'</div>':'')
+      +(p.letOnly&&p.letOnly!=='n'?'<span class="badge '+(p.letOnly==='y'?'badge-purple':'badge-amber')+'" style="margin-top:3px;display:inline-block">'+(p.letOnly==='y'?'Let Only — Deposit Held':'Let Only')+'</span>':'')
       +'</td>'
       +'<td><div style="font-size:11px;font-weight:500">'+(p.llName||'—')+'</div>'
       +(p.llMobile?'<div style="font-size:10px;color:var(--text2)">&#128222; '+p.llMobile+'</div>':'')
@@ -2685,7 +2700,12 @@ function togglePropEdit(){
   html+='<div class="field-group"><label class="field-label">RTR check date</label><input class="field-input" id="pdedit-rtrCheck" value="'+(p.rtrCheck||'')+'"></div>';
   html+='<div class="field-group"><label class="field-label">RTR expiry date</label><input class="field-input" id="pdedit-rtrExpiry" value="'+(p.rtrExpiry||'')+'"></div>';
   html+='<div class="field-group"><label class="field-label">Routine inspection</label><input class="field-input" id="pdedit-routineInspection" value="'+(p.routineInspection||'')+'"></div>';
-  html+='<div class="field-group"><label class="field-label">Let Only (y/n)</label><input class="field-input" id="pdedit-letOnly" value="'+(p.letOnly||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">Management type</label>'
+    +'<select class="field-input" id="pdedit-letOnly">'
+    +'<option value="n"'+((!p.letOnly||p.letOnly==='n')?' selected':'')+'>Fully Managed</option>'
+    +'<option value="let-only"'+(p.letOnly==='let-only'?' selected':'')+'>Let Only</option>'
+    +'<option value="y"'+((p.letOnly==='y'||p.letOnly==='let-only-deposit')?' selected':'')+'>Let Only — Deposit Held</option>'
+    +'</select></div>';
   html+='<div class="field-group" style="grid-column:1/-1"><label class="field-label">Notes</label><input class="field-input" id="pdedit-notes" value="'+(p.notes||'')+'"></div>';
   html+='</div>';
   document.getElementById('pd-details').innerHTML=html;
@@ -2799,8 +2819,11 @@ var CERT_FIELDS = [
   {key:'aptAnniversary',label:'APT due'}
 ];
 
-function certPill(dateStr){
-  if(!dateStr) return '<span class="badge badge-amber">Not added</span>';
+function certPill(dateStr, isLetOnly){
+  if(!dateStr){
+    if(isLetOnly) return '<span class="badge badge-grey">Not managed</span>';
+    return '<span class="badge badge-amber">Not added</span>';
+  }
   var d = daysUntil(dateStr);
   if(d < 0)  return '<span class="badge badge-red">OVERDUE '+Math.abs(d)+'d</span>';
   if(d <= 30) return '<span class="badge badge-red">'+d+'d</span>';
@@ -4787,7 +4810,7 @@ function bulkSetFees(){
   if(!properties.length){ showToast('No properties loaded'); return; }
   var updated=0, pending=properties.length;
   properties.forEach(function(p){
-    var fee = (p.letOnly&&p.letOnly.toLowerCase()==='y') ? '8' : '10';
+    var fee = (p.letOnly&&(p.letOnly==='y'||p.letOnly==='let-only')) ? '8' : '10';
     p.mgmtFee = fee;
     var path = p.fbKey ? 'properties/'+p.fbKey+'/mgmtFee' : null;
     if(path){
