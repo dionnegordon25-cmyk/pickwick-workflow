@@ -620,16 +620,38 @@ select.field-input{cursor:pointer}
         <input class="search-bar" id="cont-search" placeholder="Search by name, trade, phone or email..." oninput="filterContractors()">
         <button class="btn btn-navy" onclick="openAddContractorModal()">+ Add contractor</button>
       </div>
-      <div class="card" style="padding:0;overflow:hidden">
-        <table class="tbl" id="cont-table">
-          <thead>
-            <tr>
-              <th>Contractor</th><th>Trade</th><th>Contact</th>
-              <th>Jobs</th><th>Quoted</th><th>Invoiced</th><th>Outstanding</th><th></th>
-            </tr>
-          </thead>
-          <tbody id="cont-tbody"></tbody>
-        </table>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <button class="filter-pill active" id="cont-tab-list" onclick="switchContTab('list',this)">Contractors</button>
+        <button class="filter-pill" id="cont-tab-week" onclick="switchContTab('week',this)">📅 Weekly diary</button>
+      </div>
+      <div id="cont-view-list">
+        <div class="card" style="padding:0;overflow:hidden">
+          <table class="tbl" id="cont-table">
+            <thead>
+              <tr>
+                <th>Contractor</th><th>Trade</th><th>Contact</th>
+                <th>Jobs</th><th>Quoted</th><th>Invoiced</th><th>Outstanding</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="cont-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="cont-view-week" style="display:none">
+        <div class="card card-pad">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <button class="btn btn-outline btn-sm" onclick="weekNav(-1)">← Prev</button>
+              <span style="font-size:13px;font-weight:500" id="week-label"></span>
+              <button class="btn btn-outline btn-sm" onclick="weekNav(1)">Next →</button>
+              <button class="btn btn-outline btn-sm" onclick="weekOffset=0;renderWeeklyDiary()">Today</button>
+            </div>
+            <select class="field-input" id="week-contractor-sel" onchange="setWeekContractor(this.value)" style="width:200px">
+              <option value="">All contractors</option>
+            </select>
+          </div>
+          <div id="weekly-diary"></div>
+        </div>
       </div>
     </div>
 
@@ -1125,6 +1147,37 @@ select.field-input{cursor:pointer}
 
 </div>
 
+<!-- BOOK CONTRACTOR MODAL -->
+<div class="modal-overlay" id="book-contractor-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">Book contractor</div>
+    <div class="modal-sub" id="bc-job-sub"></div>
+    <div class="grid-2" style="gap:10px;margin-top:14px">
+      <div class="field-group"><label class="field-label">Date booked to attend *</label><input class="field-input" id="bc-date" type="date"></div>
+      <div class="field-group"><label class="field-label">Time slot</label>
+        <select class="field-input" id="bc-time">
+          <option value="">— Select —</option>
+          <option>Morning (8am–12pm)</option>
+          <option>Afternoon (12pm–5pm)</option>
+          <option>All day</option>
+          <option>8am–10am</option>
+          <option>10am–12pm</option>
+          <option>12pm–2pm</option>
+          <option>2pm–4pm</option>
+          <option>4pm–6pm</option>
+        </select>
+      </div>
+      <div class="field-group" style="grid-column:1/-1"><label class="field-label">Notes (optional)</label><input class="field-input" id="bc-notes" placeholder="e.g. tenant to be home, access via agent keysafe..."></div>
+    </div>
+    <div id="bc-current" style="display:none;padding:8px 10px;background:var(--green-bg);border-radius:6px;font-size:11px;color:var(--green-text);margin-top:4px"></div>
+    <div class="modal-footer">
+      <button class="btn btn-red btn-sm" id="bc-clear-btn" onclick="clearBooking()" style="display:none">Clear booking</button>
+      <button class="btn btn-outline" onclick="closeModal('book-contractor-modal')">Cancel</button>
+      <button class="btn btn-navy" onclick="saveBooking()">Save booking</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -1385,6 +1438,7 @@ function needsChase(job){
   if(job.status==='Complete') return false;
   if(job.status==='On hold') return false;
   if(job.status==='Monitoring') return false;
+  if(job.bookedDate) return false;
   var d=job.lastActionDate||job.dateLogged;
   return daysSince(d)>=3;
 }
@@ -1951,6 +2005,9 @@ function openJobDetail(fbKey){
     +'<div><div style="font-size:10px;color:var(--text2)">Quote</div><div style="font-size:12px;color:var(--amber-text)">'+(job.quote?fmtCurrency(job.quote):'—')+'</div></div>'
     +'<div><div style="font-size:10px;color:var(--text2)">Invoice</div><div style="font-size:12px;color:var(--green-text)">'+(job.invoice?fmtCurrency(job.invoice):'—')+'</div></div>'
     +'</div>'
+    +(job.bookedDate
+      ?'<div style="margin-bottom:10px;padding:10px;background:var(--green-bg);border-radius:8px;border:0.5px solid var(--green-text)"><div style="font-size:10px;color:var(--green-text);font-weight:600;margin-bottom:4px">&#128197; CONTRACTOR BOOKED</div><div style="font-size:12px;font-weight:500">'+job.bookedDate+(job.bookedTime?' &middot; '+job.bookedTime:'')+'</div>'+(job.bookedNotes?'<div style="font-size:11px;color:var(--text2);margin-top:3px">'+job.bookedNotes+'</div>':'')+'<button class="btn btn-sm btn-outline" style="margin-top:6px" onclick="openBookContractor()">Edit booking</button></div>'
+      :'<div style="margin-bottom:10px"><button class="btn btn-sm" style="background:var(--green-bg);color:var(--green-text)" onclick="openBookContractor()">&#128197; Book contractor</button></div>')
     +'<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Issue</div><div style="font-size:12px;padding:8px;background:var(--bg);border-radius:6px">'+(job.issue||'—')+'</div></div>'
     +(job.access?'<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Access</div><div style="font-size:12px;padding:8px;background:var(--bg);border-radius:6px">'+job.access+'</div></div>':'')
     +(job.notes?'<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Notes</div><div style="font-size:12px;padding:8px;background:var(--bg);border-radius:6px">'+job.notes+'</div></div>':'')
@@ -3269,7 +3326,7 @@ function openContractorJobs(cid){
     html+='<tr><td style="font-size:11px">'+(job.prop||'—')+'</td>'
       +'<td style="font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(job.issue||'—')+'</td>'
       +'<td style="font-size:11px">'+(job.category||'—')+'</td>'
-      +'<td><span class="badge '+statusPillClass(job.status)+'">'+(job.status||'—')+'</span></td>'
+      +'<td><span class="badge '+statusPillClass(job.status)+'">'+(job.status||'—')+'</span>'+(job.bookedDate?'<div style="font-size:10px;color:var(--green-text);font-weight:500;margin-top:3px">&#128197; '+job.bookedDate+'</div>':'')+'</td>'
       +'<td style="font-size:11px;color:var(--amber-text)">'+(job.quote?fmtCurrency(job.quote):'—')+'</td>'
       +'<td style="font-size:11px;color:var(--green-text)">'+(job.invoice?fmtCurrency(job.invoice):'—')+'</td>'
       +'<td style="font-size:10px;color:var(--text3)">'+(job.dateLogged||'—')+'</td>'
@@ -3364,11 +3421,23 @@ function deleteContractor(cid){
 }
 
 // Wire showPage for contractors
+function switchContTab(tab, btn){
+  document.getElementById('cont-view-list').style.display=tab==='list'?'block':'none';
+  document.getElementById('cont-view-week').style.display=tab==='week'?'block':'none';
+  document.querySelectorAll('#cont-tab-list,#cont-tab-week').forEach(function(b){ b.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  if(tab==='week'){
+    // Reset contractor selector
+    var sel=document.getElementById('week-contractor-sel');
+    if(sel){ sel.innerHTML=''; sel.options.length=0; }
+    renderWeeklyDiary();
+  }
+}
+
 var _spCont = showPage;
 showPage = function(id, btn){
   _spCont(id, btn);
   if(id==='contractors'){
-    // Always reload contractors from Firebase first
     fbGet('contractors', function(data){
       customContractors=[];
       if(data) Object.keys(data).forEach(function(k){
@@ -5159,6 +5228,203 @@ function exportReferralCSV(){
     rows.push([job.prop||'',c.name||'',job.issue||'','£'+invoice.toFixed(2),cfg.pct+'%','£'+fee.toFixed(2),rfPaid[job.fbKey]?'Paid':'Outstanding',job.dateLogged||'']);
   });
   downloadCSV(rows,'referral_fees.csv');
+}
+
+
+// ─── BOOK CONTRACTOR ─────────────────────────────────────────────────────────
+function openBookContractor(){
+  var job=jobs.find(function(j){ return j.fbKey===currentJobIdx; });
+  if(!job) return;
+  var c=getContractor(job.contractorId);
+  document.getElementById('bc-job-sub').textContent=(job.prop||'')+(c.name?' · '+c.name:'');
+  document.getElementById('bc-date').value=job.bookedDate||'';
+  document.getElementById('bc-time').value=job.bookedTime||'';
+  document.getElementById('bc-notes').value=job.bookedNotes||'';
+  var cur=document.getElementById('bc-current');
+  var clr=document.getElementById('bc-clear-btn');
+  if(job.bookedDate){
+    cur.style.display='block';
+    cur.textContent='Currently booked: '+job.bookedDate+(job.bookedTime?' · '+job.bookedTime:'');
+    clr.style.display='inline-block';
+  } else {
+    cur.style.display='none';
+    clr.style.display='none';
+  }
+  openModal('book-contractor-modal');
+}
+
+function saveBooking(){
+  var date=document.getElementById('bc-date').value;
+  if(!date){ showToast('Please enter a date'); return; }
+  var job=jobs.find(function(j){ return j.fbKey===currentJobIdx; });
+  if(!job) return;
+  job.bookedDate=date;
+  job.bookedTime=document.getElementById('bc-time').value;
+  job.bookedNotes=document.getElementById('bc-notes').value;
+  fbSet('jobs/'+currentJobIdx+'/bookedDate', date, function(){});
+  fbSet('jobs/'+currentJobIdx+'/bookedTime', job.bookedTime, function(){});
+  fbSet('jobs/'+currentJobIdx+'/bookedNotes', job.bookedNotes, function(){
+    closeModal('book-contractor-modal');
+    openJobDetail(currentJobIdx);
+    renderMaintenancePage();
+    renderChaseStrip();
+    showToast('Contractor booked for '+date);
+  });
+}
+
+function clearBooking(){
+  var job=jobs.find(function(j){ return j.fbKey===currentJobIdx; });
+  if(!job||!confirm('Clear this booking?')) return;
+  delete job.bookedDate; delete job.bookedTime; delete job.bookedNotes;
+  fbSet('jobs/'+currentJobIdx+'/bookedDate', null, function(){});
+  fbSet('jobs/'+currentJobIdx+'/bookedTime', null, function(){});
+  fbSet('jobs/'+currentJobIdx+'/bookedNotes', null, function(){
+    closeModal('book-contractor-modal');
+    openJobDetail(currentJobIdx);
+    renderMaintenancePage();
+    renderChaseStrip();
+    showToast('Booking cleared');
+  });
+}
+
+// ─── BULK MARK DEPOSITS PROTECTED ────────────────────────────────────────────
+function bulkMarkDepositsProtected(){
+  var target=properties.filter(function(p){ return p.depositStatus!=='Protected'; });
+  if(!target.length){ showToast('All deposits already marked as Protected'); return; }
+  var msg='Mark '+target.length+' deposits as Protected?\n\nThis will update all properties where deposit status is not already Protected.';
+  if(!confirm(msg)) return;
+  var pending=target.length, done=0;
+  target.forEach(function(p){
+    p.depositStatus='Protected';
+    if(p.fbKey){
+      fbSet('properties/'+p.fbKey+'/depositStatus','Protected',function(){
+        done++; pending--;
+        if(pending<=0){
+          renderPropsTable();
+          renderStatCards();
+          showToast(done+' deposits marked as Protected');
+        }
+      });
+    } else { pending--; }
+  });
+}
+
+// ─── CONTRACTOR WEEKLY DIARY ──────────────────────────────────────────────────
+var weekOffset=0;
+var weekContractorId='';
+
+function getWeekDates(offset){
+  var now=new Date();
+  var day=now.getDay()||7;
+  var monday=new Date(now);
+  monday.setDate(now.getDate()-day+1+(offset*7));
+  monday.setHours(0,0,0,0);
+  var days=[];
+  for(var i=0;i<7;i++){
+    var d=new Date(monday);
+    d.setDate(monday.getDate()+i);
+    days.push(d);
+  }
+  return days;
+}
+
+function fmtDateISO(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function fmtDateShort(d){
+  var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return days[d.getDay()]+' '+d.getDate()+' '+months[d.getMonth()];
+}
+
+function renderWeeklyDiary(){
+  var el=document.getElementById('weekly-diary');
+  if(!el) return;
+  var allC=getAllContractors();
+  var days=getWeekDates(weekOffset);
+  var weekStart=fmtDateShort(days[0]);
+  var weekEnd=fmtDateShort(days[6]);
+
+  // Header
+  document.getElementById('week-label').textContent=weekStart+' – '+weekEnd;
+
+  // Contractor selector
+  var sel=document.getElementById('week-contractor-sel');
+  if(sel&&!sel.options.length){
+    sel.innerHTML='<option value="">All contractors</option>'+allC.map(function(c){
+      return '<option value="'+c.id+'">'+c.name+'</option>';
+    }).join('');
+    sel.value=weekContractorId||'';
+  }
+
+  // Filter jobs
+  var bookedJobs=jobs.filter(function(j){
+    if(!j.bookedDate) return false;
+    if(weekContractorId&&j.contractorId!==weekContractorId) return false;
+    // Check if in this week
+    return days.some(function(d){ return fmtDateISO(d)===j.bookedDate; });
+  });
+
+  var unscheduled=jobs.filter(function(j){
+    if(j.status==='Complete') return false;
+    if(weekContractorId&&j.contractorId!==weekContractorId) return false;
+    return !j.bookedDate;
+  });
+
+  // Build day columns
+  var html='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:14px">';
+  days.forEach(function(d){
+    var iso=fmtDateISO(d);
+    var dayJobs=bookedJobs.filter(function(j){ return j.bookedDate===iso; });
+    var isToday=iso===fmtDateISO(new Date());
+    html+='<div style="background:'+(isToday?'var(--blue-bg)':'var(--bg)')+';border-radius:8px;padding:8px;min-height:80px;border:0.5px solid '+(isToday?'var(--blue-text)':'var(--border)')+'">'
+      +'<div style="font-size:10px;font-weight:600;color:'+(isToday?'var(--blue-text)':'var(--text2)')+';margin-bottom:6px">'+fmtDateShort(d)+'</div>';
+    if(!dayJobs.length){
+      html+='<div style="font-size:10px;color:var(--text3);text-align:center;padding:8px 0">—</div>';
+    } else {
+      dayJobs.forEach(function(j){
+        var c=getContractor(j.contractorId);
+        html+='<div style="background:#fff;border-radius:5px;padding:5px 7px;margin-bottom:5px;border:0.5px solid var(--border);cursor:pointer" data-jkey="'+j.fbKey+'" onclick="openJobDetail(this.dataset.jkey)">'
+          +'<div style="font-size:10px;font-weight:500;color:var(--text);line-height:1.3">'+(j.prop||'—')+'</div>'
+          +(j.bookedTime?'<div style="font-size:9px;color:var(--green-text);font-weight:600">'+j.bookedTime+'</div>':'')
+          +'<div style="font-size:9px;color:var(--text3)">'+c.name+'</div>'
+          +'<div style="font-size:9px;color:var(--text2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(j.issue||'')+'</div>'
+          +'</div>';
+      });
+    }
+    html+='</div>';
+  });
+  html+='</div>';
+
+  // Unscheduled jobs
+  if(unscheduled.length){
+    html+='<div class="card-title" style="margin-bottom:8px">Unscheduled jobs ('+unscheduled.length+')</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">';
+    unscheduled.slice(0,9).forEach(function(j){
+      var c=getContractor(j.contractorId);
+      html+='<div style="background:var(--bg);border-radius:6px;padding:8px;cursor:pointer;border:0.5px solid var(--border)" data-jkey="'+j.fbKey+'" onclick="openJobDetail(this.dataset.jkey)">'
+        +'<div style="font-size:11px;font-weight:500">'+(j.prop||'—')+'</div>'
+        +'<div style="font-size:10px;color:var(--text2)">'+c.name+'</div>'
+        +'<span class="badge badge-grey" style="margin-top:4px;font-size:9px">'+(j.status||'—')+'</span>'
+        +'<button class="btn btn-sm btn-outline" style="margin-top:6px;font-size:10px;width:100%" data-bkey="'+j.fbKey+'" onclick="event.stopPropagation();currentJobIdx=this.dataset.bkey;openBookContractor()">Book</button>'
+        +'</div>';
+    });
+    html+='</div>';
+    if(unscheduled.length>9) html+='<div style="font-size:11px;color:var(--text3);margin-top:8px">…and '+(unscheduled.length-9)+' more unscheduled jobs</div>';
+  }
+
+  el.innerHTML=html;
+}
+
+function weekNav(dir){
+  weekOffset+=dir;
+  renderWeeklyDiary();
+}
+
+function setWeekContractor(val){
+  weekContractorId=val;
+  renderWeeklyDiary();
 }
 
 </script>
