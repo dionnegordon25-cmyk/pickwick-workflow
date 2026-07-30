@@ -1644,8 +1644,8 @@ function renderStatCards(){
 
   // Row 2
   // Read deposit stats from properties (source of truth for deposit status)
-  var depDisputes=activeProps.filter(function(p){ return p.depositStatus&&p.depositStatus.toLowerCase().includes('dispute'); }).length;
-  var depReady=activeProps.filter(function(p){ return p.depositStatus&&p.depositStatus.toLowerCase().includes('available'); }).length;
+  var depDisputes=properties.filter(function(p){ return !p.archived&&p.depositStatus&&p.depositStatus.toLowerCase().includes('dispute'); }).length;
+  var depReady=properties.filter(function(p){ return !p.archived&&p.depositStatus&&p.depositStatus.toLowerCase().includes('available'); }).length;
 
   var gscDue=properties.filter(function(p){ return p.gsc&&daysUntil(p.gsc)<=60; }).length;
   var eicrDue=properties.filter(function(p){ return p.eicr&&daysUntil(p.eicr)<=60; }).length;
