@@ -222,14 +222,7 @@ select.field-input{cursor:pointer}
   <div class="content">
 
     <div id="page-dashboard" class="page active">
-      <!-- Scheduled panel -->
-      <div class="card" style="margin-bottom:10px" id="dash-scheduled-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-size:12px;font-weight:600;color:var(--navy)">📅 Upcoming scheduled jobs</div>
-          <button class="btn btn-outline btn-sm" onclick="showPage('maintenance',document.querySelectorAll('.nav-btn')[1]);setMainView('scheduled')">View all</button>
-        </div>
-        <div id="dash-scheduled"></div>
-      </div>
+
       <!-- Chase strip -->
       <div id="chase-strip" style="display:none;background:var(--red-bg);border:0.5px solid var(--red-border);border-radius:var(--radius-md);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;cursor:pointer" onclick="showPage('maintenance',document.querySelectorAll('.nav-btn')[1]);setMaintenanceFilter('chase')">
         <div><span id="chase-count" style="font-size:12px;font-weight:500;color:var(--red-text)"></span><span style="font-size:11px;color:#D85A30"> — no action logged for 3+ days</span></div>
@@ -331,33 +324,22 @@ select.field-input{cursor:pointer}
         </div>
       </div>
 
-      <!-- Two col layout -->
-      <div class="two-col">
+      <!-- Three col layout -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 280px;gap:10px;align-items:start">
 
-        <!-- LEFT: checklist + action required + compliance alerts -->
+        <!-- COL 1: Action required + follow-ups -->
         <div>
-
-          <!-- Daily checklist -->
           <div class="card" style="margin-bottom:10px">
-            <div class="card-title">Today's checklist <span id="checklist-date" style="font-size:10px;color:var(--text3)"></span></div>
-            <div id="checklist-items"></div>
-          </div>
-
-          <!-- Action required -->
-          <div class="card" style="margin-bottom:10px">
-            <div class="card-title">Action required <span style="font-size:10px;color:var(--text3);font-weight:400" onclick="navTo('compliance','expiring')" style="cursor:pointer">View all →</span></div>
+            <div class="card-title">Action required <span style="font-size:10px;color:var(--text3);font-weight:400;cursor:pointer" onclick="navTo('compliance','expiring')">View all →</span></div>
             <div id="dash-actions"></div>
           </div>
-
-          <!-- Follow-ups -->
           <div class="card">
             <div class="card-title">Follow-ups outstanding</div>
             <div id="dash-followups"></div>
           </div>
-
         </div>
 
-        <!-- RIGHT: open maintenance jobs -->
+        <!-- COL 2: Open maintenance jobs -->
         <div>
           <div class="card">
             <div class="card-title">
@@ -368,6 +350,17 @@ select.field-input{cursor:pointer}
               </div>
             </div>
             <div id="dash-jobs"></div>
+          </div>
+        </div>
+
+        <!-- COL 3: Scheduled calendar -->
+        <div>
+          <div class="card" style="padding:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="font-size:12px;font-weight:600;color:var(--navy)">&#128197; Scheduled jobs</div>
+              <button class="btn btn-outline btn-sm" style="font-size:10px" onclick="showPage('maintenance',document.querySelectorAll('.nav-btn')[1]);setMainView('scheduled')">View all</button>
+            </div>
+            <div id="dash-scheduled"></div>
           </div>
         </div>
 
