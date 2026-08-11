@@ -222,6 +222,14 @@ select.field-input{cursor:pointer}
   <div class="content">
 
     <div id="page-dashboard" class="page active">
+      <!-- Scheduled panel -->
+      <div class="card" style="margin-bottom:10px" id="dash-scheduled-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:12px;font-weight:600;color:var(--navy)">📅 Upcoming scheduled jobs</div>
+          <button class="btn btn-outline btn-sm" onclick="showPage('maintenance',document.querySelectorAll('.nav-btn')[1]);setMainView('scheduled')">View all</button>
+        </div>
+        <div id="dash-scheduled"></div>
+      </div>
       <!-- Chase strip -->
       <div id="chase-strip" style="display:none;background:var(--red-bg);border:0.5px solid var(--red-border);border-radius:var(--radius-md);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;cursor:pointer" onclick="showPage('maintenance',document.querySelectorAll('.nav-btn')[1]);setMaintenanceFilter('chase')">
         <div><span id="chase-count" style="font-size:12px;font-weight:500;color:var(--red-text)"></span><span style="font-size:11px;color:#D85A30"> — no action logged for 3+ days</span></div>
@@ -377,6 +385,8 @@ select.field-input{cursor:pointer}
           <option value="Awaiting approval">Awaiting approval</option>
           <option value="In progress">In progress</option>
           <option value="Complete">Complete</option>
+          <option value="Date booked">Date booked</option>
+          <option value="Quote rejected">Quote rejected</option>
           <option value="Overdue">Overdue</option>
           <option value="chase">Needs chasing (3d+)</option>
           <option value="On hold">On hold</option>
@@ -390,10 +400,13 @@ select.field-input{cursor:pointer}
       </div>
       <!-- View toggle -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div style="display:flex;gap:4px">
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
           <button class="btn btn-sm" id="view-list-btn" onclick="setMainView('list')" style="background:var(--navy);color:#fff">List</button>
           <button class="btn btn-outline btn-sm" id="view-kanban-btn" onclick="setMainView('kanban')">Kanban</button>
           <button class="btn btn-outline btn-sm" id="view-contractor-btn" onclick="setMainView('contractor')">By contractor</button>
+          <button class="btn btn-outline btn-sm" id="view-scheduled-btn" onclick="setMainView('scheduled')" style="background:var(--green-bg);color:var(--green-text);border-color:var(--green-text)">📅 Scheduled</button>
+          <button class="btn btn-outline btn-sm" id="view-completed-btn" onclick="setMainView('completed')">✓ Completed</button>
+          <button class="btn btn-outline btn-sm" id="view-rejected-btn" onclick="setMainView('rejected')" style="background:var(--red-bg);color:var(--red-text);border-color:var(--red-text)">✕ Quote rejected</button>
         </div>
         <div id="maint-count" style="font-size:11px;color:var(--text3)"></div>
       </div>
@@ -428,6 +441,28 @@ select.field-input{cursor:pointer}
           <div style="flex:1;min-width:200px;background:var(--bg);border-radius:8px;padding:10px" id="k-awaiting-approval"></div>
           <div style="flex:1;min-width:200px;background:var(--bg);border-radius:8px;padding:10px" id="k-in-progress"></div>
           <div style="flex:1;min-width:200px;background:var(--bg);border-radius:8px;padding:10px" id="k-complete"></div>
+        </div>
+      </div>
+      <!-- Scheduled view -->
+      <div id="maint-scheduled-view" style="display:none">
+        <div id="scheduled-content"></div>
+      </div>
+      <!-- Completed view -->
+      <div id="maint-completed-view" style="display:none">
+        <div class="card" style="padding:0;overflow:hidden">
+          <table class="tbl">
+            <thead><tr><th>Property</th><th>Issue</th><th>Contractor</th><th>Invoice</th><th>Completed</th><th></th></tr></thead>
+            <tbody id="completed-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Quote rejected view -->
+      <div id="maint-rejected-view" style="display:none">
+        <div class="card" style="padding:0;overflow:hidden">
+          <table class="tbl">
+            <thead><tr><th>Property</th><th>Issue</th><th>Contractor</th><th>Quote</th><th>Logged</th><th></th></tr></thead>
+          <tbody id="rejected-tbody"></tbody>
+          </table>
         </div>
       </div>
       <!-- By contractor view -->
@@ -1013,7 +1048,10 @@ select.field-input{cursor:pointer}
       <div class="field-group"><label class="field-label">Tenant name</label><input class="field-input" id="aj-tenant" placeholder="Auto-fills from address"></div>
       <div class="field-group"><label class="field-label">Tenant phone</label><input class="field-input" id="aj-phone" placeholder="Auto-fills from address"></div>
       <div class="field-group"><label class="field-label">Contractor</label><select class="field-input" id="aj-contractor"><option value="">No contractor yet</option></select></div>
-      <div class="field-group"><label class="field-label">Category</label><select class="field-input" id="aj-category"><option>Gas / Heating</option><option>Plumbing</option><option>Electrical</option><option>Glazing</option><option>Carpentry</option><option>Painting &amp; decorating</option><option>Damp / Structural</option><option>Roofing</option><option>Cleaning</option><option>Appliance repair</option><option>General</option><option>Other</option></select></div>
+      <div class="field-group"><label class="field-label">Category</label><select class="field-input" id="aj-category"><option>Gas / Heating</option><option>Plumbing</option><option>Electrical</option><option>Glazing</option><option>Carpentry</option><option>Painting &amp; decorating</option><option>Damp / Structural</option><option>Roofing</option><option>Cleaning</option><option>Appliance repair</option><option>General</option><option>Other</option>
+        <option>Cleaning</option>
+        <option>Inventory</option>
+        </select></div>
       <div class="field-group"><label class="field-label">Status</label><select class="field-input" id="aj-status"><option>Awaiting contractor</option><option>Quote received</option><option>Awaiting approval</option><option>In progress</option><option>On hold</option><option>Monitoring</option><option>Complete</option></select></div>
       <div class="field-group" style="grid-column:1/-1"><label class="field-label">Issue description *</label><textarea class="field-input" id="aj-issue" rows="2" placeholder="Describe the issue..."></textarea></div>
       <div class="field-group"><label class="field-label">Access details</label><input class="field-input" id="aj-access" placeholder="Key at office, tenant to arrange..."></div>
@@ -1068,7 +1106,10 @@ select.field-input{cursor:pointer}
       <div class="field-group"><label class="field-label">Tenant</label><input class="field-input" id="ej-tenant"></div>
       <div class="field-group"><label class="field-label">Tenant phone</label><input class="field-input" id="ej-phone"></div>
       <div class="field-group"><label class="field-label">Contractor</label><select class="field-input" id="ej-contractor"><option value="">No contractor</option></select></div>
-      <div class="field-group"><label class="field-label">Category</label><select class="field-input" id="ej-category"><option>Gas / Heating</option><option>Plumbing</option><option>Electrical</option><option>Glazing</option><option>Carpentry</option><option>Painting &amp; decorating</option><option>Damp / Structural</option><option>Roofing</option><option>Cleaning</option><option>Appliance repair</option><option>General</option><option>Other</option></select></div>
+      <div class="field-group"><label class="field-label">Category</label><select class="field-input" id="ej-category"><option>Gas / Heating</option><option>Plumbing</option><option>Electrical</option><option>Glazing</option><option>Carpentry</option><option>Painting &amp; decorating</option><option>Damp / Structural</option><option>Roofing</option><option>Cleaning</option><option>Appliance repair</option><option>General</option><option>Other</option>
+        <option>Cleaning</option>
+        <option>Inventory</option>
+        </select></div>
       <div class="field-group"><label class="field-label">Status</label><select class="field-input" id="ej-status"><option>Awaiting contractor</option><option>Quote received</option><option>Awaiting approval</option><option>In progress</option><option>On hold</option><option>Monitoring</option><option>Complete</option><option>Overdue</option></select></div>
       <div class="field-group" style="grid-column:1/-1"><label class="field-label">Issue</label><textarea class="field-input" id="ej-issue" rows="2"></textarea></div>
       <div class="field-group"><label class="field-label">Access</label><input class="field-input" id="ej-access"></div>
@@ -1786,16 +1827,26 @@ var currentJobIdx = null;
 
 function setMainView(v){
   currentView = v;
-  document.getElementById('maint-list-view').style.display = v==='list'?'block':'none';
-  document.getElementById('maint-kanban-view').style.display = v==='kanban'?'block':'none';
-  document.getElementById('maint-contractor-view').style.display = v==='contractor'?'block':'none';
-  var btns = ['view-list-btn','view-kanban-btn','view-contractor-btn'];
-  var views = ['list','kanban','contractor'];
-  btns.forEach(function(b,i){
-    var el=document.getElementById(b);
+  var viewMap = {
+    'list':'maint-list-view','kanban':'maint-kanban-view',
+    'contractor':'maint-contractor-view','scheduled':'maint-scheduled-view',
+    'completed':'maint-completed-view','rejected':'maint-rejected-view'
+  };
+  Object.keys(viewMap).forEach(function(k){
+    var el=document.getElementById(viewMap[k]);
+    if(el) el.style.display=k===v?'block':'none';
+  });
+  var btnMap = {
+    'list':'view-list-btn','kanban':'view-kanban-btn','contractor':'view-contractor-btn',
+    'scheduled':'view-scheduled-btn','completed':'view-completed-btn','rejected':'view-rejected-btn'
+  };
+  Object.keys(btnMap).forEach(function(k){
+    var el=document.getElementById(btnMap[k]);
     if(!el) return;
-    if(views[i]===v){ el.style.background='var(--navy)'; el.style.color='#fff'; el.style.border='none'; }
-    else { el.style.background='#fff'; el.style.color='var(--text)'; el.style.border='0.5px solid var(--border2)'; }
+    var active=k===v;
+    if(k==='scheduled'){ el.style.background=active?'var(--green-text)':' var(--green-bg)'; el.style.color=active?'#fff':'var(--green-text)'; }
+    else if(k==='rejected'){ el.style.background=active?'var(--red-text)':'var(--red-bg)'; el.style.color=active?'#fff':'var(--red-text)'; }
+    else { el.style.background=active?'var(--navy)':'#fff'; el.style.color=active?'#fff':'var(--text)'; el.style.border=active?'none':'0.5px solid var(--border2)'; }
   });
   renderMaintenancePage();
 }
@@ -1859,7 +1910,7 @@ function autoFillTenant(){
 }
 
 // ─── FILTER JOBS ─────────────────────────────────────────────────────────────
-function getFilteredJobs(){
+function getFilteredJobs(includeAll){
   var search=(document.getElementById('maint-search')||{}).value||'';
   var status=(document.getElementById('maint-status-filter')||{}).value||'';
   var contractor=(document.getElementById('maint-contractor-filter')||{}).value||'';
@@ -1931,8 +1982,11 @@ function renderKanban(){
     'Quote received':{id:'k-quote-received',label:'Quote received',color:'var(--purple-text)'},
     'Awaiting approval':{id:'k-awaiting-approval',label:'Awaiting approval',color:'var(--amber-text)'},
     'In progress':{id:'k-in-progress',label:'In progress',color:'var(--blue-text)'},
-    'Complete':{id:'k-complete',label:'Complete',color:'var(--green-text)'}
+    'Date booked':{id:'k-date-booked',label:'Date booked',color:'var(--green-text)'},
+    'On hold':{id:'k-on-hold',label:'On hold',color:'var(--text3)'}
   };
+  // Kanban only shows open jobs — Complete/Rejected handled in their own tabs
+  filtered=filtered.filter(function(j){ return j.status!=='Complete'&&j.status!=='Quote rejected'; });
   Object.keys(cols).forEach(function(status){
     var col=cols[status];
     var el=document.getElementById(col.id);
@@ -2022,6 +2076,9 @@ function renderMaintenancePage(){
   populatePropDatalist();
   if(currentView==='list') renderJobsList();
   else if(currentView==='kanban') renderKanban();
+  else if(currentView==='scheduled') renderScheduled();
+  else if(currentView==='completed') renderCompleted();
+  else if(currentView==='rejected') renderRejected();
   else renderByContractor();
 }
 
@@ -5540,6 +5597,114 @@ function bulkAssignIds(){
       });
     } else { pending--; if(pending<=0) showToast(done+' IDs assigned'); }
   });
+}
+
+
+// ─── RENDER SCHEDULED ────────────────────────────────────────────────────────
+function renderScheduled(){
+  var el=document.getElementById('scheduled-content');
+  if(!el) return;
+  var scheduled=jobs.filter(function(j){
+    return j.bookedDate && j.status!=='Complete';
+  }).sort(function(a,b){ return a.bookedDate.localeCompare(b.bookedDate); });
+
+  if(!scheduled.length){
+    el.innerHTML='<div class="card card-pad" style="text-align:center;color:var(--text3);padding:40px">No scheduled jobs — use the Book contractor button on any job to schedule it.</div>';
+    return;
+  }
+
+  // Group by date
+  var byDate={};
+  scheduled.forEach(function(j){
+    if(!byDate[j.bookedDate]) byDate[j.bookedDate]=[];
+    byDate[j.bookedDate].push(j);
+  });
+
+  var html='';
+  var today=new Date(); today.setHours(0,0,0,0);
+  var tomorrow=new Date(today); tomorrow.setDate(today.getDate()+1);
+
+  Object.keys(byDate).sort().forEach(function(dateStr){
+    var d=new Date(dateStr+'T00:00:00');
+    var isToday=d.getTime()===today.getTime();
+    var isTomorrow=d.getTime()===tomorrow.getTime();
+    var isPast=d<today;
+    var label=isToday?'Today':isTomorrow?'Tomorrow — send reminders tonight':formatDateDMY(dateStr);
+    var headerBg=isToday?'var(--green-text)':isTomorrow?'var(--amber-text)':isPast?'var(--red-text)':'var(--navy)';
+
+    html+='<div style="margin-bottom:16px">'
+      +'<div style="background:'+headerBg+';color:#fff;padding:8px 14px;border-radius:8px 8px 0 0;font-size:12px;font-weight:600">'+label+' <span style="font-weight:400;opacity:0.85">('+byDate[dateStr].length+' job'+(byDate[dateStr].length>1?'s':'')+')</span></div>'
+      +'<div style="background:#fff;border:0.5px solid var(--border);border-top:none;border-radius:0 0 8px 8px;overflow:hidden">';
+
+    byDate[dateStr].forEach(function(job,ji){
+      var c=getContractor(job.contractorId);
+      var isInventory=job.category==='Inventory'||job.category==='Cleaning';
+      var tenantPhone=job.tenantPhone||'';
+      var contractorPhone=c.phone||'';
+      var tMsg=encodeURIComponent('Hi '+( job.tenant||'')+ ', this is a reminder that we have a visit scheduled at your property tomorrow'+(job.bookedTime?' at '+job.bookedTime:'')+ '. Please ensure access is available. Thank you — Pickwick Estates');
+      var cMsg=encodeURIComponent('Hi '+c.name+', reminder that you have a job booked at '+(job.prop||'the property')+(job.bookedTime?' tomorrow at '+job.bookedTime:' tomorrow')+'. Please confirm attendance. Thanks — Pickwick Estates');
+      var tEmail=job.tenantEmail||'';
+      var cEmail=c.email||'';
+
+      html+='<div style="display:grid;grid-template-columns:1fr auto;gap:12px;padding:12px 14px;'+(ji>0?'border-top:0.5px solid var(--border)':'')+'">'        +'<div>'        +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'        +(isInventory?'<span style="font-size:9px;background:var(--purple-bg);color:var(--purple-text);padding:1px 6px;border-radius:10px;font-weight:600">'+job.category+'</span>':'')        +'<div style="font-size:12px;font-weight:600;color:var(--navy)">'+(job.prop||'—')+'</div>'        +'</div>'        +'<div style="font-size:11px;color:var(--text2);margin-bottom:2px">'+(job.issue||'—')+'</div>'        +'<div style="display:flex;gap:12px;font-size:11px;color:var(--text3)">'        +(job.bookedTime?'<span>⏰ '+job.bookedTime+'</span>':'')        +(!isInventory&&c.name?'<span>🔧 '+c.name+'</span>':'')        +(job.tenant?'<span>👤 '+job.tenant+'</span>':'')        +'</div>'        +(job.bookedNotes?'<div style="font-size:10px;color:var(--text2);margin-top:4px;font-style:italic">'+job.bookedNotes+'</div>':'')        +'</div>'        +'<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">'        +'<button class="btn btn-outline btn-sm" data-jk="'+job.fbKey+'" onclick="openJobDetail(this.dataset.jk)">Open</button>'        +(!isInventory&&c.name?'<div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:4px">Contractor</div>'          +(contractorPhone?'<a href="https://wa.me/44'+contractorPhone.replace(/^0/,'').replace(/ /g,'')+'?text='+cMsg+'" target="_blank" class="btn btn-sm" style="background:#25D366;color:#fff;font-size:10px">WhatsApp</a>':'')          +(cEmail?'<a href="mailto:'+cEmail+'?subject=Job+reminder&body='+cMsg+'" class="btn btn-outline btn-sm" style="font-size:10px">Email</a>':''):'')
+        +(job.tenant?'<div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:4px">Tenant</div>'          +(tenantPhone?'<a href="https://wa.me/44'+tenantPhone.replace(/^0/,'').replace(/ /g,'')+'?text='+tMsg+'" target="_blank" class="btn btn-sm" style="background:#25D366;color:#fff;font-size:10px">WhatsApp</a>':'')          +(tEmail?'<a href="mailto:'+tEmail+'?subject=Visit+reminder&body='+tMsg+'" class="btn btn-outline btn-sm" style="font-size:10px">Email</a>':''):'')
+        +'</div>'        +'</div>';
+    });
+    html+='</div></div>';
+  });
+
+  el.innerHTML=html;
+}
+
+// ─── RENDER COMPLETED ─────────────────────────────────────────────────────────
+function renderCompleted(){
+  var tbody=document.getElementById('completed-tbody');
+  if(!tbody) return;
+  var done=jobs.filter(function(j){ return j.status==='Complete'; })
+    .sort(function(a,b){ return (b.dateLogged||'').localeCompare(a.dateLogged||''); });
+  if(!done.length){ tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text3)">No completed jobs</td></tr>'; return; }
+  tbody.innerHTML=done.map(function(j){
+    var c=getContractor(j.contractorId);
+    return '<tr style="cursor:pointer" data-jk="'+j.fbKey+'" onclick="openJobDetail(this.dataset.jk)">'      +'<td style="font-size:11px;font-weight:500">'+(j.prop||'—')+'</td>'      +'<td style="font-size:11px;color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(j.issue||'—')+'</td>'      +'<td style="font-size:11px">'+(c.name||'—')+'</td>'      +'<td style="font-size:12px;color:var(--green-text);font-weight:500">'+(j.invoice?'£'+parseFloat(j.invoice).toLocaleString('en-GB'):'—')+'</td>'      +'<td style="font-size:11px;color:var(--text3)">'+(j.dateLogged?formatDateDMY(j.dateLogged):'—')+'</td>'      +'<td><button class="btn btn-outline btn-sm" data-jk="'+j.fbKey+'" onclick="event.stopPropagation();openJobDetail(this.dataset.jk)">Open</button></td>'      +'</tr>';
+  }).join('');
+}
+
+// ─── RENDER REJECTED ──────────────────────────────────────────────────────────
+function renderRejected(){
+  var tbody=document.getElementById('rejected-tbody');
+  if(!tbody) return;
+  var rejected=jobs.filter(function(j){ return j.status==='Quote rejected'; })
+    .sort(function(a,b){ return (b.dateLogged||'').localeCompare(a.dateLogged||''); });
+  if(!rejected.length){ tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text3)">No rejected quotes</td></tr>'; return; }
+  tbody.innerHTML=rejected.map(function(j){
+    var c=getContractor(j.contractorId);
+    return '<tr style="cursor:pointer" data-jk="'+j.fbKey+'" onclick="openJobDetail(this.dataset.jk)">'      +'<td style="font-size:11px;font-weight:500">'+(j.prop||'—')+'</td>'      +'<td style="font-size:11px;color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(j.issue||'—')+'</td>'      +'<td style="font-size:11px">'+(c.name||'—')+'</td>'      +'<td style="font-size:12px;color:var(--red-text);font-weight:500">'+(j.quote?'£'+parseFloat(j.quote).toLocaleString('en-GB'):'—')+'</td>'      +'<td style="font-size:11px;color:var(--text3)">'+(j.dateLogged?formatDateDMY(j.dateLogged):'—')+'</td>'      +'<td><button class="btn btn-outline btn-sm" data-jk="'+j.fbKey+'" onclick="event.stopPropagation();openJobDetail(this.dataset.jk)">Open</button></td>'      +'</tr>';
+  }).join('');
+}
+
+function formatDateDMY(str){
+  if(!str) return '—';
+  var p=str.split('-');
+  if(p.length===3) return p[2]+'/'+p[1]+'/'+p[0];
+  return str;
+}
+
+// ─── DASHBOARD SCHEDULED PANEL ────────────────────────────────────────────────
+function renderDashboardScheduled(){
+  var el=document.getElementById('dash-scheduled');
+  if(!el) return;
+  var today=new Date(); today.setHours(0,0,0,0);
+  var scheduled=jobs.filter(function(j){
+    return j.bookedDate && j.status!=='Complete';
+  }).sort(function(a,b){ return a.bookedDate.localeCompare(b.bookedDate); }).slice(0,10);
+  if(!scheduled.length){ el.innerHTML='<div style="font-size:11px;color:var(--text3);text-align:center;padding:20px">No upcoming scheduled jobs</div>'; return; }
+  el.innerHTML=scheduled.map(function(j){
+    var d=new Date(j.bookedDate+'T00:00:00');
+    var diff=Math.round((d-today)/(1000*60*60*24));
+    var badge=diff<0?'<span class="badge badge-red">Overdue</span>':diff===0?'<span class="badge badge-green">Today</span>':diff===1?'<span class="badge badge-amber">Tomorrow</span>':'<span class="badge badge-grey">'+j.bookedDate+'</span>';
+    var c=getContractor(j.contractorId);
+    return '<div style="padding:8px 0;border-bottom:0.5px solid var(--border);cursor:pointer" data-jk="'+j.fbKey+'" onclick="openJobDetail(this.dataset.jk)">'      +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'      +'<div style="font-size:11px;font-weight:500;color:var(--navy);flex:1">'+(j.prop||'—')+'</div>'      +badge      +'</div>'      +'<div style="font-size:10px;color:var(--text2);margin-top:2px">'+(j.bookedTime?j.bookedTime+' · ':'')+( c.name||j.category||'')+'</div>'      +'</div>';
+  }).join('');
 }
 
 </script>
