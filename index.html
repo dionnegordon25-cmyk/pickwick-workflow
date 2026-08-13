@@ -377,7 +377,7 @@ select.field-input{cursor:pointer}
           <option value="Quote received">Quote received</option>
           <option value="Awaiting approval">Awaiting approval</option>
           <option value="In progress">In progress</option>
-          <option value="Complete">Complete</option>
+          <!-- Complete has its own tab -->
           <option value="Date booked">Date booked</option>
           <option value="Quote rejected">Quote rejected</option>
           <option value="Overdue">Overdue</option>
@@ -1923,6 +1923,8 @@ function getFilteredJobs(includeAll){
     if(status==='chase') return needsChase(j);
     if(status==='urgent') return j.urgent===true;
     if(status&&j.status!==status) return false;
+    // Complete and Quote rejected live in their own tabs — hide from all main views
+    if(!status&&(j.status==='Complete'||j.status==='Quote rejected')) return false;
     if(contractor&&j.contractorId!==contractor) return false;
     if(search){
       var hay=(j.prop||'')+' '+(j.tenant||'')+' '+(j.issue||'')+' '+(j.contractorId||'')+' '+(j.category||'');
@@ -5688,17 +5690,73 @@ function renderDashboardScheduled(){
   var el=document.getElementById('dash-scheduled');
   if(!el) return;
   var today=new Date(); today.setHours(0,0,0,0);
+  var tomorrow=new Date(today); tomorrow.setDate(today.getDate()+1);
+  var cutoff=new Date(today); cutoff.setDate(today.getDate()+14);
+  var cutoffStr=cutoff.toISOString().slice(0,10);
   var scheduled=jobs.filter(function(j){
-    return j.bookedDate && j.status!=='Complete';
-  }).sort(function(a,b){ return a.bookedDate.localeCompare(b.bookedDate); }).slice(0,10);
-  if(!scheduled.length){ el.innerHTML='<div style="font-size:11px;color:var(--text3);text-align:center;padding:20px">No upcoming scheduled jobs</div>'; return; }
-  el.innerHTML=scheduled.map(function(j){
-    var d=new Date(j.bookedDate+'T00:00:00');
-    var diff=Math.round((d-today)/(1000*60*60*24));
-    var badge=diff<0?'<span class="badge badge-red">Overdue</span>':diff===0?'<span class="badge badge-green">Today</span>':diff===1?'<span class="badge badge-amber">Tomorrow</span>':'<span class="badge badge-grey">'+j.bookedDate+'</span>';
-    var c=getContractor(j.contractorId);
-    return '<div style="padding:8px 0;border-bottom:0.5px solid var(--border);cursor:pointer" data-jk="'+j.fbKey+'" onclick="openJobDetail(this.dataset.jk)">'      +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'      +'<div style="font-size:11px;font-weight:500;color:var(--navy);flex:1">'+(j.prop||'—')+'</div>'      +badge      +'</div>'      +'<div style="font-size:10px;color:var(--text2);margin-top:2px">'+(j.bookedTime?j.bookedTime+' · ':'')+( c.name||j.category||'')+'</div>'      +'</div>';
-  }).join('');
+    if(!j.bookedDate||j.status==='Complete') return false;
+    return j.bookedDate<=cutoffStr;
+  }).sort(function(a,b){ return a.bookedDate.localeCompare(b.bookedDate); });
+
+  if(!scheduled.length){
+    el.innerHTML='<div style="font-size:11px;color:var(--text3);text-align:center;padding:20px">No jobs scheduled in the next 14 days</div>';
+    return;
+  }
+
+  // Group by date
+  var byDate={};
+  scheduled.forEach(function(j){ if(!byDate[j.bookedDate]) byDate[j.bookedDate]=[]; byDate[j.bookedDate].push(j); });
+
+  var html='';
+  Object.keys(byDate).sort().forEach(function(dateStr){
+    var d=new Date(dateStr+'T00:00:00');
+    var isToday=d.getTime()===today.getTime();
+    var isTomorrow=d.getTime()===tomorrow.getTime();
+    var isPast=d<today;
+    var headerBg=isToday?'var(--green-text)':isTomorrow?'var(--amber-text)':isPast?'var(--red-text)':'var(--navy)';
+    var dayLabel=isToday?'Today':isTomorrow?'Tomorrow':formatDateDMY(dateStr);
+    html+='<div style="margin-bottom:8px">'
+      +'<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#fff;background:'+headerBg+';padding:3px 8px;border-radius:4px;margin-bottom:4px">'+dayLabel+' <span style="font-weight:400;opacity:0.85">('+byDate[dateStr].length+')</span></div>';
+
+    byDate[dateStr].forEach(function(j){
+      var c=getContractor(j.contractorId);
+      // Day counter from booked date
+      var bookedD=new Date(j.bookedDate+'T00:00:00');
+      var daysSince=Math.floor((today-bookedD)/(1000*60*60*24));
+      var dayCounter=daysSince>0?' · Day '+daysSince:'';
+      // Status pill
+      var sPill=j.status==='In progress'?'var(--blue-bg);color:var(--blue-text)'
+        :j.status==='Awaiting contractor'?'var(--amber-bg);color:var(--amber-text)'
+        :j.status==='Awaiting approval'?'var(--purple-bg);color:var(--purple-text)'
+        :j.status==='Date booked'?'var(--green-bg);color:var(--green-text)'
+        :'var(--bg2);color:var(--text2)';
+      // Reminder links for today/tomorrow
+      var tenantPhone=j.tenantPhone||'';
+      var contractorPhone=c.phone||'';
+      var tMsg=encodeURIComponent('Hi '+(j.tenant||'')+', this is a reminder that we have a visit scheduled at your property'+(isTomorrow?' tomorrow':' today')+(j.bookedTime?' at '+j.bookedTime:'')+'. Please ensure access is available. Thank you — Pickwick Estates');
+      var cMsg=encodeURIComponent('Hi '+c.name+', reminder that you have a job booked at '+(j.prop||'the property')+(isTomorrow?' tomorrow':' today')+(j.bookedTime?' at '+j.bookedTime:'')+'. Please confirm attendance. Thanks — Pickwick Estates');
+      var tEmail=j.tenantEmail||'';
+      var cEmail=c.email||'';
+
+      html+='<div style="background:var(--bg);border-radius:6px;padding:7px 9px;margin-bottom:4px;border-left:3px solid '+headerBg+';cursor:pointer" data-jk="'+j.fbKey+'" onclick="openJobDetail(this.dataset.jk)">'
+        +'<div style="font-size:11px;font-weight:500;color:var(--navy)">'+(j.prop||'—')+'</div>'
+        +'<div style="display:flex;align-items:center;gap:4px;margin-top:3px;flex-wrap:wrap">'
+        +'<span style="font-size:9px;font-weight:600;padding:1px 6px;border-radius:8px;background:'+sPill+'">'+(j.status||'—')+'</span>'
+        +(dayCounter?'<span style="font-size:9px;color:var(--text3)">'+dayCounter+'</span>':'')
+        +'</div>'
+        +(j.bookedTime?'<div style="font-size:10px;color:var(--green-text);font-weight:500;margin-top:2px">'+j.bookedTime+'</div>':'')
+        +'<div style="font-size:10px;color:var(--text2)">'+(c.name||j.category||'')+'</div>'
+        +((isToday||isTomorrow)?'<div style="display:flex;gap:3px;margin-top:5px;flex-wrap:wrap">'
+          +(contractorPhone?'<a href="https://wa.me/44'+contractorPhone.replace(/^0/,'').replace(/ /g,'')+'?text='+cMsg+'" target="_blank" style="font-size:9px;padding:2px 6px;border-radius:4px;background:#E8F5E9;color:#2E7D32;text-decoration:none" onclick="event.stopPropagation()">C: WA</a>':'')
+          +(cEmail?'<a href="mailto:'+cEmail+'?subject=Job+reminder&body='+cMsg+'" style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--blue-bg);color:var(--blue-text);text-decoration:none" onclick="event.stopPropagation()">C: Email</a>':'')
+          +(tenantPhone?'<a href="https://wa.me/44'+tenantPhone.replace(/^0/,'').replace(/ /g,'')+'?text='+tMsg+'" target="_blank" style="font-size:9px;padding:2px 6px;border-radius:4px;background:#E8F5E9;color:#2E7D32;text-decoration:none" onclick="event.stopPropagation()">T: WA</a>':'')
+          +(tEmail?'<a href="mailto:'+tEmail+'?subject=Visit+reminder&body='+tMsg+'" style="font-size:9px;padding:2px 6px;border-radius:4px;background:var(--blue-bg);color:var(--blue-text);text-decoration:none" onclick="event.stopPropagation()">T: Email</a>':'')
+          +'</div>':'')
+        +'</div>';
+    });
+    html+='</div>';
+  });
+  el.innerHTML=html;
 }
 
 </script>
