@@ -1261,6 +1261,20 @@ select.field-input{cursor:pointer}
   </div>
 </div>
 
+<!-- DUPLICATE FINDER MODAL -->
+<div class="modal-overlay" id="dupe-modal">
+  <div class="modal" style="max-width:920px;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div>
+        <div class="modal-title">Smart Duplicate Finder</div>
+        <div id="dupe-subtitle" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="closeModal('dupe-modal')">Close</button>
+    </div>
+    <div id="dupe-body"></div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -3833,6 +3847,13 @@ function buildReportCards(){
 function buildImportExportPanel(){
   var container=document.getElementById('import-export-panel');
   if(!container) return;
+  // Add data tools section at top
+  var toolsDiv=document.createElement('div');
+  toolsDiv.innerHTML='<div class="card-title" style="margin-bottom:8px">Data tools</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
+    +'<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red-text)" onclick="findDuplicates()">&#128269; Smart duplicate finder</button>'
+    +'</div>';
+  container.parentNode.insertBefore(toolsDiv, container);
   var sections=[
     {label:'Properties (address, tenant, rent, deposit status)',exportFn:'exportPropertiesCSV',importFn:'importPropertiesCSV'},
     {label:'Landlord details (name, email, mobile per property)',exportFn:'exportLandlordsCSV',importFn:'importLandlordsCSV'},
@@ -5929,6 +5950,79 @@ function renderPropDocsHistory(){
   });
   html+='</tbody></table></div>';
   el.innerHTML=html;
+}
+
+
+// ─── SMART DUPLICATE FINDER ───────────────────────────────────────────────────
+function findDuplicates(){
+  // Group properties by normalised address
+  var seen={}, dupeGroups=[];
+  properties.forEach(function(p){
+    var key=(p.address||'').toLowerCase().trim().replace(/\s+/g,' ');
+    if(!key) return;
+    if(!seen[key]) seen[key]=[];
+    seen[key].push(p);
+  });
+  Object.keys(seen).forEach(function(k){ if(seen[k].length>1) dupeGroups.push(seen[k]); });
+
+  if(!dupeGroups.length){
+    showToast('No duplicate addresses found — all clear!');
+    return;
+  }
+
+  document.getElementById('dupe-subtitle').textContent=
+    dupeGroups.length+' duplicate group'+(dupeGroups.length>1?'s':'')+' found. Keep one record per address and delete the rest.';
+
+  var html='';
+  dupeGroups.forEach(function(group,gi){
+    html+='<div style="margin-bottom:20px;border:0.5px solid var(--border);border-radius:8px;overflow:hidden">'
+      +'<div style="background:var(--red-bg);padding:8px 14px;font-size:11px;font-weight:600;color:var(--red-text)">'
+      +'&#9888; Duplicate address: '+(group[0].address||'—')+' ('+group.length+' records found)</div>'
+      +'<div style="display:grid;grid-template-columns:repeat('+Math.min(group.length,3)+',1fr);gap:0">';
+
+    group.forEach(function(p,pi){
+      var propJobs=jobs.filter(function(j){return (j.prop||'').toLowerCase().trim()===(p.address||'').toLowerCase().trim();}).length;
+      var hasCompliance=p.gsc||p.eicr||p.epc;
+      var hasTenant=p.tenant;
+      var mgmt=(!p.letOnly||p.letOnly==='n')?'Fully Managed':p.letOnly==='let-only'?'Let Only':'Let Only — Deposit Held';
+
+      html+='<div style="padding:12px 14px;'+(pi>0?'border-left:0.5px solid var(--border)':'')+'">'
+        +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">'
+        +(p.propId?'<span style="font-size:9px;font-weight:700;color:#fff;background:var(--navy);padding:1px 6px;border-radius:4px">'+p.propId+'</span>':'<span style="font-size:9px;color:var(--text3);background:var(--bg);padding:1px 6px;border-radius:4px">No ID</span>')
+        +'<span style="font-size:11px;font-weight:500;color:var(--navy)">Copy '+(pi+1)+'</span>'
+        +'</div>'
+        +'<div style="font-size:11px;color:var(--text2);margin-bottom:3px">Tenant: <strong style="color:var(--text)">'+(p.tenant||'—')+'</strong></div>'
+        +'<div style="font-size:11px;color:var(--text2);margin-bottom:3px">Landlord: <strong style="color:var(--text)">'+(p.llName||'—')+'</strong></div>'
+        +'<div style="font-size:11px;color:var(--text2);margin-bottom:3px">Rent: <strong style="color:var(--text)">'+(p.rent?'£'+p.rent+'/mo':'—')+'</strong></div>'
+        +'<div style="font-size:11px;color:var(--text2);margin-bottom:6px">Type: <strong style="color:var(--text)">'+mgmt+'</strong></div>'
+        +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">'
+        +(hasTenant?'<span style="font-size:9px;background:var(--green-bg);color:var(--green-text);padding:1px 6px;border-radius:8px;font-weight:500">Has tenant</span>':'<span style="font-size:9px;background:var(--bg);color:var(--text3);padding:1px 6px;border-radius:8px">No tenant</span>')
+        +(propJobs?'<span style="font-size:9px;background:var(--blue-bg);color:var(--blue-text);padding:1px 6px;border-radius:8px;font-weight:500">'+propJobs+' jobs</span>':'<span style="font-size:9px;background:var(--bg);color:var(--text3);padding:1px 6px;border-radius:8px">No jobs</span>')
+        +(hasCompliance?'<span style="font-size:9px;background:var(--purple-bg);color:var(--purple-text);padding:1px 6px;border-radius:8px;font-weight:500">Has compliance</span>':'')
+        +(p.archived?'<span style="font-size:9px;background:#6B7280;color:#fff;padding:1px 6px;border-radius:8px">Archived</span>':'')
+        +'</div>'
+        +'<div style="display:flex;gap:6px">'
+        +'<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red-text);flex:1" data-fk="'+p.fbKey+'" data-gi="'+gi+'" onclick="deleteDupe(this.dataset.fk,this.dataset.gi)">&#10005; Delete this</button>'
+        +'</div>'
+        +'</div>';
+    });
+
+    html+='</div></div>';
+  });
+
+  document.getElementById('dupe-body').innerHTML=html;
+  openModal('dupe-modal');
+}
+
+function deleteDupe(fbKey, gi){
+  if(!confirm('Delete this property record? This cannot be undone.')) return;
+  fbDelete('properties/'+fbKey, function(){
+    properties=properties.filter(function(p){ return p.fbKey!==fbKey; });
+    showToast('Property deleted');
+    renderPropsTable();
+    renderStatCards();
+    findDuplicates(); // refresh modal
+  });
 }
 
 </script>
