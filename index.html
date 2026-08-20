@@ -1765,12 +1765,19 @@ function loadDashboard(){
     renderDashFollowups();
     renderDashboardScheduled();
   });
-  // Load properties
+  // Load properties — always reset first to prevent duplicates
   fbGet('properties', function(data){
-    if(data&&Array.isArray(data)) properties=data;
-    else if(data&&typeof data==='object') properties=Object.values(data);
+    properties=[];
+    if(data&&typeof data==='object'&&!Array.isArray(data)){
+      Object.keys(data).forEach(function(k){
+        var p=data[k];
+        if(p&&p.address){ p.fbKey=k; properties.push(p); }
+      });
+    }
     renderStatCards();
     renderDashActions();
+    renderPropsTable();
+    populatePropDatalist();
   });
   // Load deposits
   fbGet('deposits', function(data){
@@ -2946,12 +2953,14 @@ function saveNewProp(){
   };
   fbPush('properties', prop, function(key){
     prop.fbKey=key;
-    properties.push(prop);
+    if(!properties.find(function(p){return p.fbKey===key;})){
+      properties.push(prop);
+    }
     closeModal('add-prop-modal');
     renderPropsTable();
     renderStatCards();
     populatePropDatalist();
-    showToast('Property added');
+    showToast('Property added'+(prop.propId?' — ID: '+prop.propId:''));
   });
 }
 
@@ -2959,7 +2968,17 @@ function saveNewProp(){
 var _spPrev2=showPage;
 showPage=function(id,btn){
   _spPrev2(id,btn);
-  if(id==='properties') renderPropsTable();
+  if(id==='properties'){
+    // Reload from Firebase to ensure fresh data without duplicates
+    fbGet('properties', function(data){
+      properties=[];
+      if(data&&typeof data==='object'&&!Array.isArray(data)){
+        Object.keys(data).forEach(function(k){ var p=data[k]; if(p&&p.address){ p.fbKey=k; properties.push(p); } });
+      }
+      renderPropsTable();
+      populatePropDatalist();
+    });
+  }
 };
 
 
@@ -3878,7 +3897,10 @@ function importPropertiesCSV(input){
       if(!prop.address){pending--;continue;}
       (function(p){
         fbPush('properties',p,function(key){
-          p.fbKey=key; properties.push(p);
+          p.fbKey=key;
+          if(!properties.find(function(x){return x.fbKey===key;})){
+            properties.push(p);
+          }
           imported++;
           pending--;
           if(pending<=0){
