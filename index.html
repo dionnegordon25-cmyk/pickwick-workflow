@@ -3731,8 +3731,11 @@ function renderPastTenants(){
       // Tenure length
       var tenure='';
       if(p.startDate&&p.endDate){
-        var months=Math.round((new Date(p.endDate)-new Date(p.startDate))/(1000*60*60*24*30));
-        tenure=months>=12?Math.floor(months/12)+'yr '+(months%12?months%12+'mo':''):months+'mo';
+        var sd=new Date(p.startDate); var ed=new Date(p.endDate);
+        if(!isNaN(sd)&&!isNaN(ed)&&ed>sd){
+          var months=Math.round((ed-sd)/(1000*60*60*24*30));
+          tenure=months>=12?Math.floor(months/12)+'yr'+(months%12?' '+months%12+'mo':''):months+'mo';
+        }
       }
       html+='<div style="background:var(--bg);border-radius:8px;padding:10px 12px;cursor:pointer" data-ptk="'+p.fbKey+'" onclick="openEditPastTenant(this.dataset.ptk)">'
         +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">'
