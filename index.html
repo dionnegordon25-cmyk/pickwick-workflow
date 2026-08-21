@@ -1,4 +1,4 @@
-A<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2689,9 +2689,8 @@ function renderPropsTable(){
   }
   var html='';
   filtered.forEach(function(p){
-    var realIdx=properties.indexOf(p);
     var depClass=depStatusClass(p.depositStatus);
-    html+='<tr style="cursor:pointer" onclick="openPropDetail('+realIdx+')">'
+    html+='<tr style="cursor:pointer" data-fk="'+p.fbKey+'" onclick="openPropDetail(this.dataset.fk)">'
       +'<td><div style="font-size:12px;font-weight:500;color:var(--text)">'+(p.address||'—')+'</div>'
       +(p.startDate?'<div style="font-size:10px;color:var(--text3)">Since '+p.startDate+'</div>':'')
       +'</td>'
@@ -2708,7 +2707,7 @@ function renderPropsTable(){
       +'<td style="font-size:11px">'+(p.mgmtFee?p.mgmtFee+'%':'—')+'</td>'
       +'<td style="font-size:11px">'+(p.startDate||'—')+'</td>'
       +'<td><span class="badge '+depClass+'">'+(p.depositStatus||'—')+'</span></td>'
-      +'<td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openPropDetail('+realIdx+')">Open</button></td>'
+      +'<td><button class="btn btn-outline btn-sm" data-fk="'+p.fbKey+'" onclick="event.stopPropagation();openPropDetail(this.dataset.fk)">Open</button></td>'
       +'</tr>';
   });
   tbody.innerHTML=html;
@@ -2763,9 +2762,10 @@ function renderPropSidebar(){
 
 // ─── PROPERTY DETAIL MODAL ───────────────────────────────────────────────────
 function openPropDetail(idx){
-  var p=properties[idx];
+  // Support both fbKey (string) and array index (number) for backwards compat
+  var p=typeof idx==='string'?properties.find(function(x){return x.fbKey===idx;}):properties[idx];
   if(!p) return;
-  currentPropIdx=idx;
+  currentPropIdx=properties.indexOf(p);
   propEditMode=false;
   document.getElementById('pd-title').textContent=p.address||'Property';
   document.getElementById('pd-sub').textContent=(p.tenant||'No tenant')+' · '+(p.startDate?'Since '+p.startDate:'');
@@ -3175,11 +3175,11 @@ function renderCompTable(){
   var html='';
   filtered.forEach(function(p, i){
     var idx = properties.indexOf(p);
-    html += '<tr onclick="openPropDetail('+idx+')" style="cursor:pointer">'
+    html += '<tr data-fk="'+p.fbKey+'" onclick="openPropDetail(this.dataset.fk)" style="cursor:pointer">'
       +'<td><div style="font-size:12px;font-weight:500;color:var(--text)">'+(p.address||'—')+'</div>'
       +'<div style="font-size:10px;color:var(--text2)">'+(p.tenant||'—')+'</div></td>'
       +CERT_FIELDS.map(function(c){ var d=effectiveCertDate(p,c.key); return '<td>'+certPill(d,p.letOnly&&p.letOnly!=='n')+(c.derived&&!p[c.key]&&p[c.derived]?'<div style="font-size:8px;color:var(--text3)">↑'+c.derived.toUpperCase()+'</div>':'')+'</td>'; }).join('')
-      +'<td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openPropDetail('+idx+')">Open</button></td>'
+      +'<td><button class="btn btn-outline btn-sm" data-fk="'+p.fbKey+'" onclick="event.stopPropagation();openPropDetail(this.dataset.fk)">Open</button></td>'
       +'</tr>';
   });
   tbody.innerHTML = html;
@@ -3239,7 +3239,7 @@ function renderCompSidebar(){
         var bg=u.days<0?'var(--red-bg)':u.days<=30?'var(--red-bg)':'var(--amber-bg)';
         var border=u.days<0?'var(--red-text)':u.days<=30?'var(--red-text)':'var(--amber-text)';
         var badge=u.days<0?'OVERDUE':u.days+'d';
-        return '<div style="padding:6px 8px;margin-bottom:4px;background:'+bg+';border-left:3px solid '+border+';cursor:pointer" onclick="openPropDetail('+u.idx+')">'
+        return '<div style="padding:6px 8px;margin-bottom:4px;background:'+bg+';border-left:3px solid '+border+';cursor:pointer" data-fk="'+(u.fbKey||u.prop&&u.prop.fbKey||'')+'" onclick="openPropDetail(this.dataset.fk)">'
           +'<div style="display:flex;justify-content:space-between"><div style="font-size:11px;font-weight:500;color:var(--text)">'+(u.prop.address||'—')+'</div>'
           +'<span style="font-size:9px;font-weight:500;color:'+border+'">'+badge+'</span></div>'
           +'<div style="font-size:10px;color:var(--text2)">'+u.cert+'</div></div>';
@@ -3259,7 +3259,7 @@ function renderCompSidebar(){
     else {
       annivEl.innerHTML = annivs.map(function(p){
         var d=daysUntil(p.aptAnniversary);
-        return '<div style="padding:6px 8px;margin-bottom:4px;background:var(--blue-bg);border-left:3px solid var(--blue-text);cursor:pointer" onclick="openPropDetail('+properties.indexOf(p)+')">'
+        return '<div style="padding:6px 8px;margin-bottom:4px;background:var(--blue-bg);border-left:3px solid var(--blue-text);cursor:pointer" data-fk="'+p.fbKey+'" onclick="openPropDetail(this.dataset.fk)">'
           +'<div style="display:flex;justify-content:space-between"><div style="font-size:11px;font-weight:500;color:var(--text)">'+(p.address||'—')+'</div>'
           +'<span style="font-size:9px;font-weight:500;color:var(--blue-text)">'+d+'d</span></div>'
           +'<div style="font-size:10px;color:var(--text2)">'+(p.rent?'£'+parseFloat(p.rent).toLocaleString('en-GB')+'/mo':'—')+' · '+(p.tenant||'—')+'</div></div>';
@@ -3302,7 +3302,7 @@ function getDepData(){
       amount: p.deposit||0,
       startDate: p.startDate||'—',
       status: p.depositStatus||'Protected',
-      propIdx: properties.indexOf(p)
+      propIdx: properties.indexOf(p), propFbKey: p?p.fbKey:''
     });
   });
   // Also include any standalone deposit records from Firebase
@@ -3386,7 +3386,7 @@ function renderDepTable(){
   filtered.forEach(function(d){
     var pillClass = depRowClass(d.status);
     var rowBg = (d.status||'').toLowerCase().includes('dispute') ? 'background:#FFF8F6;' : '';
-    html += '<tr style="cursor:pointer;'+rowBg+'" '+(d.propIdx!==null?'onclick="openPropDetail('+d.propIdx+')"':'')+'>'
+    html += '<tr style="cursor:pointer;'+rowBg+'" '+(d.propFbKey?'data-fk="'+d.propFbKey+'" onclick="openPropDetail(this.dataset.fk)"':'')+'>'
       +'<td><div style="font-size:12px;font-weight:500;color:var(--text)">'+(d.address||'—')+'</div></td>'
       +'<td style="font-size:11px">'+(d.tenant||'—')+'</td>'
       +'<td style="font-size:12px;font-weight:500;color:var(--navy)">'+(d.rent?'£'+parseFloat(d.rent).toLocaleString('en-GB'):'—')+'</td>'
@@ -3394,7 +3394,7 @@ function renderDepTable(){
       +'<td style="font-size:12px;font-weight:500">'+(d.amount?'£'+parseFloat(d.amount).toLocaleString('en-GB'):'—')+'</td>'
       +'<td style="font-size:11px">'+(d.startDate||'—')+'</td>'
       +'<td><span class="badge '+pillClass+'">'+(d.status||'—')+'</span></td>'
-      +'<td>'+(d.propIdx!==null?'<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openPropDetail('+d.propIdx+')">Open</button>':'')+'</td>'
+      +'<td>'+(d.propFbKey?'<button class="btn btn-outline btn-sm" data-fk="'+d.propFbKey+'" onclick="event.stopPropagation();openPropDetail(this.dataset.fk)">Open</button>':'')+'</td>'
       +'</tr>';
   });
   tbody.innerHTML = html;
