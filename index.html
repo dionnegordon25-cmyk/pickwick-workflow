@@ -2110,11 +2110,11 @@ function renderKanban(){
   // Kanban only shows open jobs — Complete/Rejected handled in their own tabs
   filtered=filtered.filter(function(j){ return j.status!=='Complete'&&j.status!=='Quote rejected'; });
   var cols=[
-    {id:'k-new',label:'New',sub:'job instructed, awaiting quote',color:'var(--amber-text)',match:function(j){return j.status==='Awaiting contractor';}},
-    {id:'k-quote-received',label:'Quote received',sub:'awaiting approval',color:'var(--purple-text)',match:function(j){return j.status==='Quote received'||j.status==='Awaiting approval';}},
-    {id:'k-in-progress',label:'In progress',sub:'contractor instructed',color:'var(--blue-text)',match:function(j){return j.status==='In progress';}},
-    {id:'k-diary',label:'Diary',sub:'scheduled date',color:'var(--green-text)',match:function(j){return j.status==='Date booked';}},
-    {id:'k-on-hold',label:'On hold',sub:'',color:'var(--text3)',match:function(j){return j.status==='On hold';}}
+    {id:'k-new',label:'New',sub:'job instructed, awaiting quote',color:'var(--amber-text)',match:function(j){return !j.bookedDate && j.status==='Awaiting contractor';}},
+    {id:'k-quote-received',label:'Quote received',sub:'awaiting approval',color:'var(--purple-text)',match:function(j){return !j.bookedDate && (j.status==='Quote received'||j.status==='Awaiting approval');}},
+    {id:'k-in-progress',label:'In progress',sub:'contractor instructed',color:'var(--blue-text)',match:function(j){return !j.bookedDate && j.status==='In progress';}},
+    {id:'k-diary',label:'Diary',sub:'scheduled date',color:'var(--green-text)',match:function(j){return !!j.bookedDate;}},
+    {id:'k-on-hold',label:'On hold',sub:'',color:'var(--text3)',match:function(j){return !j.bookedDate && j.status==='On hold';}}
   ];
   cols.forEach(function(col){
     var el=document.getElementById(col.id);
@@ -2149,6 +2149,7 @@ function renderKanban(){
           +(rejectedQ.length?'<span style="font-size:9px;padding:1px 6px;border-radius:10px;background:var(--red-bg);color:var(--red-text);white-space:nowrap;flex-shrink:0">'+rejectedQ.length+' rejected</span>':'')
           +'</div>'
           +'<div style="font-size:10px;color:var(--text2);margin-top:2px">'+(job.issue||'—')+'</div>'
+          +(job.bookedDate?'<div style="font-size:10px;color:var(--green-text);font-weight:500;margin-top:3px">'+formatDateDMY(job.bookedDate)+(job.bookedTime?' · '+job.bookedTime:'')+'</div>':'')
           +'<div style="font-size:10px;color:var(--text3);margin-top:3px">'+(getContractor(job.contractorId).name||'No contractor')+(job.quote?' · '+fmtCurrency(job.quote):'')+'</div>'
           +quoteSummary
           +'</div>';
@@ -5962,7 +5963,7 @@ function renderScheduled(){
     var isToday=d.getTime()===today.getTime();
     var isTomorrow=d.getTime()===tomorrow.getTime();
     var isPast=d<today;
-    var label=isToday?'Today':isTomorrow?'Tomorrow':formatDateDMY(dateStr);
+    var label=isToday?'Today':isTomorrow?'Tomorrow':formatDateDayDMY(dateStr);
     var labelColor=isToday?'var(--green-text)':isTomorrow?'var(--amber-text)':isPast?'var(--red-text)':'var(--text2)';
     var dayJobs=byDate[dateStr];
 
@@ -6020,6 +6021,14 @@ function formatDateDMY(str){
   var p=str.split('-');
   if(p.length===3) return p[2]+'/'+p[1]+'/'+p[0];
   return str;
+}
+
+function formatDateDayDMY(str){
+  if(!str) return '—';
+  var d=new Date(str+'T00:00:00');
+  if(isNaN(d)) return formatDateDMY(str);
+  var day=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+  return day+' '+formatDateDMY(str);
 }
 
 // ─── DASHBOARD SCHEDULED PANEL ────────────────────────────────────────────────
