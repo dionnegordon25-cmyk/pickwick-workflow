@@ -205,7 +205,7 @@ select.field-input{cursor:pointer}
         <button class="nav-btn active" onclick="showPage('dashboard',this)">Dashboard</button>
         <button class="nav-btn" onclick="showPage('maintenance',this)">Maintenance</button>
         <button class="nav-btn" onclick="showPage('offeraccepted',this)">Offer Accepted</button>
-        <button class="nav-btn" onclick="showPage('moveins',this)">Move-ins</button>
+        <button class="nav-btn" onclick="showPage('moveins',this)">Movements</button>
         <button class="nav-btn" onclick="showPage('properties',this)">All properties</button>
         <button class="nav-btn" onclick="showPage('compliance',this)">Compliance</button>
         <button class="nav-btn" onclick="showPage('deposits',this)">Deposits</button>
@@ -429,11 +429,11 @@ select.field-input{cursor:pointer}
       <!-- Kanban view -->
       <div id="maint-kanban-view" style="display:none">
         <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px">
-          <div style="flex:1;min-width:200px;background:var(--bg);border-radius:8px;padding:10px" id="k-awaiting-contractor"></div>
-          <div style="flex:1;min-width:200px;background:var(--bg);border-radius:8px;padding:10px" id="k-quote-received"></div>
-          <div style="flex:1;min-width:200px;background:var(--bg);border-radius:8px;padding:10px" id="k-awaiting-approval"></div>
-          <div style="flex:1;min-width:200px;background:var(--bg);border-radius:8px;padding:10px" id="k-in-progress"></div>
-          <div style="flex:1;min-width:200px;background:var(--bg);border-radius:8px;padding:10px" id="k-complete"></div>
+          <div style="flex:1;min-width:190px;background:var(--bg);border-radius:8px;padding:10px" id="k-new"></div>
+          <div style="flex:1;min-width:190px;background:var(--bg);border-radius:8px;padding:10px" id="k-quote-received"></div>
+          <div style="flex:1;min-width:190px;background:var(--bg);border-radius:8px;padding:10px" id="k-in-progress"></div>
+          <div style="flex:1;min-width:190px;background:var(--bg);border-radius:8px;padding:10px" id="k-diary"></div>
+          <div style="flex:1;min-width:160px;background:var(--bg);border-radius:8px;padding:10px" id="k-on-hold"></div>
         </div>
       </div>
       <!-- Scheduled view -->
@@ -474,27 +474,42 @@ select.field-input{cursor:pointer}
     </div>
 
     <div id="page-moveins" class="page">
-      <div class="ops-bar">
-        <input class="search-bar" id="mi-search" placeholder="Search address, tenant..." oninput="filterMoveIns()">
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <button class="btn btn-sm" id="mvsub-in-btn" onclick="setMovementsSub('in')" style="background:var(--navy);color:#fff">&#8594; Move-ins</button>
+        <button class="btn btn-outline btn-sm" id="mvsub-out-btn" onclick="setMovementsSub('out')">&#8592; Move-outs</button>
       </div>
-      <div class="filter-pills" id="mi-filter-pills">
-        <div class="filter-pill active" onclick="setMiFilter('all',this)">All</div>
-        <div class="filter-pill" onclick="setMiFilter('not-started',this)">Not started</div>
-        <div class="filter-pill" onclick="setMiFilter('in-progress',this)">In progress</div>
-        <div class="filter-pill" onclick="setMiFilter('complete',this)">Complete</div>
-      </div>
-      <div class="two-col-wide">
-        <div id="mi-cards"></div>
-        <div>
-          <div class="card" style="margin-bottom:10px">
-            <div class="card-title">Move-in summary</div>
-            <div id="mi-summary"></div>
-          </div>
-          <div class="card">
-            <div class="card-title">Pending actions</div>
-            <div id="mi-pending"></div>
+
+      <div id="mvsub-in-section">
+        <div class="ops-bar">
+          <input class="search-bar" id="mi-search" placeholder="Search address, tenant..." oninput="filterMoveIns()">
+        </div>
+        <div class="filter-pills" id="mi-filter-pills">
+          <div class="filter-pill active" onclick="setMiFilter('all',this)">All</div>
+          <div class="filter-pill" onclick="setMiFilter('not-started',this)">Not started</div>
+          <div class="filter-pill" onclick="setMiFilter('in-progress',this)">In progress</div>
+          <div class="filter-pill" onclick="setMiFilter('complete',this)">Complete</div>
+        </div>
+        <div class="two-col-wide">
+          <div id="mi-cards"></div>
+          <div>
+            <div class="card" style="margin-bottom:10px">
+              <div class="card-title">Move-in summary</div>
+              <div id="mi-summary"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">Pending actions</div>
+              <div id="mi-pending"></div>
+            </div>
           </div>
         </div>
+      </div>
+
+      <div id="mvsub-out-section" style="display:none">
+        <div class="ops-bar">
+          <input class="search-bar" id="mo-search" placeholder="Search address, tenant..." oninput="renderMoveOuts()">
+        </div>
+        <div id="mo-cards"></div>
+        <div id="mo-empty" style="text-align:center;padding:60px;color:var(--text3);font-size:12px;display:none">No tenants currently vacating — use "Notice received" on a property to start tracking one</div>
       </div>
     </div>
 
@@ -865,6 +880,7 @@ select.field-input{cursor:pointer}
     <div id="pd-inspections" style="display:none"></div>
     <div class="modal-footer" id="pd-footer">
       <button class="btn btn-red btn-sm" onclick="deleteProp()">Delete</button>
+      <button class="btn btn-sm" style="background:var(--purple-bg);color:var(--purple-text)" onclick="openNoticeReceived()">Notice received</button>
       <button class="btn btn-sm" style="background:var(--amber-bg);color:var(--amber-text)" onclick="openEndTenancy()">End tenancy</button>
       <button class="btn btn-sm" style="background:#6B7280;color:#fff" onclick="openArchiveProp()">Archive</button>
       <button class="btn btn-sm" style="background:var(--green-bg);color:var(--green-text)" onclick="openReLet()">&#8635; Re-let</button>
@@ -1022,6 +1038,22 @@ select.field-input{cursor:pointer}
   </div>
 </div>
 
+<!-- NOTICE RECEIVED MODAL -->
+<div class="modal-overlay" id="notice-received-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">Notice received</div>
+    <div class="modal-sub" id="nr-address"></div>
+    <div class="field-group"><label class="field-label">Notice date</label><input class="field-input" id="nr-date" type="date"></div>
+    <div style="background:var(--purple-bg);border-radius:var(--radius-md);padding:10px 12px;font-size:11px;color:var(--purple-text);margin-bottom:4px">
+      This starts a vacating checklist on the Movements page (notes sent, inventory booked). It does not end the tenancy — use "End tenancy" once they've actually left.
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('notice-received-modal')">Cancel</button>
+      <button class="btn btn-navy" onclick="confirmNoticeReceived()">Start checklist</button>
+    </div>
+  </div>
+</div>
+
 <!-- END TENANCY MODAL -->
 <div class="modal-overlay" id="end-tenancy-modal">
   <div class="modal" style="max-width:560px">
@@ -1129,6 +1161,10 @@ select.field-input{cursor:pointer}
       <div class="field-group" style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:8px;background:var(--red-bg);border-radius:var(--radius-md)">
         <input type="checkbox" id="ej-urgent" style="width:16px;height:16px;accent-color:var(--red-text)">
         <label for="ej-urgent" style="font-size:12px;font-weight:500;color:var(--red-text);cursor:pointer">⚡ Mark as urgent</label>
+      </div>
+      <div class="field-group" style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:8px;background:var(--amber-bg);border-radius:var(--radius-md)">
+        <input type="checkbox" id="ej-secondvisit" style="width:16px;height:16px;accent-color:var(--amber-text)">
+        <label for="ej-secondvisit" style="font-size:12px;font-weight:500;color:var(--amber-text);cursor:pointer">2nd visit / quote pending — job stays In progress but flagged</label>
       </div>
     </div>
     <div class="modal-footer">
@@ -1551,7 +1587,7 @@ function fbDelete(path, cb){
 }
 
 // ─── DATA STORES ──────────────────────────────────────────────────────────────
-var jobs=[], properties=[], contractors=[], deposits=[], moveins=[], pastTenants=[], offers=[];
+var jobs=[], properties=[], contractors=[], deposits=[], moveins=[], moveouts=[], pastTenants=[], offers=[];
 
 // ─── NAV WITH FILTER ─────────────────────────────────────────────────────────
 function navTo(page, filter){
@@ -1869,6 +1905,12 @@ function loadDashboard(){
     if(data) Object.keys(data).forEach(function(k){ var m=data[k]; m.fbKey=k; moveins.push(m); });
     renderStatCards();
   });
+  // Load move-outs
+  fbGet('moveouts', function(data){
+    moveouts=[];
+    if(data) Object.keys(data).forEach(function(k){ var m=data[k]; m.fbKey=k; moveouts.push(m); });
+    renderStatCards();
+  });
 }
 
 // ─── PLACEHOLDER FUNCTIONS (stubs until pages built) ─────────────────────────
@@ -2065,22 +2107,23 @@ function renderJobsList(){
 // ─── RENDER KANBAN ────────────────────────────────────────────────────────────
 function renderKanban(){
   var filtered=getFilteredJobs();
-  var cols={
-    'Awaiting contractor':{id:'k-awaiting-contractor',label:'Awaiting contractor',color:'var(--amber-text)'},
-    'Quote received':{id:'k-quote-received',label:'Quote received',color:'var(--purple-text)'},
-    'Awaiting approval':{id:'k-awaiting-approval',label:'Awaiting approval',color:'var(--amber-text)'},
-    'In progress':{id:'k-in-progress',label:'In progress',color:'var(--blue-text)'},
-    'Date booked':{id:'k-date-booked',label:'Date booked',color:'var(--green-text)'},
-    'On hold':{id:'k-on-hold',label:'On hold',color:'var(--text3)'}
-  };
   // Kanban only shows open jobs — Complete/Rejected handled in their own tabs
   filtered=filtered.filter(function(j){ return j.status!=='Complete'&&j.status!=='Quote rejected'; });
-  Object.keys(cols).forEach(function(status){
-    var col=cols[status];
+  var cols=[
+    {id:'k-new',label:'New',sub:'job instructed, awaiting quote',color:'var(--amber-text)',match:function(j){return j.status==='Awaiting contractor';}},
+    {id:'k-quote-received',label:'Quote received',sub:'awaiting approval',color:'var(--purple-text)',match:function(j){return j.status==='Quote received'||j.status==='Awaiting approval';}},
+    {id:'k-in-progress',label:'In progress',sub:'contractor instructed',color:'var(--blue-text)',match:function(j){return j.status==='In progress';}},
+    {id:'k-diary',label:'Diary',sub:'scheduled date',color:'var(--green-text)',match:function(j){return j.status==='Date booked';}},
+    {id:'k-on-hold',label:'On hold',sub:'',color:'var(--text3)',match:function(j){return j.status==='On hold';}}
+  ];
+  cols.forEach(function(col){
     var el=document.getElementById(col.id);
     if(!el) return;
-    var colJobs=filtered.filter(function(j){ return j.status===status; });
-    var html='<div style="font-size:11px;font-weight:500;color:'+col.color+';margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid var(--border)">'+col.label+' <span style="font-size:10px;color:var(--text3)">('+colJobs.length+')</span></div>';
+    var colJobs=filtered.filter(col.match);
+    var html='<div style="margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid var(--border)">'
+      +'<div style="font-size:11px;font-weight:500;color:'+col.color+'">'+col.label+' <span style="font-size:10px;color:var(--text3)">('+colJobs.length+')</span></div>'
+      +(col.sub?'<div style="font-size:9px;color:var(--text3)">('+col.sub+')</div>':'')
+      +'</div>';
     colJobs.forEach(function(job){
       var chase=needsChase(job);
       var days=chase?daysSince(job.lastActionDate||job.dateLogged):0;
@@ -2102,6 +2145,7 @@ function renderKanban(){
         return '<div style="background:#fff;border:0.5px solid var(--border);border-radius:8px;padding:9px;margin-bottom:6px;cursor:pointer'+(chase?';border-left:3px solid var(--red-text)':'')+'" onclick="openJobDetail(this.dataset.key)" data-key='+job.fbKey+'>'
           +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px">'
           +'<div style="font-size:11px;font-weight:500;color:var(--text);flex:1">'+(job.prop||'—')+(chase?' <span style="color:var(--red-text)">⚠'+days+'d</span>':'')+'</div>'
+          +(job.secondVisit?'<span style="font-size:9px;padding:1px 6px;border-radius:10px;background:var(--amber-bg);color:var(--amber-text);white-space:nowrap;flex-shrink:0">2nd visit</span>':'')
           +(rejectedQ.length?'<span style="font-size:9px;padding:1px 6px;border-radius:10px;background:var(--red-bg);color:var(--red-text);white-space:nowrap;flex-shrink:0">'+rejectedQ.length+' rejected</span>':'')
           +'</div>'
           +'<div style="font-size:10px;color:var(--text2);margin-top:2px">'+(job.issue||'—')+'</div>'
@@ -2316,6 +2360,7 @@ function openEditJobModal(fbKey){
   var statusEl=document.getElementById('ej-status'); if(statusEl) statusEl.value=job.status||'';
   var catEl=document.getElementById('ej-category'); if(catEl) catEl.value=job.category||'';
   var cEl=document.getElementById('ej-contractor'); if(cEl) cEl.value=job.contractorId||'';
+  var svEl=document.getElementById('ej-secondvisit'); if(svEl) svEl.checked=!!job.secondVisit;
   document.getElementById('ej-sub').textContent=job.prop||'';
   openModal('edit-job-modal');
 }
@@ -2336,6 +2381,7 @@ function saveEditJob(){
   job.invoice=document.getElementById('ej-invoice').value||null;
   job.photoLink=document.getElementById('ej-photo').value;
   job.urgent=document.getElementById('ej-urgent').checked;
+  job.secondVisit=document.getElementById('ej-secondvisit').checked;
   var now=new Date();
   job.lastActionDate=('0'+now.getDate()).slice(-2)+'/'+('0'+(now.getMonth()+1)).slice(-2)+'/'+now.getFullYear();
   fbSet('jobs/'+currentJobIdx, job, function(){
@@ -3719,9 +3765,9 @@ function renderPastTenants(){
 
   var html='';
   Object.keys(byYear).sort().reverse().forEach(function(yr){
-    html+='<div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px;padding-bottom:4px;border-bottom:0.5px solid var(--border)">'+yr+' <span style="font-weight:400;color:var(--text3)">('+byYear[yr].length+')</span></div>';
-    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">';
-    byYear[yr].forEach(function(p){
+    html+='<div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 4px;padding-bottom:4px;border-bottom:0.5px solid var(--border)">'+yr+' <span style="font-weight:400;color:var(--text3)">('+byYear[yr].length+')</span></div>';
+    html+='<div style="background:#fff;border:0.5px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:4px">';
+    byYear[yr].forEach(function(p,pi){
       var ds=(p.depositStatus||'').toLowerCase();
       var dpill=ds.includes('dispute')?'badge-red':ds.includes('deduction')?'badge-amber':'badge-green';
       var dpillLabel=ds.includes('dispute')?'Dispute':ds.includes('deduction')?'Deduction':ds.includes('return')?'Returned':'—';
@@ -3737,20 +3783,16 @@ function renderPastTenants(){
           tenure=months>=12?Math.floor(months/12)+'yr'+(months%12?' '+months%12+'mo':''):months+'mo';
         }
       }
-      html+='<div style="background:var(--bg);border-radius:8px;padding:10px 12px;cursor:pointer" data-ptk="'+p.fbKey+'" onclick="openEditPastTenant(this.dataset.ptk)">'
-        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">'
-        +'<div style="width:30px;height:30px;border-radius:50%;background:'+avatarBg+';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:'+avatarColor+';flex-shrink:0">'+initials+'</div>'
-        +'<div style="min-width:0">'
-        +'<div style="font-size:12px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(p.tenant||'—')+'</div>'
+      html+='<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer'+(pi>0?';border-top:0.5px solid var(--border)':'')+'" data-ptk="'+p.fbKey+'" onclick="openEditPastTenant(this.dataset.ptk)">'
+        +'<div style="width:24px;height:24px;border-radius:50%;background:'+avatarBg+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:'+avatarColor+';flex-shrink:0">'+initials+'</div>'
+        +'<div style="min-width:0;flex:1;display:flex;align-items:center;gap:8px">'
+        +'<div style="min-width:0;flex:1">'
+        +'<div style="font-size:11px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(p.tenant||'—')+'</div>'
         +'<div style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(p.address||'—')+'</div>'
-        +'</div></div>'
-        +'<div style="font-size:10px;color:var(--text2);margin-bottom:2px">'+(p.startDate||'—')+' → '+(p.endDate||'—')+(tenure?' · '+tenure:'')+'</div>'
-        +(p.rent?'<div style="font-size:10px;color:var(--text2);margin-bottom:5px">£'+parseFloat(p.rent).toLocaleString('en-GB')+'/mo · '+(p.letOnly==='n'||!p.letOnly?'FM':'LO')+'</div>':'')
-        +'<div style="display:flex;gap:4px;flex-wrap:wrap">'
-        +'<span class="badge '+dpill+'">'+dpillLabel+'</span>'
-        +(p.reason==='Eviction'?'<span class="badge badge-red">Eviction</span>':'')
-        +(p.deductions?'<span class="badge badge-amber">£'+parseFloat(p.deductions).toLocaleString('en-GB')+' deducted</span>':'')
         +'</div>'
+        +'<div style="font-size:10px;color:var(--text2);text-align:right;flex-shrink:0;white-space:nowrap">'+(tenure||'—')+(p.rent?' · £'+parseFloat(p.rent).toLocaleString('en-GB')+'/mo':'')+'</div>'
+        +'</div>'
+        +'<span class="badge '+dpill+'" style="flex-shrink:0">'+dpillLabel+'</span>'
         +'</div>';
     });
     html+='</div>';
@@ -4475,18 +4517,19 @@ function renderOffers(){
   var html='';
   filtered.forEach(function(o){
     var tenantNames=(o.tenants||[]).map(function(t){return t.name;}).join(', ')||'No tenants';
-    html+='<div class="card" style="margin-bottom:10px">'
-      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">'
-      +'<div><div style="font-size:13px;font-weight:500;color:var(--text)">'+(o.prop||'—')+'</div>'
-      +'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+tenantNames+'</div>'
-      +'<div style="font-size:10px;color:var(--text3);margin-top:1px">'+(o.startDate||'—')+' · '+( o.tier||'Fully Managed')+' · '+( o.fee||12)+'%'+'</div></div>'
-      +'<div style="display:flex;gap:6px;align-items:center">'
-      +'<span class="badge badge-green">'+(o.rent?'£'+parseFloat(o.rent).toLocaleString('en-GB')+'/mo':'—')+'</span>'
-      +'<button class="btn btn-outline btn-sm" onclick="openOfferDetail(\''+o.fbKey+'\')">View</button>'
-      +'<button class="btn btn-red btn-sm" onclick="deleteOffer(\''+o.fbKey+'\')">Delete</button>'
-      +'</div></div>'
-      +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
-      +'<div style="width:100%;margin-top:4px">'
+    var docsId='oa-docs-'+o.fbKey;
+    html+='<div class="card" style="margin-bottom:6px;padding:10px 12px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
+      +'<div style="min-width:0;flex:1">'
+      +'<div style="font-size:12px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(o.prop||'—')+'</div>'
+      +'<div style="font-size:10px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+tenantNames+' · '+(o.startDate||'—')+' · '+(o.tier||'Fully Managed')+'</div>'
+      +'</div>'
+      +'<span class="badge badge-green" style="flex-shrink:0">'+(o.rent?'£'+parseFloat(o.rent).toLocaleString('en-GB')+'/mo':'—')+'</span>'
+      +'<button class="btn btn-outline btn-sm" style="flex-shrink:0" onclick="toggleOaDocs(\''+o.fbKey+'\')">Documents</button>'
+      +'<button class="btn btn-outline btn-sm" style="flex-shrink:0" onclick="openOfferDetail(\''+o.fbKey+'\')">View</button>'
+      +'<button class="btn btn-red btn-sm" style="flex-shrink:0" onclick="deleteOffer(\''+o.fbKey+'\')">Delete</button>'
+      +'</div>'
+      +'<div id="'+docsId+'" style="display:none;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border)">'
       +'<div style="font-size:10px;font-weight:500;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Tenant</div>'
       +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">'
       +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'tenant-welcome\',\''+o.fbKey+'\')">&#128196; Welcome pack</button>'
@@ -4503,10 +4546,17 @@ function renderOffers(){
       +'<button class="btn btn-outline btn-sm" style="background:var(--purple-bg);color:var(--purple-text)" onclick="genDoc(\'pep\',\''+o.fbKey+'\')">&#128196; PEP &amp; Sanctions</button>'
       +'<button class="btn btn-outline btn-sm" style="background:var(--purple-bg);color:var(--purple-text)" onclick="copyDoc(\'pep\',\''+o.fbKey+'\')">&#128203; Copy</button>'
       +'<button class="btn btn-outline btn-sm" style="background:var(--purple-bg);color:var(--purple-text)" onclick="emailDoc(\'pep\',\''+o.fbKey+'\',\'landlord\')">&#9993; Email LL</button>'
-      +'</div></div>'
-      +'</div></div>';
+      +'</div>'
+      +'</div>'
+      +'</div>';
   });
   container.innerHTML=html;
+}
+
+function toggleOaDocs(fbKey){
+  var el=document.getElementById('oa-docs-'+fbKey);
+  if(!el) return;
+  el.style.display=el.style.display==='none'?'block':'none';
 }
 
 function openOfferDetail(fbKey){
@@ -4770,20 +4820,19 @@ function renderMoveIns(){
     var keys=ll[2]?'badge-green':'badge-grey';
     var dep=cl[3]?'badge-green':'badge-grey';
 
-    html+='<div class="card" style="margin-bottom:8px;cursor:pointer" data-mk="'+m.fbKey+'" onclick="openMiModal(this.dataset.mk)">'
-      +'<div style="display:flex;align-items:center;gap:12px">'
-      +'<div style="width:38px;height:38px;border-radius:50%;background:'+avatarBg+';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:'+avatarColor+';flex-shrink:0">'+initials+'</div>'
+    html+='<div class="card" style="margin-bottom:6px;padding:10px 12px;cursor:pointer" data-mk="'+m.fbKey+'" onclick="openMiModal(this.dataset.mk)">'
+      +'<div style="display:flex;align-items:center;gap:10px">'
+      +'<div style="width:32px;height:32px;border-radius:50%;background:'+avatarBg+';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:'+avatarColor+';flex-shrink:0">'+initials+'</div>'
       +'<div style="flex:1;min-width:0">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px">'
-      +'<div style="font-size:13px;font-weight:500;color:var(--text)">'+(m.prop||'—')+'</div>'
+      +'<div style="font-size:12px;font-weight:500;color:var(--text)">'+(m.prop||'—')+'</div>'
       +'<div style="display:flex;align-items:center;gap:6px">'
       +(countdown?'<span style="font-size:10px;'+countdownStyle+'">'+countdown+'</span>':'')
       +'<span class="badge '+pillClass+'">'+status+'</span>'
       +'</div></div>'
-      +'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+(m.tenant||'—')+(m.rent?' · £'+parseFloat(m.rent).toLocaleString('en-GB')+'/mo':'')+'</div>'
-      +'<div style="font-size:10px;color:var(--text3)">Move-in: '+(m.startDate||'—')+'</div>'
+      +'<div style="font-size:10px;color:var(--text2);margin-top:1px">'+(m.tenant||'—')+(m.rent?' · £'+parseFloat(m.rent).toLocaleString('en-GB')+'/mo':'')+' · Move-in: '+(m.startDate||'—')+'</div>'
       +'</div></div>'
-      +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:10px">'
+      +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:7px">'
       +'<span class="badge '+rtr+'" title="Right to Rent">RTR</span>'
       +'<span class="badge '+refs+'" title="References">Refs</span>'
       +'<span class="badge '+ast+'" title="AST signed">AST</span>'
@@ -4905,8 +4954,111 @@ showPage=function(id,btn){
       if(data) Object.keys(data).forEach(function(k){var m=data[k];m.fbKey=k;moveins.push(m);});
       renderMoveIns();
     });
+    fbGet('moveouts',function(data){
+      moveouts=[];
+      if(data) Object.keys(data).forEach(function(k){var m=data[k];m.fbKey=k;moveouts.push(m);});
+      renderMoveOuts();
+    });
   }
 };
+
+// ─── MOVEMENTS SUB-TABS (Move-ins / Move-outs) ────────────────────────────────
+function setMovementsSub(which){
+  var inSec=document.getElementById('mvsub-in-section'), outSec=document.getElementById('mvsub-out-section');
+  var inBtn=document.getElementById('mvsub-in-btn'), outBtn=document.getElementById('mvsub-out-btn');
+  if(which==='in'){
+    inSec.style.display=''; outSec.style.display='none';
+    inBtn.style.background='var(--navy)'; inBtn.style.color='#fff'; inBtn.className='btn btn-sm';
+    outBtn.style.background=''; outBtn.style.color=''; outBtn.className='btn btn-outline btn-sm';
+  }else{
+    inSec.style.display='none'; outSec.style.display='';
+    outBtn.style.background='var(--navy)'; outBtn.style.color='#fff'; outBtn.className='btn btn-sm';
+    inBtn.style.background=''; inBtn.style.color=''; inBtn.className='btn btn-outline btn-sm';
+    renderMoveOuts();
+  }
+}
+
+// ─── RENDER MOVE-OUTS ──────────────────────────────────────────────────────────
+function renderMoveOuts(){
+  var container=document.getElementById('mo-cards');
+  var empty=document.getElementById('mo-empty');
+  if(!container) return;
+  var q=(document.getElementById('mo-search')||{}).value||'';
+  q=q.toLowerCase();
+  var filtered=moveouts.filter(function(m){
+    if(m.status==='Vacated') return false;
+    if(!q) return true;
+    return (m.prop||'').toLowerCase().indexOf(q)>-1 || (m.tenant||'').toLowerCase().indexOf(q)>-1;
+  });
+  if(!filtered.length){
+    container.innerHTML='';
+    if(empty) empty.style.display='block';
+    return;
+  }
+  if(empty) empty.style.display='none';
+  container.innerHTML=filtered.map(function(m){
+    return '<div class="card" style="margin-bottom:10px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      +'<div><div style="font-size:13px;font-weight:600;color:var(--navy)">'+(m.prop||'—')+'</div>'
+      +'<div style="font-size:11px;color:var(--text2)">'+(m.tenant||'')+'</div></div>'
+      +'<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--amber-bg);color:var(--amber-text)">Notice received'+(m.noticeDate?' · '+formatDateDMY(m.noticeDate):'')+'</span>'
+      +'</div>'
+      +'<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);margin-bottom:4px;cursor:pointer">'
+      +'<input type="checkbox" data-key="'+m.fbKey+'" data-field="notesSent" onchange="toggleMoveOutItem(this)" '+(m.notesSent?'checked':'')+' style="width:14px;height:14px">'
+      +'End of tenancy notes sent</label>'
+      +'<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);margin-bottom:8px;cursor:pointer">'
+      +'<input type="checkbox" data-key="'+m.fbKey+'" data-field="inventoryBooked" onchange="toggleMoveOutItem(this)" '+(m.inventoryBooked?'checked':'')+' style="width:14px;height:14px">'
+      +'Inventory booked</label>'
+      +'<button class="btn btn-outline btn-sm" onclick="deleteMoveOut(\''+m.fbKey+'\')">Remove</button>'
+      +'</div>';
+  }).join('');
+}
+
+function toggleMoveOutItem(el){
+  var key=el.dataset.key, field=el.dataset.field;
+  var m=moveouts.find(function(x){return x.fbKey===key;});
+  if(!m) return;
+  m[field]=el.checked;
+  fbSet('moveouts/'+key, m, function(){ showToast('Checklist updated'); });
+}
+
+function deleteMoveOut(fbKey){
+  if(!confirm('Remove this move-out tracker? This cannot be undone.')) return;
+  fbDelete('moveouts/'+fbKey, function(){
+    moveouts=moveouts.filter(function(m){ return m.fbKey!==fbKey; });
+    renderMoveOuts();
+    showToast('Move-out record removed');
+  });
+}
+
+// ─── NOTICE RECEIVED ───────────────────────────────────────────────────────────
+function openNoticeReceived(){
+  var p=properties[currentPropIdx];
+  if(!p) return;
+  document.getElementById('nr-address').textContent=(p.address||'')+(p.tenant?' · '+p.tenant:'');
+  document.getElementById('nr-date').value=new Date().toISOString().slice(0,10);
+  openModal('notice-received-modal');
+}
+
+function confirmNoticeReceived(){
+  var p=properties[currentPropIdx];
+  if(!p) return;
+  var mo={
+    prop:p.address||'',
+    tenant:p.tenant||'',
+    propFbKey:p.fbKey||'',
+    noticeDate:document.getElementById('nr-date').value,
+    status:'Notice received',
+    notesSent:false,
+    inventoryBooked:false
+  };
+  fbPush('moveouts', mo, function(key){
+    mo.fbKey=key;
+    moveouts.push(mo);
+    closeModal('notice-received-modal');
+    showToast('Notice received — tracked on Movements');
+  });
+}
 
 
 // ─── END TENANCY ─────────────────────────────────────────────────────────────
@@ -4951,6 +5103,9 @@ function confirmEndTenancy(){
   fbPush('pasttenants', pt, function(key){
     pt.fbKey=key;
     pastTenants.push(pt);
+    // Close out any matching move-out checklist
+    var mo=moveouts.find(function(m){ return m.propFbKey===p.fbKey && m.status!=='Vacated'; });
+    if(mo){ mo.status='Vacated'; fbSet('moveouts/'+mo.fbKey, mo); }
     // Remove from properties
     var path=p.fbKey?'properties/'+p.fbKey:'properties/'+currentPropIdx;
     fbDelete(path, function(){
@@ -5797,39 +5952,40 @@ function renderScheduled(){
     byDate[j.bookedDate].push(j);
   });
 
-  var html='';
   var today=new Date(); today.setHours(0,0,0,0);
   var tomorrow=new Date(today); tomorrow.setDate(today.getDate()+1);
+
+  var html='<div style="background:#fff;border:0.5px solid var(--border);border-radius:8px;overflow:hidden">';
 
   Object.keys(byDate).sort().forEach(function(dateStr){
     var d=new Date(dateStr+'T00:00:00');
     var isToday=d.getTime()===today.getTime();
     var isTomorrow=d.getTime()===tomorrow.getTime();
     var isPast=d<today;
-    var label=isToday?'Today':isTomorrow?'Tomorrow — send reminders tonight':formatDateDMY(dateStr);
-    var headerBg=isToday?'var(--green-text)':isTomorrow?'var(--amber-text)':isPast?'var(--red-text)':'var(--navy)';
+    var label=isToday?'Today':isTomorrow?'Tomorrow':formatDateDMY(dateStr);
+    var labelColor=isToday?'var(--green-text)':isTomorrow?'var(--amber-text)':isPast?'var(--red-text)':'var(--text2)';
+    var dayJobs=byDate[dateStr];
 
-    html+='<div style="margin-bottom:16px">'
-      +'<div style="background:'+headerBg+';color:#fff;padding:8px 14px;border-radius:8px 8px 0 0;font-size:12px;font-weight:600">'+label+' <span style="font-weight:400;opacity:0.85">('+byDate[dateStr].length+' job'+(byDate[dateStr].length>1?'s':'')+')</span></div>'
-      +'<div style="background:#fff;border:0.5px solid var(--border);border-top:none;border-radius:0 0 8px 8px;overflow:hidden">';
+    html+='<div style="padding:6px 14px;font-size:11px;font-weight:500;color:'+labelColor+';background:var(--bg)">'+label+' · '+dayJobs.length+' job'+(dayJobs.length>1?'s':'')+'</div>';
 
-    byDate[dateStr].forEach(function(job,ji){
+    dayJobs.forEach(function(job){
       var c=getContractor(job.contractorId);
       var isInventory=job.category==='Inventory'||job.category==='Cleaning';
-      var tenantPhone=job.tenantPhone||'';
       var contractorPhone=c.phone||'';
-      var tMsg=encodeURIComponent('Hi '+( job.tenant||'')+ ', this is a reminder that we have a visit scheduled at your property tomorrow'+(job.bookedTime?' at '+job.bookedTime:'')+ '. Please ensure access is available. Thank you — Pickwick Estates');
-      var cMsg=encodeURIComponent('Hi '+c.name+', reminder that you have a job booked at '+(job.prop||'the property')+(job.bookedTime?' tomorrow at '+job.bookedTime:' tomorrow')+'. Please confirm attendance. Thanks — Pickwick Estates');
-      var tEmail=job.tenantEmail||'';
-      var cEmail=c.email||'';
+      var cMsg=encodeURIComponent('Hi '+c.name+', reminder that you have a job booked at '+(job.prop||'the property')+(job.bookedTime?' at '+job.bookedTime:'')+'. Please confirm attendance. Thanks — Pickwick Estates');
+      var waLink=contractorPhone?'https://wa.me/44'+contractorPhone.replace(/^0/,'').replace(/ /g,'')+'?text='+cMsg:'';
 
-      html+='<div style="display:grid;grid-template-columns:1fr auto;gap:12px;padding:12px 14px;'+(ji>0?'border-top:0.5px solid var(--border)':'')+'">'        +'<div>'        +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'        +(isInventory?'<span style="font-size:9px;background:var(--purple-bg);color:var(--purple-text);padding:1px 6px;border-radius:10px;font-weight:600">'+job.category+'</span>':'')        +'<div style="font-size:12px;font-weight:600;color:var(--navy)">'+(job.prop||'—')+'</div>'        +'</div>'        +'<div style="font-size:11px;color:var(--text2);margin-bottom:2px">'+(job.issue||'—')+'</div>'        +'<div style="display:flex;gap:12px;font-size:11px;color:var(--text3)">'        +(job.bookedTime?'<span>⏰ '+job.bookedTime+'</span>':'')        +(!isInventory&&c.name?'<span>🔧 '+c.name+'</span>':'')        +(job.tenant?'<span>👤 '+job.tenant+'</span>':'')        +'</div>'        +(job.bookedNotes?'<div style="font-size:10px;color:var(--text2);margin-top:4px;font-style:italic">'+job.bookedNotes+'</div>':'')        +'</div>'        +'<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">'        +'<button class="btn btn-outline btn-sm" data-jk="'+job.fbKey+'" onclick="openJobDetail(this.dataset.jk)">Open</button>'        +(!isInventory&&c.name?'<div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:4px">Contractor</div>'          +(contractorPhone?'<a href="https://wa.me/44'+contractorPhone.replace(/^0/,'').replace(/ /g,'')+'?text='+cMsg+'" target="_blank" class="btn btn-sm" style="background:#25D366;color:#fff;font-size:10px">WhatsApp</a>':'')          +(cEmail?'<a href="mailto:'+cEmail+'?subject=Job+reminder&body='+cMsg+'" class="btn btn-outline btn-sm" style="font-size:10px">Email</a>':''):'')
-        +(job.tenant?'<div style="font-size:10px;color:var(--text2);font-weight:500;margin-top:4px">Tenant</div>'          +(tenantPhone?'<a href="https://wa.me/44'+tenantPhone.replace(/^0/,'').replace(/ /g,'')+'?text='+tMsg+'" target="_blank" class="btn btn-sm" style="background:#25D366;color:#fff;font-size:10px">WhatsApp</a>':'')          +(tEmail?'<a href="mailto:'+tEmail+'?subject=Visit+reminder&body='+tMsg+'" class="btn btn-outline btn-sm" style="font-size:10px">Email</a>':''):'')
-        +'</div>'        +'</div>';
+      html+='<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:0.5px solid var(--border);cursor:pointer" data-jk="'+job.fbKey+'" onclick="openJobDetail(this.dataset.jk)">'
+        +'<div style="width:44px;font-size:11px;color:var(--text3);flex-shrink:0">'+(job.bookedTime||'—')+'</div>'
+        +'<div style="flex:1;min-width:0;font-size:12px;font-weight:500;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(job.prop||'—')+'</div>'
+        +'<div style="width:100px;font-size:11px;color:var(--text2);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(!isInventory&&c.name?c.name:'')+'</div>'
+        +'<span style="font-size:9px;padding:1px 7px;border-radius:10px;background:'+(job.secondVisit?'var(--amber-bg);color:var(--amber-text)':'var(--purple-bg);color:var(--purple-text)')+';flex-shrink:0;white-space:nowrap">'+(job.secondVisit?'2nd visit':(job.category||isInventory?job.category:'Job'))+'</span>'
+        +(waLink?'<a href="'+waLink+'" target="_blank" onclick="event.stopPropagation()" style="flex-shrink:0;color:#25D366;font-size:16px;line-height:1" title="WhatsApp '+c.name+'">●</a>':'<span style="width:16px;flex-shrink:0"></span>')
+        +'</div>';
     });
-    html+='</div></div>';
   });
 
+  html+='</div>';
   el.innerHTML=html;
 }
 
