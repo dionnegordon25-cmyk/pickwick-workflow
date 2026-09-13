@@ -233,7 +233,7 @@ select.field-input{cursor:pointer}
       </div>
 
       <!-- Outstanding T&Cs signatures strip -->
-      <div id="tcs-chase-strip" style="display:none;background:var(--amber-bg);border:0.5px solid var(--amber-border);border-radius:var(--radius-md);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;cursor:pointer" onclick="showPage('offeraccepted',document.querySelectorAll('.nav-btn')[2])">
+      <div id="tcs-chase-strip" style="display:none;background:var(--amber-bg);border:0.5px solid var(--amber-border);border-radius:var(--radius-md);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;cursor:pointer" onclick="showPage('properties',document.querySelectorAll('.nav-btn')[4])">
         <div><span id="tcs-chase-count" style="font-size:12px;font-weight:500;color:var(--amber-text)"></span><span style="font-size:11px;color:var(--amber-text)"> — sent 3+ days ago, no signature yet</span></div>
         <span style="font-size:11px;color:var(--amber-text);font-weight:500">View Offer Accepted →</span>
       </div>
@@ -480,6 +480,15 @@ select.field-input{cursor:pointer}
     </div>
 
     <div id="page-moveins" class="page">
+      <!-- Summary strip -->
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px" id="mv-summary-strip">
+        <div class="card"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Move-ins total</div><div style="font-size:20px;font-weight:500;color:var(--navy)" id="sm-total">—</div></div>
+        <div class="card"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Complete</div><div style="font-size:20px;font-weight:500;color:var(--green-text)" id="sm-complete">—</div></div>
+        <div class="card"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">In progress</div><div style="font-size:20px;font-weight:500;color:var(--amber-text)" id="sm-inprogress">—</div></div>
+        <div class="card"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Not started</div><div style="font-size:20px;font-weight:500;color:var(--text2)" id="sm-notstarted">—</div></div>
+        <div class="card"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Move-outs — no tenant yet</div><div style="font-size:20px;font-weight:500;color:var(--red-text)" id="sm-unmatched">—</div></div>
+        <div class="card"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Avg void (matched)</div><div style="font-size:20px;font-weight:500;color:var(--purple-text)" id="sm-avgvoid">—</div></div>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
 
         <div id="mvsub-in-section">
@@ -499,13 +508,11 @@ select.field-input{cursor:pointer}
             </div>
             <div id="mi-cards"></div>
             <div class="card" style="margin-top:10px">
-              <div class="card-title">Move-in summary</div>
-              <div id="mi-summary"></div>
-            </div>
-            <div class="card" style="margin-top:10px">
               <div class="card-title">Pending actions</div>
               <div id="mi-pending"></div>
             </div>
+            <!-- mi-summary kept off-DOM (hidden) so renderMiSidebar can still write into it without erroring; the visible summary now lives in the top strip -->
+            <div id="mi-summary" style="display:none"></div>
           </div>
         </div>
 
@@ -881,6 +888,7 @@ select.field-input{cursor:pointer}
     </div>
     <div style="display:flex;gap:4px;border-bottom:0.5px solid var(--border);margin-bottom:14px" id="pd-tabs">
       <button class="pd-tab" onclick="switchPdTab('details',this)" style="padding:5px 12px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--navy);border-bottom:2px solid var(--navy);font-weight:500">Details</button>
+      <button class="pd-tab" onclick="switchPdTab('onboarding',this)" style="padding:5px 12px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--text2)">Onboarding</button>
       <button class="pd-tab" onclick="switchPdTab('compliance',this)" style="padding:5px 12px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--text2)">Compliance</button>
       <button class="pd-tab" onclick="switchPdTab('email',this)" style="padding:5px 12px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--text2)">Draft email</button>
       <button class="pd-tab" onclick="switchPdTab('jobs',this)" style="padding:5px 12px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--text2)">Jobs history</button>
@@ -889,6 +897,7 @@ select.field-input{cursor:pointer}
       <button class="pd-tab" onclick="switchPdTab('inspections',this)" style="padding:5px 12px;border:none;background:none;cursor:pointer;font-size:12px;color:var(--text2)">Inspections</button>
     </div>
     <div id="pd-details"></div>
+    <div id="pd-onboarding" style="display:none"></div>
     <div id="pd-compliance" style="display:none"></div>
     <div id="pd-email" style="display:none"></div>
     <div id="pd-jobs" style="display:none"></div>
@@ -1000,7 +1009,7 @@ select.field-input{cursor:pointer}
 <!-- NEW OFFER MODAL -->
 <div class="modal-overlay" id="new-offer-modal">
   <div class="modal modal-lg">
-    <div class="modal-title">New offer accepted</div>
+    <div class="modal-title" id="no-modal-title">New offer accepted</div>
     <div class="modal-sub">Record a new tenancy offer and generate documents</div>
     <div class="grid-2">
       <div class="field-group"><label class="field-label">Property address *</label><input class="field-input" id="no-prop" list="no-prop-list" placeholder="Start typing..."><datalist id="no-prop-list"></datalist></div>
@@ -1024,7 +1033,7 @@ select.field-input{cursor:pointer}
     <div class="field-group"><label class="field-label">Internal notes</label><textarea class="field-input" id="no-notes" rows="2" placeholder="Any notes for the file..."></textarea></div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('new-offer-modal')">Cancel</button>
-      <button class="btn btn-navy" onclick="saveNewOffer()">Save offer</button>
+      <button class="btn btn-navy" id="no-save-btn" onclick="saveNewOffer()">Save offer</button>
     </div>
   </div>
 </div>
@@ -1060,9 +1069,9 @@ select.field-input{cursor:pointer}
   <div class="modal" style="max-width:420px">
     <div class="modal-title">Notice received</div>
     <div class="modal-sub" id="nr-address"></div>
-    <div class="field-group"><label class="field-label">Notice date</label><input class="field-input" id="nr-date" type="date"></div>
+    <div class="field-group"><label class="field-label">Expected vacate date</label><input class="field-input" id="nr-date" type="date"></div>
     <div style="background:var(--purple-bg);border-radius:var(--radius-md);padding:10px 12px;font-size:11px;color:var(--purple-text);margin-bottom:4px">
-      This starts a vacating checklist on the Movements page (notes sent, inventory booked). It does not end the tenancy — use "End tenancy" once they've actually left.
+      This starts a vacating checklist on the Movements page and is used to calculate void days if a new tenant is already lined up for this property. It does not end the tenancy — use "End tenancy" once they've actually left.
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('notice-received-modal')">Cancel</button>
@@ -1084,6 +1093,8 @@ select.field-input{cursor:pointer}
     <div class="field-group"><label class="field-label">Bin location</label><input class="field-input" id="qm-binloc" placeholder="e.g. Round the side passage, by the gate"></div>
     <div class="field-group"><label class="field-label">Specific instructions</label><textarea class="field-input" id="qm-instructions" rows="2" placeholder="Anything else the tenant should know..."></textarea></div>
     <div class="modal-footer">
+      <button class="btn btn-outline" onclick="copyQuestionnaire(currentQPropKey)">&#128203; Copy</button>
+      <button class="btn btn-outline" onclick="printQuestionnaire(currentQPropKey)">&#128424; Print</button>
       <button class="btn btn-outline" onclick="closeModal('questionnaire-modal')">Cancel</button>
       <button class="btn btn-navy" onclick="saveQuestionnaire()">Save</button>
     </div>
@@ -1882,8 +1893,8 @@ function renderTcsChaseStrip(){
   var countEl=document.getElementById('tcs-chase-count');
   if(!strip) return;
   var cutoff=new Date(); cutoff.setDate(cutoff.getDate()-3);
-  var outstanding=(offers||[]).filter(function(o){
-    var tcs=o.checklist&&o.checklist.tcs;
+  var outstanding=(properties||[]).filter(function(p){
+    var tcs=p.checklist&&p.checklist.tcs;
     if(!tcs||tcs.status!=='sent'||!tcs.sentDate) return false;
     return new Date(tcs.sentDate+'T00:00:00') < cutoff;
   });
@@ -1947,6 +1958,7 @@ function loadDashboard(){
     renderDashActions();
     renderPropsTable();
     populatePropDatalist();
+    renderTcsChaseStrip();
   });
   // Load deposits
   fbGet('deposits', function(data){
@@ -2910,17 +2922,6 @@ function renderPdDetails(p){
         +'</div>'
         +'</div>';
     })(p)
-    +(function(p){
-      var o=offers.find(function(x){return x.prop===p.address;});
-      var tcs=(o&&o.checklist&&o.checklist.tcs)||null;
-      if(!tcs||tcs.status==='not_sent') return '';
-      var cls=tcs.status==='done'?'badge-green':'badge-purple';
-      var text=tcs.status==='done'?('Signed'+(tcs.signedDate?' '+formatDateDayDMY(tcs.signedDate):'')):'Sent — awaiting signature';
-      return '<div style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;background:var(--bg);border-radius:8px;padding:8px 12px">'
-        +'<div><div style="font-size:10px;color:var(--text2)">Landlord T&amp;Cs</div><span class="badge '+cls+'">'+text+'</span></div>'
-        +(tcs.signedDocUrl?'<a class="btn btn-outline btn-sm" href="'+tcs.signedDocUrl+'" target="_blank">View signed doc</a>':'')
-        +'</div>';
-    })(p)
     +pdField('Monthly rent',p.rent?'£'+parseFloat(p.rent).toLocaleString('en-GB'):'—')
     +(function(p){
       if(!p.mgmtFee||!p.rent) return pdField('Management fee',p.mgmtFee?p.mgmtFee+'%':'—');
@@ -3031,7 +3032,7 @@ function copyEmailDraft(){
 }
 
 function switchPdTab(tab, btn){
-  ['pd-details','pd-compliance','pd-email','pd-jobs','pd-financialsummary','pd-docshistory','pd-inspections'].forEach(function(id){
+  ['pd-details','pd-onboarding','pd-compliance','pd-email','pd-jobs','pd-financialsummary','pd-docshistory','pd-inspections'].forEach(function(id){
     var el=document.getElementById(id);
     if(el) el.style.display='none';
   });
@@ -3042,10 +3043,19 @@ function switchPdTab(tab, btn){
     b.style.color=b===btn?'var(--navy)':'var(--text2)';
     b.style.fontWeight=b===btn?'500':'400';
   });
+  if(tab==='onboarding') renderPropOnboardingTab();
   if(tab==='jobs') renderPropJobsHistory();
   if(tab==='financialsummary') renderPropFinancial();
   if(tab==='docshistory') renderPropDocsHistory();
   if(tab==='inspections') renderPropInspections();
+}
+
+function renderPropOnboardingTab(){
+  var p=properties[currentPropIdx];
+  var el=document.getElementById('pd-onboarding');
+  if(!el) return;
+  if(!p){ el.innerHTML=''; return; }
+  el.innerHTML=renderPropChecklistSection(p);
 }
 
 // ─── EDIT PROPERTY ────────────────────────────────────────────────────────────
@@ -4600,10 +4610,11 @@ function renderOffers(){
       +'</div>'
       +'<span class="badge badge-green" style="flex-shrink:0">'+(o.rent?'£'+parseFloat(o.rent).toLocaleString('en-GB')+'/mo':'—')+'</span>'
       +'<button class="btn btn-outline btn-sm" style="flex-shrink:0" onclick="toggleOaDocs(\''+o.fbKey+'\')">Documents</button>'
+      +'<button class="btn btn-outline btn-sm" style="flex-shrink:0" onclick="openNewOfferModal(\''+o.fbKey+'\')">Edit</button>'
       +'<button class="btn btn-outline btn-sm" style="flex-shrink:0" onclick="openOfferDetail(\''+o.fbKey+'\')">View</button>'
       +'<button class="btn btn-red btn-sm" style="flex-shrink:0" onclick="deleteOffer(\''+o.fbKey+'\')">Delete</button>'
       +'</div>'
-      +renderOaChecklistRow(o)
+      +renderOaChecklistReadOnly(o)
       +'<div id="'+docsId+'" style="display:none;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border)">'
       +'<div style="font-size:10px;font-weight:500;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Tenant</div>'
       +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">'
@@ -4628,100 +4639,142 @@ function renderOffers(){
   container.innerHTML=html;
 }
 
-// ─── OFFER ACCEPTED CHECKLIST: T&Cs (DocuSign) / PEP & Sanctions / Questionnaire ──
+// ─── OFFER ACCEPTED: READ-ONLY CHECKLIST STATUS (actions now live on the property) ──
 function findPropertyForOffer(o){
-  return properties.find(function(p){ return p.address===o.prop; });
+  return properties.find(function(p){ return normAddr(p.address)===normAddr(o.prop); });
 }
 
-function renderOaChecklistRow(o){
-  var c=o.checklist||{};
+function renderOaChecklistReadOnly(o){
+  var p=findPropertyForOffer(o);
+  var c=(p&&p.checklist)||{};
   var tcs=c.tcs||{status:'not_sent'};
   var pep=c.pep||{status:'pending'};
   var q=c.questionnaire||{status:'pending'};
 
   var tcsCls = tcs.status==='done'?'badge-green':tcs.status==='sent'?'badge-purple':'badge-amber';
   var tcsText = tcs.status==='done' ? ('Signed'+(tcs.signedDate?' '+formatDateDayDMY(tcs.signedDate):'')) : tcs.status==='sent' ? 'Sent — awaiting signature' : 'Not sent';
-
   var pepCls = pep.status==='done'?'badge-green':pep.status==='waiting'?'badge-purple':'badge-amber';
   var pepText = pep.status==='done' ? ('Complete'+(pep.date?' '+formatDateDayDMY(pep.date):'')) : pep.status==='waiting' ? 'Awaiting reply' : 'Pending';
-
   var qCls = q.status==='done'?'badge-green':'badge-amber';
   var qText = q.status==='done' ? ('Complete'+(q.date?' '+formatDateDayDMY(q.date):'')) : 'Pending';
-
   var allDone = tcs.status==='done' && pep.status==='done' && q.status==='done';
 
-  var html='<div style="margin-top:8px;padding-top:8px;border-top:0.5px solid var(--border)">'
+  return '<div style="margin-top:8px;padding-top:8px;border-top:0.5px solid var(--border)">'
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
-    +'<div style="font-size:10px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px">Offer Accepted checklist</div>'
+    +'<div style="font-size:10px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px">Landlord onboarding (managed from All Properties)</div>'
     +'<span class="badge '+(allDone?'badge-green':'badge-grey')+'">'+(allDone?'Ready for move-in':'Checks outstanding')+'</span>'
     +'</div>'
     +'<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">'
     +'<span class="badge '+tcsCls+'">T&amp;Cs: '+tcsText+'</span>'
-    +(tcs.status==='not_sent'?'<button class="btn btn-outline btn-sm" onclick="sendTcsEnvelope(\''+o.fbKey+'\')">Send T&amp;Cs</button>':'')
-    +(tcs.status==='sent'?'<button class="btn btn-outline btn-sm" onclick="checkTcsStatus(\''+o.fbKey+'\')">Check status</button>':'')
+    +'<span class="badge '+pepCls+'">PEP &amp; Sanctions: '+pepText+'</span>'
+    +'<span class="badge '+qCls+'">Questionnaire: '+qText+'</span>'
+    +(p?'<button class="btn btn-outline btn-sm" onclick="openPropDetail(\''+p.fbKey+'\')">Open property</button>':'<span style="font-size:10px;color:var(--text3)">No matching property record found</span>')
+    +'</div>'
+    +'</div>';
+}
+
+// ─── ONE-TIME MIGRATION: carry any existing offer checklist progress onto its property ──
+function migrateOfferChecklistsToProperties(){
+  offers.forEach(function(o){
+    if(!o.checklist) return;
+    var p=findPropertyForOffer(o);
+    if(!p || p.checklist) return; // no match, or property already has its own — never overwrite
+    var hasProgress=(o.checklist.tcs&&o.checklist.tcs.status&&o.checklist.tcs.status!=='not_sent')
+      || (o.checklist.pep&&o.checklist.pep.status&&o.checklist.pep.status!=='pending')
+      || (o.checklist.questionnaire&&o.checklist.questionnaire.status==='done');
+    if(!hasProgress) return;
+    p.checklist=o.checklist;
+    fbSet('properties/'+p.fbKey+'/checklist', p.checklist, function(){ renderPropsTable(); showToast('Carried over onboarding progress for '+p.address); });
+  });
+}
+
+// ─── PROPERTY-LEVEL CHECKLIST: T&Cs (DocuSign) / PEP & Sanctions / Questionnaire ──
+// Lives on the property record now — landlord T&Cs, PEP check and the property
+// questionnaire are about the property/landlord, not any one tenancy, so they're
+// captured once at property onboarding and apply to every future tenant.
+function renderPropChecklistSection(p){
+  var c=p.checklist||{};
+  var tcs=c.tcs||{status:'not_sent'};
+  var pep=c.pep||{status:'pending'};
+  var q=c.questionnaire||{status:'pending'};
+
+  var tcsCls = tcs.status==='done'?'badge-green':tcs.status==='sent'?'badge-purple':'badge-amber';
+  var tcsText = tcs.status==='done' ? ('Signed'+(tcs.signedDate?' '+formatDateDayDMY(tcs.signedDate):'')) : tcs.status==='sent' ? 'Sent — awaiting signature' : 'Not sent';
+  var pepCls = pep.status==='done'?'badge-green':pep.status==='waiting'?'badge-purple':'badge-amber';
+  var pepText = pep.status==='done' ? ('Complete'+(pep.date?' '+formatDateDayDMY(pep.date):'')) : pep.status==='waiting' ? 'Awaiting reply' : 'Pending';
+  var qCls = q.status==='done'?'badge-green':'badge-amber';
+  var qText = q.status==='done' ? ('Complete'+(q.date?' '+formatDateDayDMY(q.date):'')) : 'Pending';
+  var allDone = tcs.status==='done' && pep.status==='done' && q.status==='done';
+
+  var html='<div>'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+    +'<div style="font-size:12px;font-weight:500;color:var(--text)">Landlord & property onboarding</div>'
+    +'<span class="badge '+(allDone?'badge-green':'badge-grey')+'">'+(allDone?'Ready for move-in':'Checks outstanding')+'</span>'
+    +'</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px">'
+    +'<span class="badge '+tcsCls+'">T&amp;Cs: '+tcsText+'</span>'
+    +(tcs.status==='not_sent'?'<button class="btn btn-outline btn-sm" onclick="sendTcsEnvelopeProp(\''+p.fbKey+'\')">Send T&amp;Cs</button>':'')
+    +(tcs.status==='sent'?'<button class="btn btn-outline btn-sm" onclick="checkTcsStatusProp(\''+p.fbKey+'\')">Check status</button>':'')
     +(tcs.status==='done'&&tcs.signedDocUrl?'<a class="btn btn-outline btn-sm" href="'+tcs.signedDocUrl+'" target="_blank">View signed doc</a>':'')
-    +'<button type="button" class="badge '+pepCls+'" style="border:none;cursor:pointer" onclick="togglePepStatus(\''+o.fbKey+'\')">PEP &amp; Sanctions: '+pepText+'</button>'
-    +'<button type="button" class="badge '+qCls+'" style="border:none;cursor:pointer" onclick="openQuestionnaireModal(\''+o.fbKey+'\')">Questionnaire: '+qText+'</button>'
+    +'</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">'
+    +'<button type="button" class="badge '+pepCls+'" style="border:none;cursor:pointer" onclick="togglePepStatusProp(\''+p.fbKey+'\')">PEP &amp; Sanctions: '+pepText+'</button>'
+    +'<button type="button" class="badge '+qCls+'" style="border:none;cursor:pointer" onclick="openQuestionnaireModalProp(\''+p.fbKey+'\')">Questionnaire: '+qText+'</button>'
+    +(q.status==='done'?'<button class="btn btn-outline btn-sm" onclick="copyQuestionnaire(\''+p.fbKey+'\')">&#128203; Copy</button><button class="btn btn-outline btn-sm" onclick="printQuestionnaire(\''+p.fbKey+'\')">&#128424; Print</button>':'')
     +'</div>'
     +'</div>';
   return html;
 }
 
-function togglePepStatus(fbKey){
-  var o=offers.find(function(x){return x.fbKey===fbKey;});
-  if(!o) return;
-  if(!o.checklist) o.checklist={};
-  var pep=o.checklist.pep||{status:'pending'};
+function togglePepStatusProp(fbKey){
+  var p=properties.find(function(x){return x.fbKey===fbKey;});
+  if(!p) return;
+  if(!p.checklist) p.checklist={};
+  var pep=p.checklist.pep||{status:'pending'};
   if(pep.status==='pending'){ pep={status:'waiting',date:null}; }
   else if(pep.status==='waiting'){ pep={status:'done',date:new Date().toISOString().slice(0,10)}; }
   else { pep={status:'pending',date:null}; }
-  o.checklist.pep=pep;
-  fbSet('offers/'+fbKey+'/checklist', o.checklist, function(){ renderOffers(); showToast('PEP & Sanctions status updated'); });
+  p.checklist.pep=pep;
+  fbSet('properties/'+fbKey+'/checklist', p.checklist, function(){ renderPropOnboardingTab(); renderPropsTable(); showToast('PEP & Sanctions status updated'); });
 }
 
-// ─── T&Cs via DocuSign ──────────────────────────────────────────────────────
-function sendTcsEnvelope(fbKey){
-  var o=offers.find(function(x){return x.fbKey===fbKey;});
-  if(!o) return;
-  var prop=findPropertyForOffer(o);
-  if(!prop||!prop.llEmail){
-    showToast('No landlord email on file for this property — add it in All Properties first');
-    return;
-  }
+function sendTcsEnvelopeProp(fbKey){
+  var p=properties.find(function(x){return x.fbKey===fbKey;});
+  if(!p) return;
+  if(!p.llEmail){ showToast('No landlord email on file — add it under Edit on this property first'); return; }
   showToast('Sending T&Cs via DocuSign...');
   fetch('/.netlify/functions/send-tcs-envelope', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
-      offerId: fbKey,
-      landlordName: prop.llName||'Landlord',
-      landlordEmail: prop.llEmail,
-      propertyAddress: o.prop||''
+      propertyId: fbKey,
+      landlordName: p.llName||'Landlord',
+      landlordEmail: p.llEmail,
+      propertyAddress: p.address||''
     })
   }).then(function(r){ return r.json(); }).then(function(data){
     if(data && data.success){
-      if(!o.checklist) o.checklist={};
-      o.checklist.tcs={status:'sent', envelopeId:data.envelopeId, sentDate:new Date().toISOString().slice(0,10)};
-      fbSet('offers/'+fbKey+'/checklist', o.checklist, function(){ renderOffers(); renderTcsChaseStrip(); showToast('T&Cs sent to '+prop.llEmail); });
+      if(!p.checklist) p.checklist={};
+      p.checklist.tcs={status:'sent', envelopeId:data.envelopeId, sentDate:new Date().toISOString().slice(0,10)};
+      fbSet('properties/'+fbKey+'/checklist', p.checklist, function(){ renderPropOnboardingTab(); renderPropsTable(); renderTcsChaseStrip(); showToast('T&Cs sent to '+p.llEmail); });
     } else {
       showToast('Could not send T&Cs — check DocuSign setup');
     }
   }).catch(function(err){
-    console.error('sendTcsEnvelope error:', err);
+    console.error('sendTcsEnvelopeProp error:', err);
     showToast('Could not reach DocuSign — check connection / setup');
   });
 }
 
-// Manual re-check in case the DocuSign Connect webhook hasn't fired yet
-function checkTcsStatus(fbKey){
-  var o=offers.find(function(x){return x.fbKey===fbKey;});
-  if(!o||!o.checklist||!o.checklist.tcs||!o.checklist.tcs.envelopeId){ showToast('No envelope on file'); return; }
-  fetch('/.netlify/functions/check-tcs-status?envelopeId='+encodeURIComponent(o.checklist.tcs.envelopeId))
+function checkTcsStatusProp(fbKey){
+  var p=properties.find(function(x){return x.fbKey===fbKey;});
+  if(!p||!p.checklist||!p.checklist.tcs||!p.checklist.tcs.envelopeId){ showToast('No envelope on file'); return; }
+  fetch('/.netlify/functions/check-tcs-status?envelopeId='+encodeURIComponent(p.checklist.tcs.envelopeId))
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(data && data.status){
         showToast('DocuSign status: '+data.status);
-        if(data.status==='completed'){ fbGet('offers/'+fbKey+'/checklist', function(c){ if(c) o.checklist=c; renderOffers(); }); }
+        if(data.status==='completed'){ fbGet('properties/'+fbKey+'/checklist', function(c){ if(c) p.checklist=c; renderPropOnboardingTab(); renderPropsTable(); }); }
       } else {
         showToast('Could not retrieve status');
       }
@@ -4729,13 +4782,13 @@ function checkTcsStatus(fbKey){
 }
 
 // ─── PROPERTY QUESTIONNAIRE MODAL ───────────────────────────────────────────
-var currentQOfferKey=null;
-function openQuestionnaireModal(fbKey){
-  var o=offers.find(function(x){return x.fbKey===fbKey;});
-  if(!o) return;
-  currentQOfferKey=fbKey;
-  var q=(o.checklist&&o.checklist.questionnaire)||{};
-  document.getElementById('qm-address').textContent=o.prop||'';
+var currentQPropKey=null;
+function openQuestionnaireModalProp(fbKey){
+  var p=properties.find(function(x){return x.fbKey===fbKey;});
+  if(!p) return;
+  currentQPropKey=fbKey;
+  var q=(p.checklist&&p.checklist.questionnaire)||{};
+  document.getElementById('qm-address').textContent=p.address||'';
   document.getElementById('qm-bills').value=q.avgBills||'';
   document.getElementById('qm-providers').value=q.providers||'';
   document.getElementById('qm-meters').value=q.meterLocations||'';
@@ -4747,10 +4800,10 @@ function openQuestionnaireModal(fbKey){
 }
 
 function saveQuestionnaire(){
-  var o=offers.find(function(x){return x.fbKey===currentQOfferKey;});
-  if(!o) return;
-  if(!o.checklist) o.checklist={};
-  o.checklist.questionnaire={
+  var p=properties.find(function(x){return x.fbKey===currentQPropKey;});
+  if(!p) return;
+  if(!p.checklist) p.checklist={};
+  p.checklist.questionnaire={
     status:'done',
     date:new Date().toISOString().slice(0,10),
     avgBills:document.getElementById('qm-bills').value,
@@ -4761,11 +4814,39 @@ function saveQuestionnaire(){
     binLocation:document.getElementById('qm-binloc').value,
     instructions:document.getElementById('qm-instructions').value
   };
-  fbSet('offers/'+currentQOfferKey+'/checklist', o.checklist, function(){
+  fbSet('properties/'+currentQPropKey+'/checklist', p.checklist, function(){
     closeModal('questionnaire-modal');
-    renderOffers();
+    renderPropOnboardingTab();
+    renderPropsTable();
     showToast('Property questionnaire saved');
   });
+}
+
+function questionnaireText(fbKey){
+  var p=properties.find(function(x){return x.fbKey===fbKey;});
+  if(!p||!p.checklist||!p.checklist.questionnaire) return null;
+  var q=p.checklist.questionnaire;
+  return 'PROPERTY INFORMATION — '+(p.address||'')+'\n\n'
+    +'Average monthly bills: '+(q.avgBills||'—')+'\n'
+    +'Current providers: '+(q.providers||'—')+'\n'
+    +'Meter locations: '+(q.meterLocations||'—')+'\n'
+    +'Stopcock location: '+(q.stopcockLocation||'—')+'\n'
+    +'Bin collection day: '+(q.binDay||'—')+'\n'
+    +'Bin location: '+(q.binLocation||'—')+'\n'
+    +'Other instructions: '+(q.instructions||'—')+'\n\n'
+    +'Pickwick Estates · 020 3397 1144 / 020 3397 1166';
+}
+
+function copyQuestionnaire(fbKey){
+  var text=questionnaireText(fbKey);
+  if(!text){ showToast('Questionnaire not completed yet'); return; }
+  navigator.clipboard.writeText(text).then(function(){ showToast('Property information copied'); });
+}
+
+function printQuestionnaire(fbKey){
+  var text=questionnaireText(fbKey);
+  if(!text){ showToast('Questionnaire not completed yet'); return; }
+  openDocWindow('Property Information', text);
 }
 
 function toggleOaDocs(fbKey){
@@ -4848,7 +4929,10 @@ function genDoc(type, fbKey){
   win.document.close();
 }
 
-function openNewOfferModal(){
+var editingOfferKey=null;
+
+function openNewOfferModal(fbKey){
+  editingOfferKey=fbKey||null;
   offerTenantCount=0;
   document.getElementById('no-tenants').innerHTML='';
   ['no-prop','no-notes'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
@@ -4858,7 +4942,37 @@ function openNewOfferModal(){
   // Populate datalist
   var dl=document.getElementById('no-prop-list');
   if(dl){ dl.innerHTML=''; properties.forEach(function(p){ var o=document.createElement('option'); o.value=p.address||''; dl.appendChild(o); }); }
-  addOfferTenant();
+
+  var titleEl=document.getElementById('no-modal-title');
+  var saveBtn=document.getElementById('no-save-btn');
+
+  if(editingOfferKey){
+    var o=offers.find(function(x){return x.fbKey===editingOfferKey;});
+    if(o){
+      if(titleEl) titleEl.textContent='Edit offer';
+      if(saveBtn) saveBtn.textContent='Save changes';
+      document.getElementById('no-prop').value=o.prop||'';
+      document.getElementById('no-rent').value=o.rent||'';
+      document.getElementById('no-start').value=o.startDate||'';
+      var tierMap={'Let Only':'6','Let & Rent Collection':'10','Fully Managed':'12','Custom':'custom'};
+      document.getElementById('no-tier').value=tierMap[o.tier]||'12';
+      document.getElementById('no-fee').value=o.fee||12;
+      document.getElementById('no-deposit').value=o.deposit||'';
+      document.getElementById('no-holding').value=o.holding||'';
+      document.getElementById('no-notes').value=o.notes||'';
+      (o.tenants||[]).forEach(function(t){
+        addOfferTenant();
+        document.getElementById('ot-name-'+offerTenantCount).value=t.name||'';
+        document.getElementById('ot-email-'+offerTenantCount).value=t.email||'';
+        document.getElementById('ot-phone-'+offerTenantCount).value=t.phone||'';
+      });
+    }
+  } else {
+    if(titleEl) titleEl.textContent='New offer accepted';
+    if(saveBtn) saveBtn.textContent='Save offer';
+  }
+
+  if(!offerTenantCount) addOfferTenant();
   openModal('new-offer-modal');
 }
 
@@ -4892,10 +5006,30 @@ function saveNewOffer(){
   }
   var rentNum=parseFloat(rent)||0;
   var tier=document.getElementById('no-tier').value;
+  var tierLabel=tier==='custom'?'Custom':tier==='6'?'Let Only':tier==='10'?'Let & Rent Collection':'Fully Managed';
+
+  if(editingOfferKey){
+    var existing=offers.find(function(x){return x.fbKey===editingOfferKey;});
+    if(!existing){ showToast('Offer not found'); return; }
+    existing.prop=prop; existing.rent=rent; existing.tenants=tenants; existing.tier=tierLabel;
+    existing.fee=document.getElementById('no-fee').value||12;
+    existing.deposit=document.getElementById('no-deposit').value||existing.deposit;
+    existing.holding=document.getElementById('no-holding').value||existing.holding;
+    existing.startDate=document.getElementById('no-start').value;
+    existing.notes=document.getElementById('no-notes').value;
+    fbSet('offers/'+editingOfferKey, existing, function(){
+      closeModal('new-offer-modal');
+      editingOfferKey=null;
+      renderOffers();
+      showToast('Offer updated');
+    });
+    return;
+  }
+
   var now=new Date();
   var offer={
     prop:prop, rent:rent, tenants:tenants,
-    tier:tier==='custom'?'Custom':tier==='6'?'Let Only':tier==='10'?'Let & Rent Collection':'Fully Managed',
+    tier:tierLabel,
     fee:document.getElementById('no-fee').value||12,
     deposit:document.getElementById('no-deposit').value||(rentNum*5/52*4).toFixed(0),
     holding:document.getElementById('no-holding').value||(rentNum/52).toFixed(0),
@@ -4924,6 +5058,7 @@ showPage=function(id,btn){
     fbGet('offers',function(data){
       offers=[];
       if(data) Object.keys(data).forEach(function(k){var o=data[k];o.fbKey=k;offers.push(o);});
+      migrateOfferChecklistsToProperties();
       renderOffers();
       renderTcsChaseStrip();
     });
@@ -4974,19 +5109,78 @@ function setMiFilter(f,btn){
 
 function filterMoveIns(){ renderMoveIns(); }
 
+// ─── MOVE-IN / MOVE-OUT PAIRING (same property) ───────────────────────────────
+function normAddr(s){ return (s||'').toLowerCase().trim(); }
+function findMatchedMoveOut(prop){
+  var a=normAddr(prop);
+  if(!a) return null;
+  return moveouts.find(function(m){ return m.status!=='Vacated' && normAddr(m.prop)===a; })||null;
+}
+function findMatchedMoveIn(prop){
+  var a=normAddr(prop);
+  if(!a) return null;
+  return moveins.find(function(m){ return normAddr(m.prop)===a; })||null;
+}
+function calcVoidDays(vacateDateStr, startDateStr){
+  if(!vacateDateStr||!startDateStr) return null;
+  var vd=new Date(vacateDateStr+'T00:00:00'), sd=new Date(startDateStr+'T00:00:00');
+  if(isNaN(vd)||isNaN(sd)) return null;
+  return Math.round((sd-vd)/(1000*60*60*24));
+}
+function voidBadgeHtml(days){
+  if(days===null) return '';
+  if(days<0) return '<span class="badge badge-red" style="margin-left:6px" title="New tenant moves in before the outgoing tenant vacates">Overlap '+Math.abs(days)+'d</span>';
+  if(days===0) return '<span class="badge badge-green" style="margin-left:6px">No void — same day</span>';
+  return '<span class="badge badge-purple" style="margin-left:6px">'+days+'d void</span>';
+}
+
 // ─── MOVEMENT STATUS BADGES (Maintenance / Cleaning / Inventory) ───────────────
-// Shared by both Move In and Move Out cards. Each item is stored as
-// { status: 'pending'|'done', date: 'YYYY-MM-DD'|null } under m.maint / m.clean / m.inv
-function movementBadgeHtml(type, fbKey, kind, obj){
+// Shared by both Move In and Move Out cards. Manual fallback stored as
+// { status: 'pending'|'done', date: 'YYYY-MM-DD'|null } under m.maint / m.clean / m.inv.
+// When a real Maintenance job exists for this property matching the kind, the badge
+// shows that job's contractor + scheduled date instead of the manual flag.
+function findLinkedJob(prop, kind){
+  if(!prop) return null;
+  var addr=prop.toLowerCase().trim();
+  var candidates=jobs.filter(function(j){
+    if((j.prop||'').toLowerCase().trim()!==addr) return false;
+    if(j.status==='Complete') return false;
+    if(kind==='clean') return j.category==='Cleaning';
+    if(kind==='inv') return j.category==='Inventory';
+    // maintenance = any other open job for this property
+    return j.category!=='Cleaning' && j.category!=='Inventory';
+  });
+  if(!candidates.length) return null;
+  // Prefer one with a booked date, earliest first
+  candidates.sort(function(a,b){
+    if(a.bookedDate&&b.bookedDate) return a.bookedDate.localeCompare(b.bookedDate);
+    if(a.bookedDate) return -1;
+    if(b.bookedDate) return 1;
+    return 0;
+  });
+  return candidates[0];
+}
+
+function movementBadgeHtml(type, fbKey, kind, obj, prop){
   obj = obj || {};
   var labels = {maint:'Maintenance', clean:'Cleaning', inv:'Inventory'};
   var label = labels[kind]||kind;
+  var linked = findLinkedJob(prop, kind);
+  if(linked){
+    var c=getContractor(linked.contractorId);
+    var cls = linked.bookedDate?'badge-green':'badge-amber';
+    var text = linked.bookedDate
+      ? (c.name||'Contractor')+' · '+formatDateDayDMY(linked.bookedDate)
+      : (c.name?c.name+' · date TBC':'Awaiting date');
+    return '<span class="badge '+cls+'" style="margin-right:4px;margin-bottom:4px;display:inline-block" title="From Maintenance — '+(linked.issue||'')+'">'
+      +label+': '+text+'</span>';
+  }
   var isDone = obj.status==='done';
-  var cls = isDone?'badge-green':'badge-amber';
-  var text = isDone ? (obj.date?formatDateDayDMY(obj.date):'Done') : 'Pending';
-  return '<button type="button" class="badge '+cls+'" style="border:none;cursor:pointer;margin-right:4px;margin-bottom:4px" '
+  var cls2 = isDone?'badge-green':'badge-amber';
+  var text2 = isDone ? (obj.date?formatDateDayDMY(obj.date):'Done') : 'Pending';
+  return '<button type="button" class="badge '+cls2+'" style="border:none;cursor:pointer;margin-right:4px;margin-bottom:4px" '
     +'onclick="event.stopPropagation();toggleMovementItem(\''+type+'\',\''+fbKey+'\',\''+kind+'\')" title="Click to toggle '+label+'">'
-    +label+': '+text+'</button>';
+    +label+': '+text2+'</button>';
 }
 
 function toggleMovementItem(type, fbKey, kind){
@@ -5032,6 +5226,11 @@ function renderMoveIns(){
     if(miFilter==='complete') return status==='Complete';
     return true;
   });
+  // Matched-with-a-move-out first, unmatched after (approximates side-by-side pairing across columns)
+  filtered.sort(function(a,b){
+    var ma=findMatchedMoveOut(a.prop)?1:0, mb=findMatchedMoveOut(b.prop)?1:0;
+    return mb-ma;
+  });
   var container=document.getElementById('mi-cards');
   if(!container) return;
   var miCountEl=document.getElementById('mi-col-count'); if(miCountEl) miCountEl.textContent=filtered.length;
@@ -5066,8 +5265,11 @@ function renderMoveIns(){
     var ast=ll[0]?'badge-green':'badge-grey';
     var keys=ll[2]?'badge-green':'badge-grey';
     var dep=cl[3]?'badge-green':'badge-grey';
+    // Paired move-out (same property) + void days
+    var matchedOut=findMatchedMoveOut(m.prop);
+    var voidDays=matchedOut?calcVoidDays(matchedOut.vacateDate||matchedOut.noticeDate, m.startDate):null;
 
-    html+='<div class="card" style="margin-bottom:6px;padding:10px 12px;cursor:pointer" data-mk="'+m.fbKey+'" onclick="openMiModal(this.dataset.mk)">'
+    html+='<div class="card" style="margin-bottom:6px;padding:10px 12px;cursor:pointer'+(matchedOut?';border-left:3px solid var(--purple-text)':'')+'" data-mk="'+m.fbKey+'" onclick="openMiModal(this.dataset.mk)">'
       +'<div style="display:flex;align-items:center;gap:10px">'
       +'<div style="width:32px;height:32px;border-radius:50%;background:'+avatarBg+';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:'+avatarColor+';flex-shrink:0">'+initials+'</div>'
       +'<div style="flex:1;min-width:0">'
@@ -5078,6 +5280,7 @@ function renderMoveIns(){
       +'<span class="badge '+pillClass+'">'+status+'</span>'
       +'</div></div>'
       +'<div style="font-size:10px;color:var(--text2);margin-top:1px">'+(m.tenant||'—')+(m.rent?' · £'+parseFloat(m.rent).toLocaleString('en-GB')+'/mo':'')+' · Move-in: '+(m.startDate?formatDateDayDMY(m.startDate):'—')+'</div>'
+      +(matchedOut?'<div style="font-size:10px;color:var(--purple-text);margin-top:2px">↔ Matched with move-out'+voidBadgeHtml(voidDays)+'</div>':'')
       +'</div></div>'
       +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:7px">'
       +'<span class="badge '+rtr+'" title="Right to Rent">RTR</span>'
@@ -5087,9 +5290,9 @@ function renderMoveIns(){
       +'<span class="badge '+dep+'" title="Deposit registered">Deposit</span>'
       +'</div>'
       +'<div style="display:flex;flex-wrap:wrap;margin-top:6px">'
-      +movementBadgeHtml('in',m.fbKey,'maint',m.maint)
-      +movementBadgeHtml('in',m.fbKey,'clean',m.clean)
-      +movementBadgeHtml('in',m.fbKey,'inv',m.inv)
+      +movementBadgeHtml('in',m.fbKey,'maint',m.maint,m.prop)
+      +movementBadgeHtml('in',m.fbKey,'clean',m.clean,m.prop)
+      +movementBadgeHtml('in',m.fbKey,'inv',m.inv,m.prop)
       +'</div>'
       +'<div style="margin-top:8px;background:var(--bg);border-radius:20px;height:5px">'
       +'<div style="background:'+barColor+';height:5px;border-radius:20px;width:'+pct+'%"></div></div>'
@@ -5111,6 +5314,12 @@ function renderMiSidebar(){
     +'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border)"><span style="font-size:11px">Complete</span><span class="badge badge-green">'+counts.complete+'</span></div>'
     +'<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border)"><span style="font-size:11px">In progress</span><span class="badge badge-amber">'+counts.inProgress+'</span></div>'
     +'<div style="display:flex;justify-content:space-between;padding:5px 0"><span style="font-size:11px">Not started</span><span class="badge badge-grey">'+counts.notStarted+'</span></div>';
+  // Top summary strip
+  function setStrip(id,val){ var el=document.getElementById(id); if(el) el.textContent=val; }
+  setStrip('sm-total', counts.total);
+  setStrip('sm-complete', counts.complete);
+  setStrip('sm-inprogress', counts.inProgress);
+  setStrip('sm-notstarted', counts.notStarted);
 
   // Pending actions - incomplete items across all active move-ins
   var pending=[];
@@ -5201,15 +5410,22 @@ var _spMi=showPage;
 showPage=function(id,btn){
   _spMi(id,btn);
   if(id==='moveins'){
+    // Load both before rendering either — Move In / Move Out pairing and void days
+    // need both datasets present, not just whichever fetch happens to finish first.
+    var _mvPending=2;
+    function _mvBothLoaded(){
+      _mvPending--;
+      if(_mvPending<=0){ renderMoveIns(); renderMoveOuts(); }
+    }
     fbGet('moveins',function(data){
       moveins=[];
       if(data) Object.keys(data).forEach(function(k){var m=data[k];m.fbKey=k;moveins.push(m);});
-      renderMoveIns();
+      _mvBothLoaded();
     });
     fbGet('moveouts',function(data){
       moveouts=[];
       if(data) Object.keys(data).forEach(function(k){var m=data[k];m.fbKey=k;moveouts.push(m);});
-      renderMoveOuts();
+      _mvBothLoaded();
     });
   }
 };
@@ -5242,34 +5458,53 @@ function renderMoveOuts(){
     if(!q) return true;
     return (m.prop||'').toLowerCase().indexOf(q)>-1 || (m.tenant||'').toLowerCase().indexOf(q)>-1;
   });
+  // Matched (new tenant already found) first, unmatched (no tenant yet) at the bottom
+  filtered.sort(function(a,b){
+    var ma=findMatchedMoveIn(a.prop)?1:0, mb=findMatchedMoveIn(b.prop)?1:0;
+    return mb-ma;
+  });
   if(!filtered.length){
     container.innerHTML='';
     if(empty) empty.style.display='block';
-    return;
+  } else {
+    if(empty) empty.style.display='none';
+    container.innerHTML=filtered.map(function(m){
+      var vacateDate=m.vacateDate||m.noticeDate;
+      var matchedIn=findMatchedMoveIn(m.prop);
+      var voidDays=matchedIn?calcVoidDays(vacateDate, matchedIn.startDate):null;
+      return '<div class="card" style="margin-bottom:10px'+(matchedIn?';border-left:3px solid var(--purple-text)':'')+'">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+        +'<div><div style="font-size:13px;font-weight:600;color:var(--navy)">'+(m.prop||'—')+'</div>'
+        +'<div style="font-size:11px;color:var(--text2)">'+(m.tenant||'')+'</div></div>'
+        +'<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--amber-bg);color:var(--amber-text)">Vacating'+(vacateDate?' · '+formatDateDayDMY(vacateDate):'')+'</span>'
+        +'</div>'
+        +(matchedIn?'<div style="font-size:10px;color:var(--purple-text);margin-bottom:6px">↔ '+(matchedIn.tenant||'New tenant')+' moving in '+(matchedIn.startDate?formatDateDayDMY(matchedIn.startDate):'—')+voidBadgeHtml(voidDays)+'</div>'
+                   :'<div style="font-size:10px;color:var(--red-text);margin-bottom:6px">No new tenant found yet</div>')
+        +'<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);margin-bottom:8px;cursor:pointer">'
+        +'<input type="checkbox" data-key="'+m.fbKey+'" data-field="notesSent" onchange="toggleMoveOutItem(this)" '+(m.notesSent?'checked':'')+' style="width:14px;height:14px">'
+        +'End of tenancy notes sent</label>'
+        +'<div style="display:flex;flex-wrap:wrap;margin-bottom:8px">'
+        +movementBadgeHtml('out',m.fbKey,'maint',m.maint,m.prop)
+        +movementBadgeHtml('out',m.fbKey,'clean',m.clean,m.prop)
+        +movementBadgeHtml('out',m.fbKey,'inv',m.inv,m.prop)
+        +'</div>'
+        +'<button class="btn btn-outline btn-sm" onclick="deleteMoveOut(\''+m.fbKey+'\')">Remove</button>'
+        +'</div>';
+    }).join('');
   }
-  if(empty) empty.style.display='none';
   var moCountEl=document.getElementById('mo-col-count'); if(moCountEl) moCountEl.textContent=filtered.length;
-  container.innerHTML=filtered.map(function(m){
-    return '<div class="card" style="margin-bottom:10px">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
-      +'<div><div style="font-size:13px;font-weight:600;color:var(--navy)">'+(m.prop||'—')+'</div>'
-      +'<div style="font-size:11px;color:var(--text2)">'+(m.tenant||'')+'</div></div>'
-      +'<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--amber-bg);color:var(--amber-text)">Notice received'+(m.noticeDate?' · '+formatDateDayDMY(m.noticeDate):'')+'</span>'
-      +'</div>'
-      +'<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);margin-bottom:4px;cursor:pointer">'
-      +'<input type="checkbox" data-key="'+m.fbKey+'" data-field="notesSent" onchange="toggleMoveOutItem(this)" '+(m.notesSent?'checked':'')+' style="width:14px;height:14px">'
-      +'End of tenancy notes sent</label>'
-      +'<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);margin-bottom:8px;cursor:pointer">'
-      +'<input type="checkbox" data-key="'+m.fbKey+'" data-field="inventoryBooked" onchange="toggleMoveOutItem(this)" '+(m.inventoryBooked?'checked':'')+' style="width:14px;height:14px">'
-      +'Inventory booked (legacy)</label>'
-      +'<div style="display:flex;flex-wrap:wrap;margin-bottom:8px">'
-      +movementBadgeHtml('out',m.fbKey,'maint',m.maint)
-      +movementBadgeHtml('out',m.fbKey,'clean',m.clean)
-      +movementBadgeHtml('out',m.fbKey,'inv',m.inv)
-      +'</div>'
-      +'<button class="btn btn-outline btn-sm" onclick="deleteMoveOut(\''+m.fbKey+'\')">Remove</button>'
-      +'</div>';
-  }).join('');
+
+  // Top strip: unmatched move-outs + average void days across matched pairs
+  var activeOuts=moveouts.filter(function(m){ return m.status!=='Vacated'; });
+  var unmatchedCount=activeOuts.filter(function(m){ return !findMatchedMoveIn(m.prop); }).length;
+  var voids=[];
+  activeOuts.forEach(function(m){
+    var mi=findMatchedMoveIn(m.prop);
+    if(mi){ var d=calcVoidDays(m.vacateDate||m.noticeDate, mi.startDate); if(d!==null) voids.push(d); }
+  });
+  var avgVoid=voids.length?Math.round(voids.reduce(function(a,b){return a+b;},0)/voids.length):null;
+  var unmatchedEl=document.getElementById('sm-unmatched'); if(unmatchedEl) unmatchedEl.textContent=unmatchedCount;
+  var avgVoidEl=document.getElementById('sm-avgvoid'); if(avgVoidEl) avgVoidEl.textContent=avgVoid===null?'—':avgVoid+'d';
 }
 
 function toggleMoveOutItem(el){
@@ -5294,21 +5529,22 @@ function openNoticeReceived(){
   var p=properties[currentPropIdx];
   if(!p) return;
   document.getElementById('nr-address').textContent=(p.address||'')+(p.tenant?' · '+p.tenant:'');
-  document.getElementById('nr-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('nr-date').value='';
   openModal('notice-received-modal');
 }
 
 function confirmNoticeReceived(){
   var p=properties[currentPropIdx];
   if(!p) return;
+  var vd=document.getElementById('nr-date').value;
+  if(!vd){ showToast('Please enter the expected vacate date'); return; }
   var mo={
     prop:p.address||'',
     tenant:p.tenant||'',
     propFbKey:p.fbKey||'',
-    noticeDate:document.getElementById('nr-date').value,
+    vacateDate:vd,
     status:'Notice received',
-    notesSent:false,
-    inventoryBooked:false
+    notesSent:false
   };
   fbPush('moveouts', mo, function(key){
     mo.fbKey=key;
