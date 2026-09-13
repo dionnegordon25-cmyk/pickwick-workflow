@@ -71,10 +71,10 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { offerId, landlordName, landlordEmail, propertyAddress } = JSON.parse(event.body);
+    const { propertyId, landlordName, landlordEmail, propertyAddress } = JSON.parse(event.body);
 
-    if (!offerId || !landlordName || !landlordEmail) {
-      return { statusCode: 400, body: 'Missing offerId, landlordName, or landlordEmail' };
+    if (!propertyId || !landlordName || !landlordEmail) {
+      return { statusCode: 400, body: 'Missing propertyId, landlordName, or landlordEmail' };
     }
     if (!DOCUSIGN_TEMPLATE_ID) {
       return { statusCode: 400, body: JSON.stringify({ error: 'DOCUSIGN_TEMPLATE_ID not set yet — create the Landlord T&Cs template in DocuSign first' }) };
@@ -114,11 +114,12 @@ exports.handler = async (event) => {
     const envelope = await sendRes.json();
     if (!sendRes.ok) throw new Error(`Envelope send failed: ${JSON.stringify(envelope)}`);
 
-    // Record sent status against the OFFER record (matches the CRM's schema —
-    // offers/{offerId}/checklist/tcs) so the Offer Accepted checklist shows
-    // "Sent — awaiting signature" immediately.
+    // Record sent status against the PROPERTY record (matches the CRM's schema —
+    // properties/{propertyId}/checklist/tcs) — T&Cs, PEP check, and the questionnaire
+    // all live on the property now, not on any one tenancy offer, so the checklist
+    // shows "Sent — awaiting signature" immediately.
     await fetch(
-      `${FIREBASE_URL}/offers/${offerId}/checklist/tcs.json?auth=${FIREBASE_SECRET}`,
+      `${FIREBASE_URL}/properties/${propertyId}/checklist/tcs.json?auth=${FIREBASE_SECRET}`,
       {
         method: 'PATCH',
         body: JSON.stringify({

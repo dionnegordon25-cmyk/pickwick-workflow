@@ -54,16 +54,17 @@ exports.handler = async (event) => {
       return { statusCode: 400, body: 'No envelopeId in payload' };
     }
 
-    // Find which OFFER this envelope belongs to (checklist.tcs.envelopeId)
+    // Find which PROPERTY this envelope belongs to (checklist.tcs.envelopeId) —
+    // T&Cs live on the property record now, not on any one tenancy offer.
     const lookupRes = await fetch(
-      `${FIREBASE_URL}/offers.json?orderBy="checklist/tcs/envelopeId"&equalTo="${envelopeId}"&auth=${FIREBASE_SECRET}`
+      `${FIREBASE_URL}/properties.json?orderBy="checklist/tcs/envelopeId"&equalTo="${envelopeId}"&auth=${FIREBASE_SECRET}`
     );
     const matches = await lookupRes.json();
-    const offerId = matches ? Object.keys(matches)[0] : null;
+    const propertyId = matches ? Object.keys(matches)[0] : null;
 
-    if (!offerId) {
-      console.warn(`No offer found for envelopeId ${envelopeId}`);
-      return { statusCode: 200, body: 'No matching offer — ignored' };
+    if (!propertyId) {
+      console.warn(`No property found for envelopeId ${envelopeId}`);
+      return { statusCode: 200, body: 'No matching property — ignored' };
     }
 
     const update = {
@@ -81,7 +82,7 @@ exports.handler = async (event) => {
     }
 
     await fetch(
-      `${FIREBASE_URL}/offers/${offerId}/checklist/tcs.json?auth=${FIREBASE_SECRET}`,
+      `${FIREBASE_URL}/properties/${propertyId}/checklist/tcs.json?auth=${FIREBASE_SECRET}`,
       { method: 'PATCH', body: JSON.stringify(update) }
     );
 

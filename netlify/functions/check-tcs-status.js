@@ -72,13 +72,13 @@ exports.handler = async (event) => {
 
     if (envelope.status === 'completed') {
       const lookupRes = await fetch(
-        `${FIREBASE_URL}/offers.json?orderBy="checklist/tcs/envelopeId"&equalTo="${envelopeId}"&auth=${FIREBASE_SECRET}`
+        `${FIREBASE_URL}/properties.json?orderBy="checklist/tcs/envelopeId"&equalTo="${envelopeId}"&auth=${FIREBASE_SECRET}`
       );
       const matches = await lookupRes.json();
-      const offerId = matches ? Object.keys(matches)[0] : null;
-      if (offerId) {
+      const propertyId = matches ? Object.keys(matches)[0] : null;
+      if (propertyId) {
         await fetch(
-          `${FIREBASE_URL}/offers/${offerId}/checklist/tcs.json?auth=${FIREBASE_SECRET}`,
+          `${FIREBASE_URL}/properties/${propertyId}/checklist/tcs.json?auth=${FIREBASE_SECRET}`,
           {
             method: 'PATCH',
             body: JSON.stringify({
