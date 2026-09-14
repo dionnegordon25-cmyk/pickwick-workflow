@@ -79,6 +79,7 @@ exports.handler = async (event) => {
   }
 
   const envelopeId = event.queryStringParameters && event.queryStringParameters.envelopeId;
+  const propertyIdParam = event.queryStringParameters && event.queryStringParameters.propertyId;
   if (!envelopeId) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing envelopeId' }) };
   }
@@ -94,11 +95,18 @@ exports.handler = async (event) => {
     if (!res.ok) throw new Error(`Envelope lookup failed: ${JSON.stringify(envelope)}`);
 
     if (envelope.status === 'completed') {
-      const lookupRes = await fetch(
-        `${FIREBASE_URL}/properties.json?orderBy="checklist/tcs/envelopeId"&equalTo="${envelopeId}"&auth=${FIREBASE_SECRET}`
-      );
-      const matches = await lookupRes.json();
-      const propertyId = matches ? Object.keys(matches)[0] : null;
+      // If the caller already knows which property this is for (the "Check status"
+      // button on a specific property always does), use that directly — far more
+      // reliable than searching for it, which depends on Firebase's orderBy query
+      // matching correctly and can silently fail to find the record.
+      let propertyId = propertyIdParam;
+      if (!propertyId) {
+        const lookupRes = await fetch(
+          `${FIREBASE_URL}/properties.json?orderBy="checklist/tcs/envelopeId"&equalTo="${envelopeId}"&auth=${FIREBASE_SECRET}`
+        );
+        const matches = await lookupRes.json();
+        propertyId = matches ? Object.keys(matches)[0] : null;
+      }
       if (propertyId) {
         await fetch(
           `${FIREBASE_URL}/properties/${propertyId}/checklist/tcs.json?auth=${FIREBASE_SECRET}`,
