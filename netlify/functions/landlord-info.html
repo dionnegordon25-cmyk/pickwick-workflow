@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Property Information — Pickwick Estates</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1E3A5F; --maroon:#3C141E; --bg:#F7F8FA; --white:#FFFFFF;
+    --border:#E5E7EB; --border2:#D1D5DB; --text:#111827; --text2:#6B7280; --text3:#9CA3AF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+  .brand{background:var(--maroon);color:#fff;padding:16px 0;text-align:center}
+  .brand-name{font-size:18px;font-weight:600}
+  .brand-sub{font-size:12px;opacity:0.75;margin-top:2px}
+  .wrap{max-width:560px;margin:0 auto;padding:24px 16px 60px}
+  .card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:16px}
+  h1{font-size:17px;font-weight:600;margin-bottom:4px}
+  .sub{font-size:13px;color:var(--text2);margin-bottom:18px}
+  .section-title{font-size:13px;font-weight:600;color:var(--navy);margin:18px 0 10px;padding-top:14px;border-top:1px solid var(--border)}
+  .section-title:first-child{margin-top:0;padding-top:0;border-top:none}
+  label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:4px}
+  input, textarea{
+    width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:8px;
+    font-size:13px;font-family:inherit;color:var(--text);margin-bottom:14px;background:#fff
+  }
+  input:focus, textarea:focus{outline:2px solid var(--navy);outline-offset:1px}
+  .note{font-size:11px;color:var(--text3);margin-top:-10px;margin-bottom:14px}
+  .privacy-note{background:var(--bg);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:18px}
+  button{
+    width:100%;padding:12px;background:var(--navy);color:#fff;border:none;border-radius:8px;
+    font-size:14px;font-weight:600;cursor:pointer;font-family:inherit
+  }
+  button:hover{opacity:0.9}
+  button:disabled{opacity:0.5;cursor:not-allowed}
+  .error{background:#FAECE7;color:#993C1D;border:1px solid #F5C4B3;border-radius:8px;padding:10px 12px;font-size:12px;margin-bottom:14px;display:none}
+  .success{text-align:center;padding:20px 0}
+  .success .icon{width:48px;height:48px;border-radius:50%;background:#EAF3DE;color:#3B6D11;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 14px}
+</style>
+</head>
+<body>
+<div class="brand">
+  <div class="brand-name">Pickwick Estates</div>
+  <div class="brand-sub">Alps Estates Ltd</div>
+</div>
+<div class="wrap">
+  <div class="card" id="form-card">
+    <h1 id="page-title">Property information</h1>
+    <div class="sub" id="page-sub">Loading...</div>
+    <div class="error" id="err"></div>
+
+    <form id="landlord-form" style="display:none">
+      <div class="section-title">About you</div>
+      <label for="f-name">Full legal name</label>
+      <input type="text" id="f-name" placeholder="As it appears on official ID" required>
+      <label for="f-dob">Date of birth</label>
+      <input type="date" id="f-dob" required>
+      <div class="note">This is used only for a routine compliance check, as required by UK anti-money laundering regulations.</div>
+
+      <div class="section-title">About the property</div>
+      <label for="f-bills">Average monthly bills</label>
+      <input type="text" id="f-bills" placeholder="e.g. ~£180/mo (gas & electric combined est.)">
+      <label for="f-providers">Current utility providers</label>
+      <input type="text" id="f-providers" placeholder="e.g. British Gas (dual fuel), Thames Water">
+      <label for="f-meters">Meter locations</label>
+      <input type="text" id="f-meters" placeholder="e.g. Gas & electric meters in hallway cupboard">
+      <label for="f-stopcock">Stopcock location</label>
+      <input type="text" id="f-stopcock" placeholder="e.g. Under kitchen sink, left cupboard">
+      <label for="f-binday">Bin collection day</label>
+      <input type="text" id="f-binday" placeholder="e.g. Tuesdays (general waste), Fridays (recycling)">
+      <label for="f-binloc">Bin location</label>
+      <input type="text" id="f-binloc" placeholder="e.g. Round the side passage, by the gate">
+      <label for="f-instructions">Anything else the tenant should know</label>
+      <textarea id="f-instructions" rows="3"></textarea>
+
+      <div class="privacy-note">
+        Your name and date of birth are used only for a one-off compliance check and are not shared beyond Pickwick Estates. Property details you provide here will be passed on to your tenant.
+      </div>
+
+      <button type="submit" id="submit-btn">Submit</button>
+    </form>
+
+    <div class="success" id="success-view" style="display:none">
+      <div class="icon">&#10003;</div>
+      <h1>Thank you</h1>
+      <p class="sub" style="margin-top:8px">Your information has been submitted to Pickwick Estates.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+var params = new URLSearchParams(window.location.search);
+var propertyId = params.get('property');
+
+function showError(msg){
+  var el = document.getElementById('err');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+if(!propertyId){
+  document.getElementById('page-sub').textContent = '';
+  showError('This link is missing information and can\'t be used. Please ask Pickwick Estates to resend it.');
+} else {
+  fetch('/.netlify/functions/get-landlord-context?property=' + encodeURIComponent(propertyId))
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data && data.address){
+        document.getElementById('page-sub').textContent = data.address;
+        document.getElementById('landlord-form').style.display = 'block';
+      } else {
+        document.getElementById('page-sub').textContent = '';
+        showError('This link could not be matched to a property. Please ask Pickwick Estates to resend it.');
+      }
+    })
+    .catch(function(){
+      document.getElementById('page-sub').textContent = '';
+      showError('Could not load this form right now. Please try again shortly.');
+    });
+}
+
+document.getElementById('landlord-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  var btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  fetch('/.netlify/functions/submit-landlord-info', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      propertyId: propertyId,
+      name: document.getElementById('f-name').value,
+      dob: document.getElementById('f-dob').value,
+      avgBills: document.getElementById('f-bills').value,
+      providers: document.getElementById('f-providers').value,
+      meterLocations: document.getElementById('f-meters').value,
+      stopcockLocation: document.getElementById('f-stopcock').value,
+      binDay: document.getElementById('f-binday').value,
+      binLocation: document.getElementById('f-binloc').value,
+      instructions: document.getElementById('f-instructions').value
+    })
+  }).then(function(r){ return r.json(); }).then(function(data){
+    if(data && data.success){
+      document.getElementById('landlord-form').style.display = 'none';
+      document.getElementById('success-view').style.display = 'block';
+      document.getElementById('page-title').style.display = 'none';
+      document.getElementById('page-sub').style.display = 'none';
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Submit';
+      showError('Something went wrong submitting this — please try again.');
+    }
+  }).catch(function(){
+    btn.disabled = false;
+    btn.textContent = 'Submit';
+    showError('Something went wrong submitting this — please try again.');
+  });
+});
+</script>
+</body>
+</html>
