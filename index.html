@@ -4758,11 +4758,13 @@ function sendTcsEnvelopeProp(fbKey){
       p.checklist.tcs={status:'sent', envelopeId:data.envelopeId, sentDate:new Date().toISOString().slice(0,10)};
       fbSet('properties/'+fbKey+'/checklist', p.checklist, function(){ renderPropOnboardingTab(); renderPropsTable(); renderTcsChaseStrip(); showToast('T&Cs sent to '+p.llEmail); });
     } else {
-      showToast('Could not send T&Cs — check DocuSign setup');
+      // Show the real error from DocuSign/the server directly, rather than a generic message —
+      // this stays on screen until dismissed, so it's easy to read and screenshot.
+      alert('Could not send T&Cs.\n\nError details:\n'+(data&&data.error?data.error:JSON.stringify(data)));
     }
   }).catch(function(err){
     console.error('sendTcsEnvelopeProp error:', err);
-    showToast('Could not reach DocuSign — check connection / setup');
+    alert('Could not reach the send-tcs-envelope function.\n\nError details:\n'+err.message);
   });
 }
 
