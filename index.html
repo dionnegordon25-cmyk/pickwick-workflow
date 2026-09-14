@@ -482,11 +482,11 @@ select.field-input{cursor:pointer}
     <div id="page-moveins" class="page">
       <!-- Summary strip -->
       <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px" id="mv-summary-strip">
-        <div class="card"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Move-ins total</div><div style="font-size:20px;font-weight:500;color:var(--navy)" id="sm-total">—</div></div>
-        <div class="card"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Complete</div><div style="font-size:20px;font-weight:500;color:var(--green-text)" id="sm-complete">—</div></div>
-        <div class="card"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">In progress</div><div style="font-size:20px;font-weight:500;color:var(--amber-text)" id="sm-inprogress">—</div></div>
-        <div class="card"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Not started</div><div style="font-size:20px;font-weight:500;color:var(--text2)" id="sm-notstarted">—</div></div>
-        <div class="card"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Move-outs — no tenant yet</div><div style="font-size:20px;font-weight:500;color:var(--red-text)" id="sm-unmatched">—</div></div>
+        <div class="card" style="cursor:pointer" onclick="setMiFilter('all',document.querySelectorAll('#mi-filter-pills .filter-pill')[0])" title="Show all move-ins"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Move-ins total</div><div style="font-size:20px;font-weight:500;color:var(--navy)" id="sm-total">—</div></div>
+        <div class="card" style="cursor:pointer" onclick="setMiFilter('complete',document.querySelectorAll('#mi-filter-pills .filter-pill')[3])" title="Show completed move-ins"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Complete</div><div style="font-size:20px;font-weight:500;color:var(--green-text)" id="sm-complete">—</div></div>
+        <div class="card" style="cursor:pointer" onclick="setMiFilter('in-progress',document.querySelectorAll('#mi-filter-pills .filter-pill')[2])" title="Show in-progress move-ins"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">In progress</div><div style="font-size:20px;font-weight:500;color:var(--amber-text)" id="sm-inprogress">—</div></div>
+        <div class="card" style="cursor:pointer" onclick="setMiFilter('not-started',document.querySelectorAll('#mi-filter-pills .filter-pill')[1])" title="Show not-started move-ins"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Not started</div><div style="font-size:20px;font-weight:500;color:var(--text2)" id="sm-notstarted">—</div></div>
+        <div class="card" style="cursor:pointer" onclick="toggleMoUnmatchedOnly()" title="Show only move-outs with no new tenant yet"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Move-outs — no tenant yet</div><div style="font-size:20px;font-weight:500;color:var(--red-text)" id="sm-unmatched">—</div></div>
         <div class="card"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Avg void (matched)</div><div style="font-size:20px;font-weight:500;color:var(--purple-text)" id="sm-avgvoid">—</div></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
@@ -1046,6 +1046,27 @@ select.field-input{cursor:pointer}
       <button class="btn btn-outline btn-sm" onclick="closeModal('offer-detail-modal')">Close</button>
     </div>
     <div id="od-body"></div>
+  </div>
+</div>
+
+<!-- EDIT MOVE-IN MODAL -->
+<div class="modal-overlay" id="edit-movein-modal">
+  <div class="modal modal-lg">
+    <div class="modal-title">Edit move-in</div>
+    <div class="modal-sub" id="emi-address"></div>
+    <div class="grid-2">
+      <div class="field-group"><label class="field-label">Tenant name</label><input class="field-input" id="emi-tenant"></div>
+      <div class="field-group"><label class="field-label">Tenant email</label><input class="field-input" id="emi-email" type="email"></div>
+      <div class="field-group"><label class="field-label">Tenant phone</label><input class="field-input" id="emi-phone"></div>
+      <div class="field-group"><label class="field-label">Move-in date</label><input class="field-input" id="emi-start" type="date"></div>
+      <div class="field-group"><label class="field-label">Monthly rent (£)</label><input class="field-input" id="emi-rent" type="number"></div>
+      <div class="field-group"><label class="field-label">Management fee (%)</label><input class="field-input" id="emi-fee" type="number"></div>
+      <div class="field-group"><label class="field-label">Deposit (£)</label><input class="field-input" id="emi-deposit" type="number"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('edit-movein-modal')">Cancel</button>
+      <button class="btn btn-navy" onclick="saveEditMoveIn()">Save changes</button>
+    </div>
   </div>
 </div>
 
@@ -4623,15 +4644,10 @@ function renderOffers(){
       +'<button class="btn btn-outline btn-sm" onclick="emailDoc(\'tenant-welcome\',\''+o.fbKey+'\',\'tenant\')">&#9993; Email tenant</button>'
       +'</div>'
       +'<div style="font-size:10px;font-weight:500;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Landlord</div>'
-      +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px">'
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap">'
       +'<button class="btn btn-outline btn-sm" onclick="genDoc(\'ll-welcome\',\''+o.fbKey+'\')">&#128196; Instruction pack</button>'
       +'<button class="btn btn-outline btn-sm" onclick="copyDoc(\'ll-welcome\',\''+o.fbKey+'\')">&#128203; Copy</button>'
       +'<button class="btn btn-outline btn-sm" onclick="emailDoc(\'ll-welcome\',\''+o.fbKey+'\',\'landlord\')">&#9993; Email LL</button>'
-      +'</div>'
-      +'<div style="display:flex;gap:5px;flex-wrap:wrap">'
-      +'<button class="btn btn-outline btn-sm" style="background:var(--purple-bg);color:var(--purple-text)" onclick="genDoc(\'pep\',\''+o.fbKey+'\')">&#128196; PEP &amp; Sanctions</button>'
-      +'<button class="btn btn-outline btn-sm" style="background:var(--purple-bg);color:var(--purple-text)" onclick="copyDoc(\'pep\',\''+o.fbKey+'\')">&#128203; Copy</button>'
-      +'<button class="btn btn-outline btn-sm" style="background:var(--purple-bg);color:var(--purple-text)" onclick="emailDoc(\'pep\',\''+o.fbKey+'\',\'landlord\')">&#9993; Email LL</button>'
       +'</div>'
       +'</div>'
       +'</div>';
@@ -4700,11 +4716,21 @@ function renderPropChecklistSection(p){
 
   var tcsCls = tcs.status==='done'?'badge-green':tcs.status==='sent'?'badge-purple':'badge-amber';
   var tcsText = tcs.status==='done' ? ('Signed'+(tcs.signedDate?' '+formatDateDayDMY(tcs.signedDate):'')) : tcs.status==='sent' ? 'Sent — awaiting signature' : 'Not sent';
-  var pepCls = pep.status==='done'?'badge-green':pep.status==='waiting'?'badge-purple':'badge-amber';
-  var pepText = pep.status==='done' ? ('Complete'+(pep.date?' '+formatDateDayDMY(pep.date):'')) : pep.status==='waiting' ? 'Awaiting reply' : 'Pending';
+
+  var pepClsMap={pending:'badge-amber',waiting:'badge-purple',submitted:'badge-blue',done:'badge-green'};
+  var pepTextMap={
+    pending:'Pending',
+    waiting:'Awaiting landlord',
+    submitted:'Submitted — needs review',
+    done:'Complete'+(pep.completedDate?' '+formatDateDayDMY(pep.completedDate):'')
+  };
+  var pepCls=pepClsMap[pep.status]||'badge-amber';
+  var pepText=pepTextMap[pep.status]||'Pending';
+
   var qCls = q.status==='done'?'badge-green':'badge-amber';
   var qText = q.status==='done' ? ('Complete'+(q.date?' '+formatDateDayDMY(q.date):'')) : 'Pending';
   var allDone = tcs.status==='done' && pep.status==='done' && q.status==='done';
+  var needsRequest = pep.status==='pending' || q.status!=='done';
 
   var html='<div>'
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
@@ -4717,25 +4743,62 @@ function renderPropChecklistSection(p){
     +(tcs.status==='sent'?'<button class="btn btn-outline btn-sm" onclick="checkTcsStatusProp(\''+p.fbKey+'\')">Check status</button>':'')
     +(tcs.status==='done'&&tcs.envelopeId?'<a class="btn btn-outline btn-sm" href="/.netlify/functions/get-signed-doc?envelopeId='+encodeURIComponent(tcs.envelopeId)+'" target="_blank">View signed doc</a>':'')
     +'</div>'
-    +'<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">'
-    +'<button type="button" class="badge '+pepCls+'" style="border:none;cursor:pointer" onclick="togglePepStatusProp(\''+p.fbKey+'\')">PEP &amp; Sanctions: '+pepText+'</button>'
-    +'<button type="button" class="badge '+qCls+'" style="border:none;cursor:pointer" onclick="openQuestionnaireModalProp(\''+p.fbKey+'\')">Questionnaire: '+qText+'</button>'
-    +(q.status==='done'?'<button class="btn btn-outline btn-sm" onclick="copyQuestionnaire(\''+p.fbKey+'\')">&#128203; Copy</button><button class="btn btn-outline btn-sm" onclick="printQuestionnaire(\''+p.fbKey+'\')">&#128424; Print</button>':'')
+    +'<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px">'
+    +'<span class="badge '+pepCls+'">PEP &amp; Sanctions: '+pepText+'</span>'
+    +(pep.status==='submitted'?'<button class="btn btn-outline btn-sm" onclick="reviewPepProp(\''+p.fbKey+'\')">Review &amp; confirm</button>':'')
+    +(pep.status==='done'?'<button class="btn btn-outline btn-sm" onclick="clearPepDobProp(\''+p.fbKey+'\')">Clear DOB</button>':'')
+    +'<span class="badge '+qCls+'">Questionnaire: '+qText+'</span>'
+    +(q.status==='done'
+      ?'<button class="btn btn-outline btn-sm" onclick="openQuestionnaireModalProp(\''+p.fbKey+'\')">View / edit</button><button class="btn btn-outline btn-sm" onclick="copyQuestionnaire(\''+p.fbKey+'\')">&#128203; Copy</button><button class="btn btn-outline btn-sm" onclick="printQuestionnaire(\''+p.fbKey+'\')">&#128424; Print</button>'
+      :'<button class="btn btn-outline btn-sm" onclick="openQuestionnaireModalProp(\''+p.fbKey+'\')">Fill in manually</button>')
     +'</div>'
+    +(needsRequest?'<button class="btn btn-navy btn-sm" onclick="sendLandlordRequest(\''+p.fbKey+'\')">&#9993; Send request to landlord</button>':'')
     +'</div>';
   return html;
 }
 
-function togglePepStatusProp(fbKey){
+// ─── LANDLORD SELF-SERVE FORM: PEP & Sanctions + Property Questionnaire ──────
+// One link, sent to the landlord, covering both. Keeps PEP's DOB out of the
+// main property record (separate Firebase node under /pepChecks, only
+// fetched on demand when staff actually review it) — see /pepChecks below.
+function sendLandlordRequest(fbKey){
   var p=properties.find(function(x){return x.fbKey===fbKey;});
   if(!p) return;
+  if(!p.llEmail){ showToast('No landlord email on file — add it under Edit on this property first'); return; }
+  var link=window.location.origin+'/landlord-info.html?property='+encodeURIComponent(fbKey);
+  var subject='Quick information needed — '+(p.address||'your property');
+  var body='Dear '+(p.llName||'Landlord')+',\n\nCould you please complete the short form below? It covers a quick compliance check and some property details we need on file for '+(p.address||'the property')+'.\n\n'+link+'\n\nThank you\nPickwick Estates\n020 3397 1144 / 020 3397 1166';
+  window.location.href='mailto:'+p.llEmail+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+
   if(!p.checklist) p.checklist={};
-  var pep=p.checklist.pep||{status:'pending'};
-  if(pep.status==='pending'){ pep={status:'waiting',date:null}; }
-  else if(pep.status==='waiting'){ pep={status:'done',date:new Date().toISOString().slice(0,10)}; }
-  else { pep={status:'pending',date:null}; }
-  p.checklist.pep=pep;
-  fbSet('properties/'+fbKey+'/checklist', p.checklist, function(){ renderPropOnboardingTab(); renderPropsTable(); showToast('PEP & Sanctions status updated'); });
+  var updates={};
+  if(!p.checklist.pep || p.checklist.pep.status==='pending'){
+    p.checklist.pep={status:'waiting', requestedDate:new Date().toISOString().slice(0,10)};
+    updates.pep=p.checklist.pep;
+  }
+  if(Object.keys(updates).length){
+    fbSet('properties/'+fbKey+'/checklist', p.checklist, function(){ renderPropOnboardingTab(); renderPropsTable(); });
+  }
+}
+
+function reviewPepProp(fbKey){
+  var p=properties.find(function(x){return x.fbKey===fbKey;});
+  if(!p) return;
+  fbGet('pepChecks/'+fbKey, function(data){
+    if(!data){ showToast('No submission found yet'); return; }
+    var confirmMsg='Landlord submitted:\n\nName: '+(data.name||'—')+'\nDate of birth: '+(data.dob||'—')+'\nSubmitted: '+(data.submittedDate?formatDateDayDMY(data.submittedDate):'—')+
+      '\n\nOnce you\'ve run this through your PEP & Sanctions check, click OK to mark it complete.';
+    if(confirm(confirmMsg)){
+      if(!p.checklist) p.checklist={};
+      p.checklist.pep={status:'done', completedDate:new Date().toISOString().slice(0,10), requestedDate:(p.checklist.pep&&p.checklist.pep.requestedDate)||null};
+      fbSet('properties/'+fbKey+'/checklist', p.checklist, function(){ renderPropOnboardingTab(); renderPropsTable(); showToast('PEP & Sanctions marked complete'); });
+    }
+  });
+}
+
+function clearPepDobProp(fbKey){
+  if(!confirm('Clear the stored date of birth for this landlord? The record that the check was completed will stay, just not the raw DOB.')) return;
+  fbDelete('pepChecks/'+fbKey, function(){ showToast('DOB cleared — completion record kept'); });
 }
 
 function sendTcsEnvelopeProp(fbKey){
@@ -4921,14 +4984,7 @@ function genDoc(type, fbKey){
   };
   var doc=docs[type];
   if(!doc){ showToast('Document type not found'); return; }
-  // Show in a simple print window
-  var win=window.open('','_blank','width=700,height=800');
-  win.document.write('<html><head><title>'+doc.title+'</title><style>body{font-family:Arial,sans-serif;padding:40px;font-size:13px;line-height:1.6;white-space:pre-wrap}h2{margin-bottom:20px}button{position:fixed;top:10px;right:10px;padding:8px 16px;background:#1E3A5F;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px}</style></head><body>');
-  win.document.write('<button onclick="window.print()">Print / Save PDF</button>');
-  win.document.write('<h2>'+doc.title+'</h2>');
-  win.document.write(doc.content.replace(/\n/g,'<br>'));
-  win.document.write('</body></html>');
-  win.document.close();
+  openDocWindow(doc.title, doc.content);
 }
 
 var editingOfferKey=null;
@@ -5071,6 +5127,12 @@ showPage=function(id,btn){
 // MOVE-INS
 // =============================================================================
 var miFilter='all';
+var moShowUnmatchedOnly=false;
+function toggleMoUnmatchedOnly(){
+  moShowUnmatchedOnly=!moShowUnmatchedOnly;
+  showToast(moShowUnmatchedOnly?'Showing move-outs with no tenant yet':'Showing all move-outs');
+  renderMoveOuts();
+}
 var currentMiKey=null;
 
 var TENANT_CHECKLIST=[
@@ -5122,6 +5184,17 @@ function findMatchedMoveIn(prop){
   var a=normAddr(prop);
   if(!a) return null;
   return moveins.find(function(m){ return normAddr(m.prop)===a; })||null;
+}
+// Consistent ordering of matched property addresses, shared by both
+// renderMoveIns and renderMoveOuts so a paired move-in/move-out lands in
+// the same row position in each column instead of drifting independently.
+function getMatchedAddressOrder(){
+  var addrs=[];
+  moveouts.filter(function(m){ return m.status!=='Vacated'; }).forEach(function(mo){
+    var a=normAddr(mo.prop);
+    if(a && findMatchedMoveIn(mo.prop) && addrs.indexOf(a)===-1) addrs.push(a);
+  });
+  return addrs;
 }
 function calcVoidDays(vacateDateStr, startDateStr){
   if(!vacateDateStr||!startDateStr) return null;
@@ -5222,16 +5295,21 @@ function renderMoveIns(){
   var filtered=moveins.filter(function(m){
     if(search){ if(!((m.prop||'')+' '+(m.tenant||'')).toLowerCase().includes(search)) return false; }
     var pct=getMiProgress(m); var status=getMiStatus(pct);
-    if(miFilter==='all') return true;
+    // "All" and the other working filters never show Complete ones — those live
+    // under their own Complete tab only, so the working list stays to what's active.
+    if(miFilter==='all') return status!=='Complete';
     if(miFilter==='not-started') return status==='Not started';
     if(miFilter==='in-progress') return status==='In progress';
     if(miFilter==='complete') return status==='Complete';
     return true;
   });
-  // Matched-with-a-move-out first, unmatched after (approximates side-by-side pairing across columns)
+  // Matched pairs use the SAME shared order as the Move Out column, so a
+  // matched pair lands in the same row position in both columns.
+  var pairOrder=getMatchedAddressOrder();
   filtered.sort(function(a,b){
-    var ma=findMatchedMoveOut(a.prop)?1:0, mb=findMatchedMoveOut(b.prop)?1:0;
-    return mb-ma;
+    var ia=pairOrder.indexOf(normAddr(a.prop)); if(ia===-1) ia=9999;
+    var ib=pairOrder.indexOf(normAddr(b.prop)); if(ib===-1) ib=9999;
+    return ia-ib;
   });
   var container=document.getElementById('mi-cards');
   if(!container) return;
@@ -5298,9 +5376,13 @@ function renderMoveIns(){
       +'</div>'
       +'<div style="margin-top:8px;background:var(--bg);border-radius:20px;height:5px">'
       +'<div style="background:'+barColor+';height:5px;border-radius:20px;width:'+pct+'%"></div></div>'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:5px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:5px;flex-wrap:wrap;gap:4px">'
       +'<span style="font-size:10px;color:var(--text3)">'+pct+'% complete</span>'
+      +'<div style="display:flex;gap:4px">'
+      +'<button class="btn btn-outline btn-sm" data-mk="'+m.fbKey+'" onclick="event.stopPropagation();openEditMoveIn(this.dataset.mk)">Edit</button>'
       +'<button class="btn btn-outline btn-sm" data-mk="'+m.fbKey+'" onclick="event.stopPropagation();openMiModal(this.dataset.mk)">Open checklist</button>'
+      +'<button class="btn btn-red btn-sm" data-mk="'+m.fbKey+'" onclick="event.stopPropagation();deleteMoveIn(this.dataset.mk)">Delete</button>'
+      +'</div>'
       +'</div>'
       +'</div>';
   });
@@ -5399,6 +5481,41 @@ function deleteMoveIn(fbKey){
   });
 }
 
+// ─── EDIT MOVE-IN (rent, fee, deposit, dates, tenant details) ────────────────
+var editingMoveInKey=null;
+function openEditMoveIn(fbKey){
+  var m=moveins.find(function(x){return x.fbKey===fbKey;});
+  if(!m) return;
+  editingMoveInKey=fbKey;
+  var t=(m.tenants&&m.tenants[0])||{};
+  document.getElementById('emi-address').textContent=m.prop||'';
+  document.getElementById('emi-tenant').value=m.tenant||t.name||'';
+  document.getElementById('emi-email').value=t.email||'';
+  document.getElementById('emi-phone').value=t.phone||'';
+  document.getElementById('emi-start').value=m.startDate||'';
+  document.getElementById('emi-rent').value=m.rent||'';
+  document.getElementById('emi-fee').value=m.fee||'';
+  document.getElementById('emi-deposit').value=m.deposit||'';
+  openModal('edit-movein-modal');
+}
+
+function saveEditMoveIn(){
+  var m=moveins.find(function(x){return x.fbKey===editingMoveInKey;});
+  if(!m) return;
+  var tenantName=document.getElementById('emi-tenant').value;
+  m.tenant=tenantName;
+  m.tenants=[{ name:tenantName, email:document.getElementById('emi-email').value, phone:document.getElementById('emi-phone').value }];
+  m.startDate=document.getElementById('emi-start').value;
+  m.rent=document.getElementById('emi-rent').value;
+  m.fee=document.getElementById('emi-fee').value;
+  m.deposit=document.getElementById('emi-deposit').value;
+  fbSet('moveins/'+editingMoveInKey, m, function(){
+    closeModal('edit-movein-modal');
+    renderMoveIns();
+    showToast('Move-in updated');
+  });
+}
+
 function saveMiChecklist(){
   var m=moveins.find(function(x){return x.fbKey===currentMiKey;});
   if(!m) return;
@@ -5457,13 +5574,18 @@ function renderMoveOuts(){
   q=q.toLowerCase();
   var filtered=moveouts.filter(function(m){
     if(m.status==='Vacated') return false;
+    if(moShowUnmatchedOnly && findMatchedMoveIn(m.prop)) return false;
     if(!q) return true;
     return (m.prop||'').toLowerCase().indexOf(q)>-1 || (m.tenant||'').toLowerCase().indexOf(q)>-1;
   });
-  // Matched (new tenant already found) first, unmatched (no tenant yet) at the bottom
+  // Matched pairs use the SAME shared order as the Move In column, so a
+  // matched pair lands in the same row position in both columns; unmatched
+  // (no new tenant yet) drop to the bottom.
+  var pairOrder=getMatchedAddressOrder();
   filtered.sort(function(a,b){
-    var ma=findMatchedMoveIn(a.prop)?1:0, mb=findMatchedMoveIn(b.prop)?1:0;
-    return mb-ma;
+    var ia=pairOrder.indexOf(normAddr(a.prop)); if(ia===-1) ia=9999;
+    var ib=pairOrder.indexOf(normAddr(b.prop)); if(ib===-1) ib=9999;
+    return ia-ib;
   });
   if(!filtered.length){
     container.innerHTML='';
@@ -5930,6 +6052,21 @@ function buildTenantWelcome(o){
     +'Lost key replacement: reasonable costs evidenced in writing\n'
     +'Late rent interest: 3% above Bank of England base rate after 14 days\n\n'
     +'All other fees are prohibited under the Tenant Fees Act 2019.\n\n'
+    +(function(){
+      var p=findPropertyForOffer(o);
+      var q=p&&p.checklist&&p.checklist.questionnaire;
+      if(!q||q.status!=='done') return '';
+      var lines=[];
+      if(q.avgBills) lines.push('Average monthly bills: '+q.avgBills);
+      if(q.providers) lines.push('Current utility providers: '+q.providers);
+      if(q.meterLocations) lines.push('Meter locations: '+q.meterLocations);
+      if(q.stopcockLocation) lines.push('Stopcock location: '+q.stopcockLocation);
+      if(q.binDay) lines.push('Bin collection day: '+q.binDay);
+      if(q.binLocation) lines.push('Bin location: '+q.binLocation);
+      if(q.instructions) lines.push('Other instructions: '+q.instructions);
+      if(!lines.length) return '';
+      return 'YOUR NEW HOME — USEFUL INFORMATION\n'+lines.join('\n')+'\n\n';
+    })()
     +'Kind regards\n'
     +'Pickwick Estates (Alps Estates Ltd)\n'
     +'020 3397 1144 / 020 3397 1166\n'
@@ -5972,12 +6109,45 @@ function getNewDocContent(type, fbKey){
   return null;
 }
 
+// Treats an existing convention already used throughout these documents —
+// section titles are written in ALL CAPS ("TENANCY DETAILS", "WHAT YOU NEED
+// TO DO NEXT") — as headings, so they render bold and coloured without
+// needing every document-building function to be rewritten.
+function isDocHeadingLine(line){
+  var t=line.trim();
+  if(t.length<3) return false;
+  if(!/[A-Z]/.test(t)) return false;
+  if(/[a-z]/.test(t)) return false;
+  return true;
+}
+
+function formatDocHtml(text){
+  return text.split('\n').map(function(line){
+    if(!line.trim()) return '<div style="height:10px"></div>';
+    if(isDocHeadingLine(line)) return '<div class="doc-heading">'+line+'</div>';
+    return '<div class="doc-line">'+line+'</div>';
+  }).join('');
+}
+
 function openDocWindow(title, text){
-  var win=window.open('','_blank','width=720,height=850');
-  win.document.write('<html><head><title>'+title+'<\/title><style>body{font-family:Arial,sans-serif;padding:40px;font-size:13px;line-height:1.8;white-space:pre-wrap;max-width:680px;margin:0 auto}h2{color:#1E3A5F;margin-bottom:20px;font-size:16px}button{position:fixed;top:10px;right:10px;padding:8px 16px;background:#1E3A5F;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px}<\/style><\/head><body>');
+  var win=window.open('','_blank','width=760,height=900');
+  var bodyHtml=formatDocHtml(text);
+  win.document.write('<html><head><title>'+title+'<\/title><style>'
+    +'*{box-sizing:border-box}'
+    +'body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#F5F5F3;color:#111827}'
+    +'.doc-brand{background:#3C141E;color:#fff;padding:18px 40px;text-align:center}'
+    +'.doc-brand-name{font-size:18px;font-weight:700;letter-spacing:0.5px}'
+    +'.doc-brand-sub{font-size:11px;opacity:0.8;margin-top:2px}'
+    +'.doc-wrap{max-width:680px;margin:0 auto;background:#fff;padding:40px;min-height:100vh}'
+    +'.doc-title{font-size:17px;font-weight:700;color:#1E3A5F;margin-bottom:18px}'
+    +'.doc-heading{font-size:13px;font-weight:700;color:#1E3A5F;margin-top:18px;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.3px}'
+    +'.doc-line{font-size:13px;line-height:1.7;color:#111827}'
+    +'button{position:fixed;top:14px;right:14px;padding:9px 18px;background:#1E3A5F;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;z-index:10}'
+    +'@media print{button{display:none}.doc-brand{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
+    +'<\/style><\/head><body>');
   win.document.write('<button onclick="window.print()">Print / Save PDF<\/button>');
-  win.document.write('<h2>'+title+'<\/h2>');
-  win.document.write(text.replace(/\n/g,'<br>'));
+  win.document.write('<div class="doc-brand"><div class="doc-brand-name">Pickwick Estates<\/div><div class="doc-brand-sub">Alps Estates Ltd &middot; 020 3397 1144 / 020 3397 1166<\/div><\/div>');
+  win.document.write('<div class="doc-wrap"><div class="doc-title">'+title+'<\/div>'+bodyHtml+'<\/div>');
   win.document.write('<\/body><\/html>');
   win.document.close();
 }
