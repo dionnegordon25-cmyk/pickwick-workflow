@@ -483,9 +483,9 @@ select.field-input{cursor:pointer}
       <!-- Summary strip -->
       <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px" id="mv-summary-strip">
         <div class="card" style="cursor:pointer" onclick="setMiFilter('all',document.querySelectorAll('#mi-filter-pills .filter-pill')[0])" title="Show all move-ins"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Move-ins total</div><div style="font-size:20px;font-weight:500;color:var(--navy)" id="sm-total">—</div></div>
-        <div class="card" style="cursor:pointer" onclick="setMiFilter('complete',document.querySelectorAll('#mi-filter-pills .filter-pill')[3])" title="Show completed move-ins"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Complete</div><div style="font-size:20px;font-weight:500;color:var(--green-text)" id="sm-complete">—</div></div>
-        <div class="card" style="cursor:pointer" onclick="setMiFilter('in-progress',document.querySelectorAll('#mi-filter-pills .filter-pill')[2])" title="Show in-progress move-ins"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">In progress</div><div style="font-size:20px;font-weight:500;color:var(--amber-text)" id="sm-inprogress">—</div></div>
-        <div class="card" style="cursor:pointer" onclick="setMiFilter('not-started',document.querySelectorAll('#mi-filter-pills .filter-pill')[1])" title="Show not-started move-ins"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Not started</div><div style="font-size:20px;font-weight:500;color:var(--text2)" id="sm-notstarted">—</div></div>
+        <div class="card" style="cursor:pointer" onclick="setMiFilter('complete',document.querySelectorAll('#mi-filter-pills .filter-pill')[2])" title="Show completed move-ins"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Complete</div><div style="font-size:20px;font-weight:500;color:var(--green-text)" id="sm-complete">—</div></div>
+        <div class="card" style="cursor:pointer" onclick="setMiFilter('in-progress',document.querySelectorAll('#mi-filter-pills .filter-pill')[1])" title="Show in-progress move-ins"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">In progress</div><div style="font-size:20px;font-weight:500;color:var(--amber-text)" id="sm-inprogress">—</div></div>
+        <div class="card" style="cursor:pointer" onclick="setMiFilter('all',document.querySelectorAll('#mi-filter-pills .filter-pill')[0])" title="Not-started move-ins are shown under All"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Not started</div><div style="font-size:20px;font-weight:500;color:var(--text2)" id="sm-notstarted">—</div></div>
         <div class="card" style="cursor:pointer" onclick="toggleMoUnmatchedOnly()" title="Show only move-outs with no new tenant yet"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Move-outs — no tenant yet</div><div style="font-size:20px;font-weight:500;color:var(--red-text)" id="sm-unmatched">—</div></div>
         <div class="card"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Avg void (matched)</div><div style="font-size:20px;font-weight:500;color:var(--purple-text)" id="sm-avgvoid">—</div></div>
       </div>
@@ -502,7 +502,6 @@ select.field-input{cursor:pointer}
             </div>
             <div class="filter-pills" id="mi-filter-pills" style="margin-bottom:8px">
               <div class="filter-pill active" onclick="setMiFilter('all',this)">All</div>
-              <div class="filter-pill" onclick="setMiFilter('not-started',this)">Not started</div>
               <div class="filter-pill" onclick="setMiFilter('in-progress',this)">In progress</div>
               <div class="filter-pill" onclick="setMiFilter('complete',this)">Complete</div>
             </div>
@@ -524,6 +523,11 @@ select.field-input{cursor:pointer}
           <div style="border:0.5px solid var(--border);border-top:none;border-radius:0 0 8px 8px;padding:10px;background:#fff">
             <div class="ops-bar" style="margin-bottom:8px">
               <input class="search-bar" id="mo-search" placeholder="Search address, tenant..." oninput="renderMoveOuts()">
+            </div>
+            <div class="filter-pills" id="mo-filter-pills" style="margin-bottom:8px">
+              <div class="filter-pill active" onclick="setMoFilter('all',this)">All</div>
+              <div class="filter-pill" onclick="setMoFilter('in-progress',this)">In progress</div>
+              <div class="filter-pill" onclick="setMoFilter('complete',this)">Complete</div>
             </div>
             <div id="mo-cards"></div>
             <div id="mo-empty" style="text-align:center;padding:60px;color:var(--text3);font-size:12px;display:none">No tenants currently vacating — use "Notice received" on a property to start tracking one</div>
@@ -909,7 +913,6 @@ select.field-input{cursor:pointer}
       <button class="btn btn-sm" style="background:var(--purple-bg);color:var(--purple-text)" onclick="openNoticeReceived()">Notice received</button>
       <button class="btn btn-sm" style="background:var(--amber-bg);color:var(--amber-text)" onclick="openEndTenancy()">End tenancy</button>
       <button class="btn btn-sm" style="background:#6B7280;color:#fff" onclick="openArchiveProp()">Archive</button>
-      <button class="btn btn-sm" style="background:var(--green-bg);color:var(--green-text)" onclick="openReLet()">&#8635; Re-let</button>
       <button class="btn btn-outline btn-sm" id="pd-edit-btn" onclick="togglePropEdit()">Edit</button>
       <button class="btn btn-navy btn-sm" id="pd-save-btn" onclick="savePropEdit()" style="display:none">Save changes</button>
       <button class="btn btn-outline btn-sm" onclick="closeModal('prop-detail-modal')">Close</button>
@@ -923,20 +926,34 @@ select.field-input{cursor:pointer}
     <div class="modal-title">Add property</div>
     <div class="grid-2">
       <div class="field-group" style="grid-column:1/-1"><label class="field-label">Address *</label><input class="field-input" id="ap-address" placeholder="Full address including postcode"></div>
-      <div class="field-group"><label class="field-label">Tenant name</label><input class="field-input" id="ap-tenant"></div>
-      <div class="field-group"><label class="field-label">Tenant phone</label><input class="field-input" id="ap-phone"></div>
-      <div class="field-group"><label class="field-label">Tenant email</label><input class="field-input" id="ap-email" type="email"></div>
+    </div>
+    <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin:6px 0 8px">Landlord</div>
+    <div class="grid-2">
       <div class="field-group"><label class="field-label">Landlord name</label><input class="field-input" id="ap-llname"></div>
       <div class="field-group"><label class="field-label">Landlord email</label><input class="field-input" id="ap-llemail" type="email"></div>
       <div class="field-group"><label class="field-label">Landlord mobile</label><input class="field-input" id="ap-llmobile"></div>
+    </div>
+    <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin:14px 0 8px;padding-top:10px;border-top:0.5px solid var(--border)">Tenant</div>
+    <div class="grid-2">
+      <div class="field-group"><label class="field-label">Tenant name</label><input class="field-input" id="ap-tenant"></div>
+      <div class="field-group"><label class="field-label">Tenant phone</label><input class="field-input" id="ap-phone"></div>
+      <div class="field-group"><label class="field-label">Tenant email</label><input class="field-input" id="ap-email" type="email"></div>
+    </div>
+    <div id="ap-extra-tenants"></div>
+    <button type="button" class="btn btn-outline btn-sm" onclick="addExtraTenantRow()" style="margin-bottom:14px">+ Add another tenant</button>
+    <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin:6px 0 8px;padding-top:10px;border-top:0.5px solid var(--border)">Tenancy & financial</div>
+    <div class="grid-2">
       <div class="field-group"><label class="field-label">Monthly rent (£)</label><input class="field-input" id="ap-rent" type="number"></div>
       <div class="field-group"><label class="field-label">Management fee (%)</label><input class="field-input" id="ap-fee" type="number" placeholder="12"></div>
       <div class="field-group"><label class="field-label">Deposit (£)</label><input class="field-input" id="ap-deposit" type="number"></div>
       <div class="field-group"><label class="field-label">Deposit ID (DPS)</label><input class="field-input" id="ap-depositid"></div>
       <div class="field-group"><label class="field-label">Deposit status</label><select class="field-input" id="ap-depositstatus"><option>Protected</option><option>Available for repayment</option><option>Dispute raised</option><option>Clearance pending</option></select></div>
-      <div class="field-group"><label class="field-label">Tenancy start date (dd/mm/yyyy)</label><input class="field-input" id="ap-start" placeholder="01/01/2024"></div>
-      <div class="field-group"><label class="field-label">Deposit date (dd/mm/yyyy)</label><input class="field-input" id="ap-depdate" placeholder="01/01/2024"></div>
+      <div class="field-group"><label class="field-label">Tenancy start date</label><input class="field-input" id="ap-start" type="date"></div>
+      <div class="field-group"><label class="field-label">Deposit date</label><input class="field-input" id="ap-depdate" type="date"></div>
+      <div class="field-group"><label class="field-label">Council tax band</label><select class="field-input" id="ap-councilband"><option value="">—</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option></select></div>
+      <div class="field-group"><label class="field-label">EPC rating</label><select class="field-input" id="ap-epcrating"><option value="">—</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option></select></div>
     </div>
+    <div class="field-group"><label class="field-label">Notes</label><textarea class="field-input" id="ap-notes" rows="2"></textarea></div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('add-prop-modal')">Cancel</button>
       <button class="btn btn-navy" onclick="saveNewProp()">Add property</button>
@@ -1049,6 +1066,20 @@ select.field-input{cursor:pointer}
   </div>
 </div>
 
+<!-- EDIT MOVE-OUT MODAL -->
+<div class="modal-overlay" id="edit-moveout-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">Edit move-out</div>
+    <div class="modal-sub" id="emo-address"></div>
+    <div class="field-group"><label class="field-label">Tenant name</label><input class="field-input" id="emo-tenant"></div>
+    <div class="field-group"><label class="field-label">Expected vacate date</label><input class="field-input" id="emo-vacate" type="date"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('edit-moveout-modal')">Cancel</button>
+      <button class="btn btn-navy" onclick="saveEditMoveOut()">Save changes</button>
+    </div>
+  </div>
+</div>
+
 <!-- EDIT MOVE-IN MODAL -->
 <div class="modal-overlay" id="edit-movein-modal">
   <div class="modal modal-lg">
@@ -1138,7 +1169,7 @@ select.field-input{cursor:pointer}
       <div class="field-group" style="grid-column:1/-1"><label class="field-label">General notes</label><textarea class="field-input" id="et-notes" rows="2" placeholder="Any other notes..."></textarea></div>
     </div>
     <div style="background:var(--amber-bg);border-radius:var(--radius-md);padding:10px 12px;font-size:11px;color:var(--amber-text);margin-bottom:4px">
-      ⚠ This will archive the tenancy to Past Tenants and remove the property from the active list.
+      ⚠ This will archive the current tenancy to Past Tenants. If a new tenant is already matched on the Movements page, the property updates to show them as the new live tenant automatically — otherwise the property is left in place but marked vacant.
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('end-tenancy-modal')">Cancel</button>
@@ -1390,31 +1421,6 @@ select.field-input{cursor:pointer}
 </div>
 
 <!-- RE-LET MODAL -->
-<div class="modal-overlay" id="relet-modal">
-  <div class="modal modal-lg">
-    <div class="modal-title">Re-let property</div>
-    <div id="relet-sub" style="font-size:11px;color:var(--text3);margin-bottom:14px"></div>
-    <div style="background:var(--green-bg);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--green-text);margin-bottom:14px">
-      &#10003; Property details, landlord info and compliance dates are carried over automatically. Add the new tenant details below.
-    </div>
-    <div class="grid-2">
-      <div class="field-group"><label class="field-label">New tenant name(s) *</label><input class="field-input" id="rl-tenant" placeholder="Full name(s)"></div>
-      <div class="field-group"><label class="field-label">Tenant phone</label><input class="field-input" id="rl-phone"></div>
-      <div class="field-group"><label class="field-label">Tenant email</label><input class="field-input" id="rl-email" type="email"></div>
-      <div class="field-group"><label class="field-label">New monthly rent (£)</label><input class="field-input" id="rl-rent" type="number"></div>
-      <div class="field-group"><label class="field-label">New start date *</label><input class="field-input" id="rl-start" type="date"></div>
-      <div class="field-group"><label class="field-label">New deposit (£)</label><input class="field-input" id="rl-deposit" type="number"></div>
-    </div>
-    <div style="background:var(--amber-bg);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--amber-text);margin-top:4px">
-      &#9888; The current tenancy will be moved to Past Tenants automatically before the new record is created.
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('relet-modal')">Cancel</button>
-      <button class="btn btn-navy" onclick="confirmReLet()">Create new tenancy</button>
-    </div>
-  </div>
-</div>
-
 <!-- ADD INSPECTION MODAL -->
 <div class="modal-overlay" id="inspection-modal">
   <div class="modal" style="max-width:520px">
@@ -2922,9 +2928,6 @@ function openPropDetail(idx){
 
 function renderPdDetails(p){
   var html='<div class="grid-2" style="gap:10px">'
-    +pdField('Tenant',p.tenant)
-    +pdField('Tenant phone',p.tenantPhone)
-    +pdField('Tenant email',p.tenantEmail)
     +(function(ll){
       var waNum=ll.llMobile?ll.llMobile.replace(/^0/,'').replace(/ /g,''):'';
       return '<div style="grid-column:1/-1;background:var(--bg);border-radius:8px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'
@@ -2943,6 +2946,9 @@ function renderPdDetails(p){
         +'</div>'
         +'</div>';
     })(p)
+    +pdField('Tenant',p.tenant)
+    +pdField('Tenant phone',p.tenantPhone)
+    +pdField('Tenant email',p.tenantEmail)
     +pdField('Monthly rent',p.rent?'£'+parseFloat(p.rent).toLocaleString('en-GB'):'—')
     +(function(p){
       if(!p.mgmtFee||!p.rent) return pdField('Management fee',p.mgmtFee?p.mgmtFee+'%':'—');
@@ -2966,6 +2972,8 @@ function renderPdDetails(p){
     +pdField('Tenancy start',p.startDate)
     +pdField('Deposit date',p.depositDate)
     +pdField('APT anniversary',p.aptAnniversary)
+    +pdField('Council tax band',p.councilTaxBand)
+    +pdField('EPC rating',p.epcRating)
     +'</div>'
     +(p.notes?'<div style="margin-top:12px"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Notes</div><div style="font-size:12px;padding:8px;background:var(--bg);border-radius:6px">'+p.notes+'</div></div>':'');
   document.getElementById('pd-details').innerHTML=html;
@@ -3085,12 +3093,12 @@ function togglePropEdit(){
   var p=properties[currentPropIdx];
   if(!p) return;
   var html='<div class="grid-2" style="gap:10px">';
-  html+='<div class="field-group"><label class="field-label">Tenant name</label><input class="field-input" id="pdedit-tenant" value="'+(p.tenant||'')+'"></div>';
   html+='<div class="field-group"><label class="field-label">Landlord name</label><input class="field-input" id="pdedit-llName" value="'+(p.llName||'')+'"></div>';
-  html+='<div class="field-group"><label class="field-label">Tenant phone</label><input class="field-input" id="pdedit-tenantPhone" value="'+(p.tenantPhone||'')+'"></div>';
   html+='<div class="field-group"><label class="field-label">LL mobile</label><input class="field-input" id="pdedit-llMobile" value="'+(p.llMobile||'')+'"></div>';
-  html+='<div class="field-group"><label class="field-label">Tenant email</label><input class="field-input" id="pdedit-tenantEmail" value="'+(p.tenantEmail||'')+'"></div>';
   html+='<div class="field-group"><label class="field-label">LL email</label><input class="field-input" id="pdedit-llEmail" value="'+(p.llEmail||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">Tenant name</label><input class="field-input" id="pdedit-tenant" value="'+(p.tenant||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">Tenant phone</label><input class="field-input" id="pdedit-tenantPhone" value="'+(p.tenantPhone||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">Tenant email</label><input class="field-input" id="pdedit-tenantEmail" value="'+(p.tenantEmail||'')+'"></div>';
   html+='<div class="field-group"><label class="field-label">Rent (£)</label><input class="field-input" id="pdedit-rent" value="'+(p.rent||'')+'"></div>';
   html+='<div class="field-group"><label class="field-label">Fee (%)</label><input class="field-input" id="pdedit-mgmtFee" value="'+(p.mgmtFee||'')+'"></div>';
   html+='<div class="field-group"><label class="field-label">Deposit (£)</label><input class="field-input" id="pdedit-deposit" value="'+(p.deposit||'')+'"></div>';
@@ -3099,8 +3107,10 @@ function togglePropEdit(){
   html+='<div class="field-group"><label class="field-label">Start date (dd/mm/yyyy)</label><input class="field-input" id="pdedit-startDate" value="'+(p.startDate||'')+'"></div>';
   html+='<div class="field-group"><label class="field-label">Deposit date</label><input class="field-input" id="pdedit-depositDate" value="'+(p.depositDate||'')+'"></div>';
   html+='<div class="field-group"><label class="field-label">APT anniversary (yyyy-mm-dd)</label><input class="field-input" id="pdedit-aptAnniversary" value="'+(p.aptAnniversary||'')+'"></div>';
-  html+='<div class="field-group"><label class="field-label">GSC expiry (yyyy-mm-dd)</label><input class="field-input" id="pdedit-gsc" value="'+(p.gsc||'')+'"></div>';
-  html+='<div class="field-group"><label class="field-label">EICR expiry (yyyy-mm-dd)</label><input class="field-input" id="pdedit-eicr" value="'+(p.eicr||'')+'"></div>';
+  html+='<div class="field-group"><label class="field-label">Council tax band</label><select class="field-input" id="pdedit-councilTaxBand"><option value=""'+(!p.councilTaxBand?' selected':'')+'>—</option>'+['A','B','C','D','E','F','G','H'].map(function(b){return '<option'+(p.councilTaxBand===b?' selected':'')+'>'+b+'</option>';}).join('')+'</select></div>';
+  html+='<div class="field-group"><label class="field-label">EPC rating</label><select class="field-input" id="pdedit-epcRating"><option value=""'+(!p.epcRating?' selected':'')+'>—</option>'+['A','B','C','D','E','F','G'].map(function(b){return '<option'+(p.epcRating===b?' selected':'')+'>'+b+'</option>';}).join('')+'</select></div>';
+  html+='<div class="field-group"><label class="field-label">GSC expiry (yyyy-mm-dd)</label><input class="field-input" id="pdedit-gsc" value="'+(p.gsc||'')+'" onchange="document.getElementById(\'pdedit-coDetector\').value=this.value"></div>';
+  html+='<div class="field-group"><label class="field-label">EICR expiry (yyyy-mm-dd)</label><input class="field-input" id="pdedit-eicr" value="'+(p.eicr||'')+'" onchange="document.getElementById(\'pdedit-smokeAlarm\').value=this.value"></div>';
   html+='<div class="field-group"><label class="field-label">EPC expiry (yyyy-mm-dd)</label><input class="field-input" id="pdedit-epc" value="'+(p.epc||'')+'"></div>';
   html+='<div class="field-group"><label class="field-label">Smoke alarm date</label><input class="field-input" id="pdedit-smokeAlarm" value="'+(p.smokeAlarm||'')+'"></div>';
   html+='<div class="field-group"><label class="field-label">CO detector date</label><input class="field-input" id="pdedit-coDetector" value="'+(p.coDetector||'')+'"></div>';
@@ -3123,7 +3133,7 @@ function togglePropEdit(){
 function savePropEdit(){
   var p=properties[currentPropIdx];
   if(!p) return;
-  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','gsc','eicr','epc','smokeAlarm','coDetector','propLicence','rtrCheck','rtrExpiry','routineInspection','letOnly','notes'];
+  var fields=['tenant','tenantPhone','tenantEmail','llName','llEmail','llMobile','rent','mgmtFee','deposit','depositId','depositStatus','startDate','depositDate','aptAnniversary','councilTaxBand','epcRating','gsc','eicr','epc','smokeAlarm','coDetector','propLicence','rtrCheck','rtrExpiry','routineInspection','letOnly','notes'];
   fields.forEach(function(f){
     var el=document.getElementById('pdedit-'+f);
     if(el) p[f]=el.value;
@@ -3155,16 +3165,44 @@ function deleteProp(){
 }
 
 // ─── ADD PROPERTY ─────────────────────────────────────────────────────────────
+var extraTenantCount=0;
 function openAddPropModal(){
-  ['ap-address','ap-tenant','ap-phone','ap-email','ap-llname','ap-llemail','ap-llmobile','ap-rent','ap-fee','ap-deposit','ap-depositid','ap-start','ap-depdate'].forEach(function(id){
+  ['ap-address','ap-tenant','ap-phone','ap-email','ap-llname','ap-llemail','ap-llmobile','ap-rent','ap-fee','ap-deposit','ap-depositid','ap-start','ap-depdate','ap-notes','ap-councilband','ap-epcrating'].forEach(function(id){
     var el=document.getElementById(id); if(el) el.value='';
   });
+  extraTenantCount=0;
+  document.getElementById('ap-extra-tenants').innerHTML='';
   openModal('add-prop-modal');
+}
+
+function addExtraTenantRow(){
+  extraTenantCount++;
+  var container=document.getElementById('ap-extra-tenants');
+  var row=document.createElement('div');
+  row.className='grid-2';
+  row.id='ap-extra-row-'+extraTenantCount;
+  row.innerHTML=
+    '<div class="field-group"><label class="field-label">Tenant '+(extraTenantCount+1)+' name</label><input class="field-input" id="ap-extra-name-'+extraTenantCount+'"></div>'
+    +'<div class="field-group"><label class="field-label">Tenant '+(extraTenantCount+1)+' phone</label><input class="field-input" id="ap-extra-phone-'+extraTenantCount+'"></div>'
+    +'<div class="field-group"><label class="field-label">Tenant '+(extraTenantCount+1)+' email</label><input class="field-input" id="ap-extra-email-'+extraTenantCount+'" type="email"></div>'
+    +'<div class="field-group" style="display:flex;align-items:flex-end"><button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById(\'ap-extra-row-'+extraTenantCount+'\').remove()">Remove</button></div>';
+  container.appendChild(row);
 }
 
 function saveNewProp(){
   var addr=document.getElementById('ap-address').value.trim();
   if(!addr){ showToast('Address is required'); return; }
+  var additionalTenants=[];
+  for(var i=1;i<=extraTenantCount;i++){
+    var nameEl=document.getElementById('ap-extra-name-'+i);
+    if(nameEl&&nameEl.value.trim()){
+      additionalTenants.push({
+        name:nameEl.value.trim(),
+        phone:(document.getElementById('ap-extra-phone-'+i)||{}).value||'',
+        email:(document.getElementById('ap-extra-email-'+i)||{}).value||''
+      });
+    }
+  }
   var prop={
     address:addr,
     tenant:document.getElementById('ap-tenant').value,
@@ -3178,9 +3216,15 @@ function saveNewProp(){
     deposit:document.getElementById('ap-deposit').value,
     depositId:document.getElementById('ap-depositid').value,
     depositStatus:'Protected',
-    startDate:document.getElementById('ap-start').value,
-    depositDate:document.getElementById('ap-depdate').value
+    // Date inputs give yyyy-mm-dd — convert to dd/mm/yyyy to match how dates
+    // are stored and parsed (parseUKDate) everywhere else in the app.
+    startDate:formatDateDMY(document.getElementById('ap-start').value),
+    depositDate:formatDateDMY(document.getElementById('ap-depdate').value),
+    notes:document.getElementById('ap-notes').value,
+    councilTaxBand:document.getElementById('ap-councilband').value,
+    epcRating:document.getElementById('ap-epcrating').value
   };
+  if(additionalTenants.length) prop.additionalTenants=additionalTenants;
   fbPush('properties', prop, function(key){
     prop.fbKey=key;
     if(!properties.find(function(p){return p.fbKey===key;})){
@@ -3309,6 +3353,11 @@ function renderCompTable(){
       var hay = (p.address||'')+' '+(p.tenant||'')+' '+(p.llName||'');
       if(!hay.toLowerCase().includes(search)) return false;
     }
+    var lo=p.letOnly;
+    if(compMgmtFilter==='managed' && lo && lo!=='n') return false;
+    if(compMgmtFilter==='let-only' && lo!=='let-only') return false;
+    if(compMgmtFilter==='deposit' && lo!=='y') return false;
+    if(compMgmtFilter==='action' && !propNeedsAttention(p,'overdue',certFilter) && !propNeedsAttention(p,'missing',certFilter)) return false;
     return propNeedsAttention(p, compStatusFilter, certFilter);
   });
 
@@ -4015,6 +4064,14 @@ showPage=function(id,btn){
 var currentReportData=[], currentReportHeaders=[];
 
 var REPORTS=[
+  {id:'doc_log',label:'Document Generation Log',color:'#185FA5',
+   headers:['Date','Time','Document','Property / Contact'],
+   rows:function(){
+     return activityLog.filter(function(e){ return e.action==='document'; }).map(function(e){
+       var parts=(e.time||'').split(',');
+       return [ (parts[0]||e.time||'').trim(), (parts[1]||'').trim(), e.detail||'', e.prop||'' ];
+     });
+   }},
   {id:'rent_roll',label:'Properties & Rent Roll',color:'#3B6D11',
    headers:['Address','Tenant','Rent/mo','Start date','Landlord','Deposit','Deposit ID','Deposit status'],
    rows:function(){ return properties.map(function(p){ return [p.address||'',p.tenant||'',p.rent?'£'+parseFloat(p.rent).toLocaleString('en-GB'):'',p.startDate||'',p.llName||'',p.deposit?'£'+parseFloat(p.deposit).toLocaleString('en-GB'):'',p.depositId||'',p.depositStatus||'']; }); }},
@@ -4396,6 +4453,18 @@ function parseCSVLine(line){
 function loadReport(id){
   var r=REPORTS.find(function(x){ return x.id===id; });
   if(!r) return;
+  if(id==='doc_log'){
+    // Document log lives in the same store as the Activity log page — make
+    // sure it's fresh rather than relying on whatever happened to be loaded.
+    fbGet('activitylog', function(data){
+      activityLog=[];
+      if(data) Object.keys(data).forEach(function(k){ var e=data[k]; e.fbKey=k; activityLog.push(e); });
+      activityLog.sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+      currentReportHeaders=r.headers;
+      currentReportData=r.rows();
+      renderReportTable(currentReportData);
+    });
+  }
   currentReportHeaders=r.headers;
   currentReportData=r.rows();
   document.getElementById('rp-title').textContent=r.label;
@@ -4819,7 +4888,7 @@ function sendTcsEnvelopeProp(fbKey){
     if(data && data.success){
       if(!p.checklist) p.checklist={};
       p.checklist.tcs={status:'sent', envelopeId:data.envelopeId, sentDate:new Date().toISOString().slice(0,10)};
-      fbSet('properties/'+fbKey+'/checklist', p.checklist, function(){ renderPropOnboardingTab(); renderPropsTable(); renderTcsChaseStrip(); showToast('T&Cs sent to '+p.llEmail); });
+      fbSet('properties/'+fbKey+'/checklist', p.checklist, function(){ renderPropOnboardingTab(); renderPropsTable(); renderTcsChaseStrip(); showToast('T&Cs sent to '+p.llEmail); logActivity('document', 'Landlord T&Cs (sent via DocuSign)', p.address); });
     } else {
       // Show the real error from DocuSign/the server directly, rather than a generic message —
       // this stays on screen until dismissed, so it's easy to read and screenshot.
@@ -4962,6 +5031,7 @@ function genDoc(type, fbKey){
     var text=getNewDocContent(type,fbKey);
     var titles={'tenant-welcome':'Welcome — Offer Accepted','ll-welcome':'Landlord Instruction Pack','pep':'PEP & Sanctions Check'};
     openDocWindow(titles[type]||type, text||'');
+    logActivity('document', titles[type]||type, o.prop);
     return;
   }
   var o=offers.find(function(x){return x.fbKey===fbKey;});
@@ -4985,6 +5055,7 @@ function genDoc(type, fbKey){
   var doc=docs[type];
   if(!doc){ showToast('Document type not found'); return; }
   openDocWindow(doc.title, doc.content);
+  logActivity('document', doc.title, prop);
 }
 
 var editingOfferKey=null;
@@ -5127,6 +5198,23 @@ showPage=function(id,btn){
 // MOVE-INS
 // =============================================================================
 var miFilter='all';
+var moFilter='all';
+function setMoFilter(f,btn){
+  moFilter=f;
+  document.querySelectorAll('#mo-filter-pills .filter-pill').forEach(function(p){p.classList.remove('active');});
+  if(btn) btn.classList.add('active');
+  renderMoveOuts();
+}
+function getMoProgress(m){
+  var items=[m.notesSent, (m.maint&&m.maint.status==='done'), (m.clean&&m.clean.status==='done'), (m.inv&&m.inv.status==='done')];
+  var done=items.filter(Boolean).length;
+  return Math.round(done/items.length*100);
+}
+function getMoStatus(pct){
+  if(pct===100) return 'Complete';
+  if(pct===0) return 'Not started';
+  return 'In progress';
+}
 var moShowUnmatchedOnly=false;
 function toggleMoUnmatchedOnly(){
   moShowUnmatchedOnly=!moShowUnmatchedOnly;
@@ -5291,7 +5379,7 @@ function getMiStatus(pct){
 function renderMoveIns(){
   var search=(document.getElementById('mi-search')||{}).value||'';
   search=search.toLowerCase();
-  if(window._pendingFilter==='active'){ miFilter='in-progress'; window._pendingFilter=null; document.querySelectorAll('#mi-filter-pills .filter-pill').forEach(function(p,i){p.classList.toggle('active',i===2);}); }
+  if(window._pendingFilter==='active'){ miFilter='in-progress'; window._pendingFilter=null; document.querySelectorAll('#mi-filter-pills .filter-pill').forEach(function(p,i){p.classList.toggle('active',i===1);}); }
   var filtered=moveins.filter(function(m){
     if(search){ if(!((m.prop||'')+' '+(m.tenant||'')).toLowerCase().includes(search)) return false; }
     var pct=getMiProgress(m); var status=getMiStatus(pct);
@@ -5575,6 +5663,10 @@ function renderMoveOuts(){
   var filtered=moveouts.filter(function(m){
     if(m.status==='Vacated') return false;
     if(moShowUnmatchedOnly && findMatchedMoveIn(m.prop)) return false;
+    var status=getMoStatus(getMoProgress(m));
+    if(moFilter==='all' && status==='Complete') return false;
+    if(moFilter==='in-progress' && status!=='In progress') return false;
+    if(moFilter==='complete' && status!=='Complete') return false;
     if(!q) return true;
     return (m.prop||'').toLowerCase().indexOf(q)>-1 || (m.tenant||'').toLowerCase().indexOf(q)>-1;
   });
@@ -5596,11 +5688,17 @@ function renderMoveOuts(){
       var vacateDate=m.vacateDate||m.noticeDate;
       var matchedIn=findMatchedMoveIn(m.prop);
       var voidDays=matchedIn?calcVoidDays(vacateDate, matchedIn.startDate):null;
+      var pct=getMoProgress(m);
+      var status=getMoStatus(pct);
+      var statusCls=pct===100?'badge-green':pct>0?'badge-amber':'badge-grey';
       return '<div class="card" style="margin-bottom:10px'+(matchedIn?';border-left:3px solid var(--purple-text)':'')+'">'
         +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
         +'<div><div style="font-size:13px;font-weight:600;color:var(--navy)">'+(m.prop||'—')+'</div>'
         +'<div style="font-size:11px;color:var(--text2)">'+(m.tenant||'')+'</div></div>'
+        +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">'
+        +'<span class="badge '+statusCls+'">'+status+'</span>'
         +'<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--amber-bg);color:var(--amber-text)">Vacating'+(vacateDate?' · '+formatDateDayDMY(vacateDate):'')+'</span>'
+        +'</div>'
         +'</div>'
         +(matchedIn?'<div style="font-size:10px;color:var(--purple-text);margin-bottom:6px">↔ '+(matchedIn.tenant||'New tenant')+' moving in '+(matchedIn.startDate?formatDateDayDMY(matchedIn.startDate):'—')+voidBadgeHtml(voidDays)+'</div>'
                    :'<div style="font-size:10px;color:var(--red-text);margin-bottom:6px">No new tenant found yet</div>')
@@ -5612,7 +5710,10 @@ function renderMoveOuts(){
         +movementBadgeHtml('out',m.fbKey,'clean',m.clean,m.prop)
         +movementBadgeHtml('out',m.fbKey,'inv',m.inv,m.prop)
         +'</div>'
-        +'<button class="btn btn-outline btn-sm" onclick="deleteMoveOut(\''+m.fbKey+'\')">Remove</button>'
+        +'<div style="display:flex;gap:4px">'
+        +'<button class="btn btn-outline btn-sm" onclick="openEditMoveOut(\''+m.fbKey+'\')">Edit</button>'
+        +'<button class="btn btn-red btn-sm" onclick="deleteMoveOut(\''+m.fbKey+'\')">Remove</button>'
+        +'</div>'
         +'</div>';
     }).join('');
   }
@@ -5645,6 +5746,30 @@ function deleteMoveOut(fbKey){
     moveouts=moveouts.filter(function(m){ return m.fbKey!==fbKey; });
     renderMoveOuts();
     showToast('Move-out record removed');
+  });
+}
+
+// ─── EDIT MOVE-OUT (tenant name, vacate date) ────────────────────────────────
+var editingMoveOutKey=null;
+function openEditMoveOut(fbKey){
+  var m=moveouts.find(function(x){return x.fbKey===fbKey;});
+  if(!m) return;
+  editingMoveOutKey=fbKey;
+  document.getElementById('emo-address').textContent=m.prop||'';
+  document.getElementById('emo-tenant').value=m.tenant||'';
+  document.getElementById('emo-vacate').value=m.vacateDate||'';
+  openModal('edit-moveout-modal');
+}
+
+function saveEditMoveOut(){
+  var m=moveouts.find(function(x){return x.fbKey===editingMoveOutKey;});
+  if(!m) return;
+  m.tenant=document.getElementById('emo-tenant').value;
+  m.vacateDate=document.getElementById('emo-vacate').value;
+  fbSet('moveouts/'+editingMoveOutKey, m, function(){
+    closeModal('edit-moveout-modal');
+    renderMoveOuts();
+    showToast('Move-out updated');
   });
 }
 
@@ -5724,16 +5849,43 @@ function confirmEndTenancy(){
     // Close out any matching move-out checklist
     var mo=moveouts.find(function(m){ return m.propFbKey===p.fbKey && m.status!=='Vacated'; });
     if(mo){ mo.status='Vacated'; fbSet('moveouts/'+mo.fbKey, mo); }
-    // Remove from properties
+
+    // Hand over to the matched incoming tenant (from Movements) if one exists,
+    // instead of deleting the property outright — this is the one moment the
+    // property actually changes hands, now that Re-let no longer does it early.
+    var matchedIn=findMatchedMoveIn(p.address);
     var path=p.fbKey?'properties/'+p.fbKey:'properties/'+currentPropIdx;
-    fbDelete(path, function(){
-      properties.splice(currentPropIdx,1);
-      closeModal('end-tenancy-modal');
-      closeModal('prop-detail-modal');
-      renderPropsTable();
-      renderStatCards();
-      showToast('Tenancy ended — record archived to Past Tenants');
-    });
+
+    if(matchedIn){
+      var newTenant=(matchedIn.tenants&&matchedIn.tenants[0])||{};
+      p.tenant=matchedIn.tenant||newTenant.name||'';
+      p.tenantPhone=newTenant.phone||'';
+      p.tenantEmail=newTenant.email||'';
+      p.startDate=matchedIn.startDate||'';
+      if(matchedIn.rent) p.rent=matchedIn.rent;
+      if(matchedIn.fee) p.mgmtFee=matchedIn.fee;
+      if(matchedIn.deposit) p.deposit=matchedIn.deposit;
+      p.depositId=''; p.depositStatus='Protected'; p.depositDate='';
+      fbSet(path, p, function(){
+        closeModal('end-tenancy-modal');
+        closeModal('prop-detail-modal');
+        renderPropsTable();
+        renderStatCards();
+        showToast('Tenancy ended — '+(p.tenant||'new tenant')+' is now the live tenant at this property');
+      });
+    } else {
+      // No new tenant lined up yet — leave the property in place but vacant,
+      // rather than deleting the record entirely.
+      p.tenant=''; p.tenantPhone=''; p.tenantEmail=''; p.startDate='';
+      p.deposit=''; p.depositId=''; p.depositStatus=''; p.depositDate='';
+      fbSet(path, p, function(){
+        closeModal('end-tenancy-modal');
+        closeModal('prop-detail-modal');
+        renderPropsTable();
+        renderStatCards();
+        showToast('Tenancy ended — record archived to Past Tenants. Property is now vacant.');
+      });
+    }
   });
 }
 
@@ -5763,6 +5915,8 @@ function copyDoc(type, fbKey){
   var text=(type==='tenant-welcome'||type==='ll-welcome'||type==='pep')?getNewDocContent(type,fbKey):getDocContent(type,fbKey);
   if(!text){showToast('Document not found');return;}
   navigator.clipboard.writeText(text).then(function(){ showToast('Document copied to clipboard'); });
+  var o=offers.find(function(x){return x.fbKey===fbKey;});
+  logActivity('document', type+' (copied)', o?o.prop:'');
 }
 
 function emailDoc(type, fbKey, recipient){
@@ -5794,6 +5948,7 @@ function emailDoc(type, fbKey, recipient){
   }
   var mailto='mailto:'+toEmail+'?subject='+encodeURIComponent(subjects[type]||'Document')+'&body='+encodeURIComponent(text);
   window.location.href=mailto;
+  logActivity('document', (subjects[type]||type)+' (emailed to '+recipient+')', o.prop);
 }
 
 
@@ -6939,49 +7094,6 @@ function deleteDupe(fbKey, gi){
   });
 }
 
-
-// ─── RE-LET PROPERTY ─────────────────────────────────────────────────────────
-function openReLet(){
-  var p=properties[currentPropIdx];
-  if(!p) return;
-  document.getElementById('relet-sub').textContent=p.address||'';
-  ['rl-tenant','rl-phone','rl-email','rl-rent','rl-start','rl-deposit'].forEach(function(id){
-    var el=document.getElementById(id); if(el) el.value='';
-  });
-  closeModal('prop-detail-modal');
-  openModal('relet-modal');
-}
-
-function confirmReLet(){
-  var p=properties[currentPropIdx];
-  if(!p) return;
-  var tenant=document.getElementById('rl-tenant').value.trim();
-  if(!tenant){ showToast('Please enter new tenant name'); return; }
-  var startDate=document.getElementById('rl-start').value;
-  if(!startDate){ showToast('Please enter a start date'); return; }
-  // Archive current tenancy to Past Tenants
-  var pastRecord={
-    address:p.address||'', tenant:p.tenant||'', landlord:p.llName||'',
-    startDate:p.startDate||'', endDate:startDate, rent:p.rent||'',
-    depositStatus:p.depositStatus||'', letOnly:p.letOnly||'n',
-    notes:'Re-let — new tenancy started '+startDate,
-    archivedDate:new Date().toISOString(), reason:'Re-let'
-  };
-  fbPush('pasttenants', pastRecord, function(){});
-  // Update property with new tenant
-  p.tenant=tenant;
-  p.tenantPhone=document.getElementById('rl-phone').value;
-  p.tenantEmail=document.getElementById('rl-email').value;
-  p.rent=document.getElementById('rl-rent').value||p.rent;
-  p.deposit=document.getElementById('rl-deposit').value||p.deposit;
-  p.startDate=startDate;
-  p.depositStatus=''; p.depositId='';
-  fbSet('properties/'+p.fbKey, p, function(){
-    closeModal('relet-modal');
-    renderPropsTable(); renderStatCards();
-    showToast('New tenancy created — previous tenancy saved to Past Tenants');
-  });
-}
 
 // ─── INSPECTIONS ─────────────────────────────────────────────────────────────
 var currentInspKey=null;
