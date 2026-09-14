@@ -4771,7 +4771,7 @@ function sendTcsEnvelopeProp(fbKey){
 function checkTcsStatusProp(fbKey){
   var p=properties.find(function(x){return x.fbKey===fbKey;});
   if(!p||!p.checklist||!p.checklist.tcs||!p.checklist.tcs.envelopeId){ showToast('No envelope on file'); return; }
-  fetch('/.netlify/functions/check-tcs-status?envelopeId='+encodeURIComponent(p.checklist.tcs.envelopeId))
+  fetch('/.netlify/functions/check-tcs-status?envelopeId='+encodeURIComponent(p.checklist.tcs.envelopeId)+'&propertyId='+encodeURIComponent(fbKey))
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(data && data.status){
