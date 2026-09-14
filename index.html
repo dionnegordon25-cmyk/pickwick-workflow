@@ -4715,7 +4715,7 @@ function renderPropChecklistSection(p){
     +'<span class="badge '+tcsCls+'">T&amp;Cs: '+tcsText+'</span>'
     +(tcs.status==='not_sent'?'<button class="btn btn-outline btn-sm" onclick="sendTcsEnvelopeProp(\''+p.fbKey+'\')">Send T&amp;Cs</button>':'')
     +(tcs.status==='sent'?'<button class="btn btn-outline btn-sm" onclick="checkTcsStatusProp(\''+p.fbKey+'\')">Check status</button>':'')
-    +(tcs.status==='done'&&tcs.signedDocUrl?'<a class="btn btn-outline btn-sm" href="'+tcs.signedDocUrl+'" target="_blank">View signed doc</a>':'')
+    +(tcs.status==='done'&&tcs.envelopeId?'<a class="btn btn-outline btn-sm" href="/.netlify/functions/get-signed-doc?envelopeId='+encodeURIComponent(tcs.envelopeId)+'" target="_blank">View signed doc</a>':'')
     +'</div>'
     +'<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">'
     +'<button type="button" class="badge '+pepCls+'" style="border:none;cursor:pointer" onclick="togglePepStatusProp(\''+p.fbKey+'\')">PEP &amp; Sanctions: '+pepText+'</button>'
