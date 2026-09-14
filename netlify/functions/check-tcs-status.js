@@ -27,8 +27,22 @@ const DOCUSIGN_AUTH_SERVER = DOCUSIGN_BASE_URI && DOCUSIGN_BASE_URI.includes('de
 // for why (AWS Lambda's 4KB combined env var limit).
 async function getPrivateKey() {
   const res = await fetch(`${FIREBASE_URL}/config/docusignPrivateKey.json?auth=${FIREBASE_SECRET}`);
-  const key = await res.json();
-  if (!key) throw new Error('DocuSign private key not found in Firebase at /config/docusignPrivateKey');
+  const raw = await res.json();
+  if (!raw) throw new Error('DocuSign private key not found in Firebase at /config/docusignPrivateKey');
+  return normalisePemKey(raw);
+}
+
+// Rebuilds a proper PEM key regardless of how its line breaks survived being
+// pasted into Firebase's single-line value field. See send-tcs-envelope.js.
+function normalisePemKey(raw) {
+  let key = raw.replace(/\\n/g, '\n').trim();
+  const match = key.match(/-----BEGIN ([^-]+)-----([\s\S]*?)-----END \1-----/);
+  if (match) {
+    const label = match[1].trim();
+    const body = match[2].replace(/\s+/g, '');
+    const wrapped = body.match(/.{1,64}/g).join('\n');
+    key = `-----BEGIN ${label}-----\n${wrapped}\n-----END ${label}-----\n`;
+  }
   return key;
 }
 
