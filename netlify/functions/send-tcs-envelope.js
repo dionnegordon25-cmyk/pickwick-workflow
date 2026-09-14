@@ -11,10 +11,16 @@
 //   DOCUSIGN_INTEGRATION_KEY   - Integration Key from the app's General Info page
 //   DOCUSIGN_USER_ID           - User ID, from Admin > Apps and Keys > My Account Information
 //   DOCUSIGN_ACCOUNT_ID        - API Account ID, same page
-//   DOCUSIGN_BASE_URI          - Account Base URI, same page (yours: https://eu.docusign.net)
-//   DOCUSIGN_PRIVATE_KEY       - the RSA private key generated under Service Integration
-//   DOCUSIGN_TEMPLATE_ID       - the Landlord T&Cs DocuSign Template ID (not yet created)
+//   DOCUSIGN_BASE_URI          - Account Base URI, same page
+//   DOCUSIGN_TEMPLATE_ID       - the Landlord T&Cs DocuSign Template ID
 //   FIREBASE_URL, FIREBASE_SECRET - already in use elsewhere in the CRM
+//
+// NOTE: the RSA private key is deliberately NOT an environment variable.
+// AWS Lambda caps the combined size of all env vars at 4KB, and this key
+// alone is large enough to push every function over that limit. Instead,
+// it's stored in Firebase (same trust boundary as everything else in the
+// CRM, secured by FIREBASE_SECRET) and fetched at runtime — see
+// getPrivateKey() below. Stored at: /config/docusignPrivateKey
 //
 // This assumes a DocuSign Template exists for the Landlord T&Cs with a signer
 // role called "Landlord" and the signature tab already placed on it. Using a
@@ -29,7 +35,6 @@ const {
   DOCUSIGN_USER_ID,
   DOCUSIGN_ACCOUNT_ID,
   DOCUSIGN_BASE_URI,
-  DOCUSIGN_PRIVATE_KEY,
   DOCUSIGN_TEMPLATE_ID,
   FIREBASE_URL,
   FIREBASE_SECRET
@@ -39,7 +44,15 @@ const DOCUSIGN_AUTH_SERVER = DOCUSIGN_BASE_URI && DOCUSIGN_BASE_URI.includes('de
   ? 'account-d.docusign.com'
   : 'account.docusign.com';
 
+async function getPrivateKey() {
+  const res = await fetch(`${FIREBASE_URL}/config/docusignPrivateKey.json?auth=${FIREBASE_SECRET}`);
+  const key = await res.json();
+  if (!key) throw new Error('DocuSign private key not found in Firebase at /config/docusignPrivateKey');
+  return key;
+}
+
 async function getAccessToken() {
+  const privateKey = await getPrivateKey();
   const now = Math.floor(Date.now() / 1000);
   const token = jwt.sign(
     {
@@ -50,7 +63,7 @@ async function getAccessToken() {
       exp: now + 3600,
       scope: 'signature impersonation'
     },
-    DOCUSIGN_PRIVATE_KEY,
+    privateKey,
     { algorithm: 'RS256' }
   );
 

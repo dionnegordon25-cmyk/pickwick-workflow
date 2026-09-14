@@ -15,7 +15,6 @@ const {
   DOCUSIGN_USER_ID,
   DOCUSIGN_ACCOUNT_ID,
   DOCUSIGN_BASE_URI,
-  DOCUSIGN_PRIVATE_KEY,
   FIREBASE_URL,
   FIREBASE_SECRET
 } = process.env;
@@ -24,7 +23,17 @@ const DOCUSIGN_AUTH_SERVER = DOCUSIGN_BASE_URI && DOCUSIGN_BASE_URI.includes('de
   ? 'account-d.docusign.com'
   : 'account.docusign.com';
 
+// Private key deliberately not stored as an env var — see send-tcs-envelope.js
+// for why (AWS Lambda's 4KB combined env var limit).
+async function getPrivateKey() {
+  const res = await fetch(`${FIREBASE_URL}/config/docusignPrivateKey.json?auth=${FIREBASE_SECRET}`);
+  const key = await res.json();
+  if (!key) throw new Error('DocuSign private key not found in Firebase at /config/docusignPrivateKey');
+  return key;
+}
+
 async function getAccessToken() {
+  const privateKey = await getPrivateKey();
   const now = Math.floor(Date.now() / 1000);
   const token = jwt.sign(
     {
@@ -35,7 +44,7 @@ async function getAccessToken() {
       exp: now + 3600,
       scope: 'signature impersonation'
     },
-    DOCUSIGN_PRIVATE_KEY,
+    privateKey,
     { algorithm: 'RS256' }
   );
 
